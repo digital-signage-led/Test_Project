@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+/* 既存スタイルを維持しつつ追加 */
+#ts{position:absolute;top:5px;right:10px;font-size:12px;color:#aaa;}
+#trd{position:absolute;top:5px;left:10px;font-size:14px;color:#fff;}
+</style>
+</head>
+<body>
+<div id="vp">
+    <div id="tr"></div>
+    <div id="ts">--:--</div>
+    <div id="trd">-</div>
+</div>
+<div id="e"><div class="m">データ取得エラー</div><div class="u">再試行中...</div></div>
+<audio id="al">
+    <source src="alert.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const C={lat:38.2682,lon:140.8694,ms:30*60*1000,slide:10000};
+let prevWbgt = null;
+
+// 時刻表示
+function updateTime(){
+    const now = new Date();
+    document.getElementById('ts').textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+}
+
+// 警報音再生（ブラウザ制限回避のため、初回どこかクリックが必要）
+function playAlert(){
+    const audio = document.getElementById('al');
+    audio.play().catch(e => console.log("再生制限により音が出ません"));
+}
+
+function upd(tmp, wv){
+    const lv=L.find(l=>wv>=l.min), wi=Math.round(wv), ts=tmp.toFixed(1)+'℃';
+    
+    // トレンド計算
+    let trend = '-';
+    if(prevWbgt !== null){
+        if(wv > prevWbgt + 0.5) trend = '↑';
+        else if(wv < prevWbgt - 0.5) trend = '↓';
+    }
+    prevWbgt = wv;
+
+    document.getElementById('vp').style.display='block';
+    document.getElementById('e').style.display='none';
+    document.getElementById('trd').textContent = trend;
+
+    tr.querySelectorAll('.c').forEach(c=>{
+        // ... (既存の描画ロジック) ...
+    });
+
+    if(wv >= 31) playAlert();
+    updateTime();
+}
+
+// エラー時は非表示にせずステータスを表示
+function err(){
+    document.getElementById('vp').style.display='none';
+    document.getElementById('e').style.display='flex';
+}
+// ... (その他の関数) ...
+</script>
+</body>
+</html>
