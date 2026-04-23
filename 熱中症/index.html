@@ -26,8 +26,10 @@ body{width:512px;height:128px;overflow:hidden;background:#000;font-family:'Noto 
 <body>
 <div id="vp"><div id="tr"></div></div>
 <div id="e"><div class="m">WBGT 取得不可</div><div class="u">データ提供：気象庁 / Open-Meteo</div></div>
+
 <script>
-const C={lat:38.2682,lon:140.8694,ms:30*60*1000,slide:10000};
+// 設定：仙台市（宮城県庁付近）
+const C={lat:38.2686,lon:140.8720,ms:30*60*1000,slide:10000};
 const L=[
   {min:31,bg:'#EC3817',bar:'#EE6145',n:['危険','Danger','Nguy hiểm','危险'],a:['作業を直ちに中止','Stop work immediately','Dừng công việc ngay','立即停止作业']},
   {min:28,bg:'#FB8C00',bar:'#FCA633',n:['厳重警戒','Severe Warning','Cảnh báo nghiêm trọng','严重警戒'],a:['激しい作業は中止','Stop intense work','Ngừng làm việc nặng','停止剧烈作业']},
@@ -36,7 +38,7 @@ const L=[
   {min:-Infinity,bg:'#0289DE',bar:'#319EE3',n:['ほぼ安全','Safe','An toàn','基本安全'],a:['適宜水分補給','Stay hydrated','Bổ sung nước','注意补水']}
 ];
 
-// 8パネル（4言語×2セット）でシームレスループ
+// 初期化：スライド用DOM生成
 const tr=document.getElementById('tr');
 for(let i=0;i<8;i++){
   const d=document.createElement('div');
@@ -47,19 +49,25 @@ for(let i=0;i<8;i++){
 }
 tr.style.width='1024px';
 
+// スライド処理
 let ofs=0;
 function slide(){
   ofs++;
   tr.style.transition='transform .6s ease-in-out';
   tr.style.transform=`translateX(-${ofs*128}px)`;
   if(ofs>=4){
-    setTimeout(()=>{tr.style.transition='none';ofs=0;tr.style.transform='translateX(0)'},650);
+    setTimeout(()=>{tr.style.transition='none';ofs=0;tr.style.transform='translateX(0)'},600);
   }
 }
 setInterval(slide,C.slide);
 
-function est(t,rh){const e=(rh/100)*6.105*Math.exp(17.27*t/(237.7+t));return .567*t+.393*e+3.94}
+// WBGT推定式（気象庁データに基づく近似計算）
+function est(t,rh){
+  const e=(rh/100)*6.105*Math.exp(17.27*t/(237.7+t));
+  return .567*t+.393*e+3.94;
+}
 
+// 画面更新処理
 function upd(tmp,wv){
   const lv=L.find(l=>wv>=l.min),wi=Math.round(wv),ts=tmp.toFixed(1)+'℃';
   document.getElementById('vp').style.display='block';
@@ -75,17 +83,23 @@ function upd(tmp,wv){
   });
 }
 
+// エラーハンドリング
 function err(){document.getElementById('vp').style.display='none';document.getElementById('e').style.display='flex'}
 
+// データ取得（Open-Meteo API）
 async function go(){
   try{
     const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=temperature_2m,relative_humidity_2m&timezone=Asia%2FTokyo`);
-    if(!r.ok)throw 0;const d=await r.json(),t=d?.current?.temperature_2m,rh=d?.current?.relative_humidity_2m;
-    if(t==null||rh==null||isNaN(t)||isNaN(rh))throw 0;
+    if(!r.ok) throw new Error();
+    const d=await r.json(), t=d?.current?.temperature_2m, rh=d?.current?.relative_humidity_2m;
+    if(t==null||rh==null) throw new Error();
     upd(t,est(t,rh));
   }catch(_){err()}
 }
-go();setInterval(go,C.ms);
+
+// 初回実行と定期取得
+go();
+setInterval(go,C.ms);
 </script>
 </body>
 </html>
