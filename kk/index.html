@@ -12,25 +12,21 @@
     overflow: hidden;
     background: #000;
   }
-
   .crop {
     position: absolute;
     top: 0;
     left: 0;
-    /* 元の切り抜きサイズ */
-    width: 676px;
+    width: 670px;
     height: 558px;
     overflow: hidden;
-    /* 1920x1080にスケーリング */
     transform-origin: 0 0;
   }
-
   .crop iframe {
     border: none;
     position: absolute;
     width: 1920px;
     height: 1080px;
-    left: -693px;
+    left: -700px;
     top: -204px;
   }
 </style>
@@ -42,15 +38,9 @@
       scrolling="no"
     ></iframe>
   </div>
-
   <script>
-    // 切り抜きサイズから1920x1080への自動スケーリング
     var crop = document.getElementById('crop');
-    var cropW = 676;
-    var cropH = 558;
-    var scaleX = 1920 / cropW;  // ≈ 2.84
-    var scaleY = 1080 / cropH;  // ≈ 1.94
-    crop.style.transform = 'scale(' + scaleX + ',' + scaleY + ')';
+    crop.style.transform = 'scale(' + (1920/670) + ',' + (1080/558) + ')';
   </script>
 </body>
 </html>
