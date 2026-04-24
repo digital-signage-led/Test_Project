@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1920, height=1080">
-<title>騒音振動モニター（調整モード）</title>
+<title>騒音振動モニター</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -14,7 +14,10 @@
   }
   .crop {
     position: absolute;
-    top: 0; left: 0;
+    top: 0;
+    left: 0;
+    width: 770px;
+    height: 585px;
     overflow: hidden;
     transform-origin: 0 0;
   }
@@ -23,72 +26,23 @@
     position: absolute;
     width: 1920px;
     height: 1080px;
+    left: -700px;
+    top: -204px;
   }
-  #panel {
-    position: fixed;
-    bottom: 20px; right: 20px;
-    background: rgba(0,0,0,0.9);
-    color: #0f0;
-    padding: 16px 20px;
-    font: 16px monospace;
-    border-radius: 8px;
-    z-index: 9999;
-    line-height: 2;
-  }
-  #panel b { color: #ff0; }
 </style>
 </head>
 <body>
   <div class="crop" id="crop">
-    <iframe id="frame"
+    <iframe
       src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738"
       scrolling="no"
     ></iframe>
   </div>
-
-  <div id="panel">
-    <b>← → ↑ ↓</b> 位置移動(10px)<br>
-    <b>Shift+矢印</b> 微調整(1px)<br>
-    <b>W/S</b> 幅 +/-(10px)<br>
-    <b>E/D</b> 高さ +/-(10px)<br>
-    X:<span id="vx"></span>　Y:<span id="vy"></span><br>
-    W:<span id="vw"></span>　H:<span id="vh"></span>
-  </div>
-
   <script>
-    var x=700, y=204, w=670, h=558;
-    var crop = document.getElementById('crop');
-    var frame = document.getElementById('frame');
-
-    function update() {
-      crop.style.width = w + 'px';
-      crop.style.height = h + 'px';
-      crop.style.transform = 'scale('+(1920/w)+','+(1080/h)+')';
-      frame.style.left = -x + 'px';
-      frame.style.top = -y + 'px';
-      document.getElementById('vx').textContent = x;
-      document.getElementById('vy').textContent = y;
-      document.getElementById('vw').textContent = w;
-      document.getElementById('vh').textContent = h;
-    }
-    update();
-
-    document.addEventListener('keydown', function(e) {
-      var s = e.shiftKey ? 1 : 10;
-      switch(e.key) {
-        case 'ArrowLeft':  x -= s; break;
-        case 'ArrowRight': x += s; break;
-        case 'ArrowUp':    y -= s; break;
-        case 'ArrowDown':  y += s; break;
-        case 'w': case 'W': w += s; break;
-        case 's': case 'S': w -= s; break;
-        case 'e': case 'E': h += s; break;
-        case 'd': case 'D': h -= s; break;
-        default: return;
-      }
-      e.preventDefault();
-      update();
-    });
+    var c = document.getElementById('crop');
+    var w = parseInt(getComputedStyle(c).width);
+    var h = parseInt(getComputedStyle(c).height);
+    c.style.transform = 'scale('+(1920/w)+','+(1080/h)+')';
   </script>
 </body>
 </html>
