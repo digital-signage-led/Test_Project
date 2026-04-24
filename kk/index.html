@@ -2,24 +2,29 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=1920, height=1080">
 <title>騒音振動モニター</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    width: 100%;
-    height: 100%;
+    width: 1920px;
+    height: 1080px;
     overflow: hidden;
     background: #000;
   }
+
   .crop {
     position: absolute;
     top: 0;
     left: 0;
+    /* 元の切り抜きサイズ */
     width: 676px;
     height: 558px;
     overflow: hidden;
+    /* 1920x1080にスケーリング */
+    transform-origin: 0 0;
   }
+
   .crop iframe {
     border: none;
     position: absolute;
@@ -31,11 +36,21 @@
 </style>
 </head>
 <body>
-  <div class="crop">
+  <div class="crop" id="crop">
     <iframe
       src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738"
       scrolling="no"
     ></iframe>
   </div>
+
+  <script>
+    // 切り抜きサイズから1920x1080への自動スケーリング
+    var crop = document.getElementById('crop');
+    var cropW = 676;
+    var cropH = 558;
+    var scaleX = 1920 / cropW;  // ≈ 2.84
+    var scaleY = 1080 / cropH;  // ≈ 1.94
+    crop.style.transform = 'scale(' + scaleX + ',' + scaleY + ')';
+  </script>
 </body>
 </html>
