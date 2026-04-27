@@ -2,23 +2,62 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=512, initial-scale=1">
-<title>WBGT 熱中症警報サイネージ</title>
+<meta name="viewport" content="width=640, initial-scale=1">
+<title>WBGT 熱中症警報サイネージ 5面</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&family=Noto+Sans:wght@700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{width:512px;height:128px;overflow:hidden;background:#000;font-family:'Noto Sans JP','Noto Sans',sans-serif}
-#vp{width:512px;height:128px;overflow:hidden;position:relative}
+body{width:640px;height:128px;overflow:hidden;background:#000;font-family:'Noto Sans JP','Noto Sans',sans-serif}
+#vp{width:640px;height:128px;overflow:hidden;position:relative}
+/* 9パネル（5+4ループ用）*/
 #tr{height:128px;position:absolute;top:0;left:0;display:flex;transition:transform .6s ease-in-out}
 .c{width:128px;height:128px;position:relative;flex-shrink:0}
 .tb{position:absolute;top:1px;left:0;width:128px;height:25px}
 .wb{position:absolute;top:108px;left:0;width:128px;height:20px;background:#fff}
-.t{position:absolute;top:0px;width:128px;text-align:center;font-size:16px;font-weight:700;color:#fff}
+.t{position:absolute;top:5px;width:128px;text-align:center;font-size:16px;font-weight:700;color:#fff}
 .w{position:absolute;top:25px;width:128px;text-align:center;font-size:36px;font-weight:900;color:#fff;line-height:40px}
 .d{position:absolute;top:64px;left:14px;width:100px;height:1.5px;background:rgba(255,255,255,.8)}
 .n{position:absolute;top:73px;width:128px;text-align:center;font-size:24px;font-weight:900;color:#fff;line-height:28px;overflow:hidden;white-space:nowrap}
 .a{position:absolute;top:109px;width:128px;text-align:center;font-size:14px;font-weight:700;color:#1e1e1e;line-height:18px;overflow:hidden;white-space:nowrap}
-#e{display:none;width:512px;height:128px;background:#333;color:#fff;justify-content:center;align-items:center;flex-direction:column;gap:4px}
+/* 顔アイコンパネル */
+.face{width:128px;height:128px;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.face img{width:100px;height:100px;object-fit:cover;animation:emote 10s ease-in-out infinite}
+@keyframes emote{
+  /* 呼吸 */
+  0%  {transform:scale(1) rotate(0deg) translateY(0)}
+  5%  {transform:scale(1.05,0.95) rotate(0deg) translateY(2px)}
+  10% {transform:scale(0.95,1.05) rotate(0deg) translateY(-2px)}
+  15% {transform:scale(1) rotate(0deg) translateY(0)}
+  /* 首振り */
+  20% {transform:scale(1) rotate(-8deg) translateY(0)}
+  25% {transform:scale(1) rotate(8deg) translateY(0)}
+  30% {transform:scale(1) rotate(-5deg) translateY(0)}
+  33% {transform:scale(1) rotate(0deg) translateY(0)}
+  /* びっくり：つぶれ→伸び */
+  38% {transform:scale(1.15,0.85) rotate(0deg) translateY(4px)}
+  42% {transform:scale(0.85,1.2) rotate(0deg) translateY(-6px)}
+  46% {transform:scale(1.05,0.95) rotate(0deg) translateY(2px)}
+  50% {transform:scale(1) rotate(0deg) translateY(0)}
+  /* 5秒目：回転 */
+  55% {transform:scale(1) rotate(180deg) translateY(0)}
+  60% {transform:scale(1.08) rotate(360deg) translateY(0)}
+  65% {transform:scale(1) rotate(360deg) translateY(0)}
+  /* バウンス */
+  70% {transform:scale(1) rotate(360deg) translateY(-8px)}
+  73% {transform:scale(1.1,0.9) rotate(360deg) translateY(3px)}
+  76% {transform:scale(0.95,1.05) rotate(360deg) translateY(-4px)}
+  80% {transform:scale(1) rotate(360deg) translateY(0)}
+  /* ぷるぷる */
+  83% {transform:scale(1) rotate(362deg) translateY(0)}
+  85% {transform:scale(1) rotate(358deg) translateY(0)}
+  87% {transform:scale(1) rotate(362deg) translateY(0)}
+  89% {transform:scale(1) rotate(358deg) translateY(0)}
+  92% {transform:scale(1) rotate(360deg) translateY(0)}
+  /* 戻り */
+  100%{transform:scale(1) rotate(360deg) translateY(0)}
+}
+/* エラー */
+#e{display:none;width:640px;height:128px;background:#333;color:#fff;justify-content:center;align-items:center;flex-direction:column;gap:4px}
 #e .m{font-size:28px;font-weight:900}
 #e .u{font-size:12px;opacity:.7}
 </style>
@@ -26,53 +65,75 @@ body{width:512px;height:128px;overflow:hidden;background:#000;font-family:'Noto 
 <body>
 <div id="vp"><div id="tr"></div></div>
 <div id="e"><div class="m">WBGT 取得不可</div><div class="u">データ提供：気象庁 / Open-Meteo</div></div>
-
 <script>
-// 設定：仙台市（宮城県庁付近）
-const C={lat:38.2686,lon:140.8720,ms:30*60*1000,slide:10000};
+const C={lat:38.2682,lon:140.8694,ms:30*60*1000,slide:10000};
 const L=[
-  {min:31,bg:'#EC3817',bar:'#EE6145',n:['危険','Danger','Nguy hiểm','危险'],a:['作業を直ちに中止','Stop work immediately','Dừng công việc ngay','立即停止作业']},
-  {min:28,bg:'#FB8C00',bar:'#FCA633',n:['厳重警戒','Severe Warning','Cảnh báo nghiêm trọng','严重警戒'],a:['激しい作業は中止','Stop intense work','Ngừng làm việc nặng','停止剧烈作业']},
-  {min:25,bg:'#FDD835',bar:'#FDE366',n:['警戒','Warning','Cảnh báo','警戒'],a:['定期的に休憩','Take regular breaks','Nghỉ ngơi định kỳ','定时休息']},
-  {min:21,bg:'#42A5F5',bar:'#61B8F8',n:['注意','Caution','Chú ý','注意'],a:['積極的に水分補給','Actively hydrate','Uống nước thường xuyên','及时补水']},
-  {min:-Infinity,bg:'#0289DE',bar:'#319EE3',n:['ほぼ安全','Safe','An toàn','基本安全'],a:['適宜水分補給','Stay hydrated','Bổ sung nước','注意补水']}
+  {min:31,bg:'#EC3817',bar:'#EE6145',face:'danger.png',
+   n:['危険','Danger','Nguy hiểm','危险'],
+   a:['作業を直ちに中止','Stop work immediately','Dừng công việc ngay','立即停止作业']},
+  {min:28,bg:'#FB8C00',bar:'#FCA633',face:'severe.png',
+   n:['厳重警戒','Severe Warning','Cảnh báo nghiêm trọng','严重警戒'],
+   a:['激しい作業は中止','Stop intense work','Ngừng làm việc nặng','停止剧烈作业']},
+  {min:25,bg:'#FDD835',bar:'#FDE366',face:'warning.png',
+   n:['警戒','Warning','Cảnh báo','警戒'],
+   a:['定期的に休憩','Take regular breaks','Nghỉ ngơi định kỳ','定时休息']},
+  {min:21,bg:'#42A5F5',bar:'#61B8F8',face:'caution.png',
+   n:['注意','Caution','Chú ý','注意'],
+   a:['積極的に水分補給','Actively hydrate','Uống nước thường xuyên','及时补水']},
+  {min:-Infinity,bg:'#0289DE',bar:'#319EE3',face:'safe.png',
+   n:['ほぼ安全','Safe','An toàn','基本安全'],
+   a:['適宜水分補給','Stay hydrated','Bổ sung nước','注意补水']}
 ];
 
-// 初期化：スライド用DOM生成
+// パネル構成: [JP][EN][VN][CN][顔] × 2セット = 10パネル（シームレスループ用）
 const tr=document.getElementById('tr');
-for(let i=0;i<8;i++){
+const LANGS=4;
+const SET=LANGS+1; // 5面1セット
+
+function buildPanel(i,isFace){
+  if(isFace){
+    const f=document.createElement('div');
+    f.className='face';
+    f.dataset.type='face';
+    f.innerHTML='<img src="" alt="level">';
+    return f;
+  }
   const d=document.createElement('div');
   d.className='c';
-  d.dataset.l=i%4;
+  d.dataset.l=i%LANGS;
+  d.dataset.type='lang';
   d.innerHTML='<div class="tb"></div><div class="wb"></div><div class="t"></div><div class="w"></div><div class="d"></div><div class="n"></div><div class="a"></div>';
-  tr.appendChild(d);
+  return d;
 }
-tr.style.width='1024px';
 
-// スライド処理
+// 2セット生成（10パネル）
+for(let s=0;s<2;s++){
+  for(let i=0;i<LANGS;i++) tr.appendChild(buildPanel(i,false));
+  tr.appendChild(buildPanel(0,true));
+}
+tr.style.width=(SET*2*128)+'px';
+
 let ofs=0;
 function slide(){
   ofs++;
   tr.style.transition='transform .6s ease-in-out';
   tr.style.transform=`translateX(-${ofs*128}px)`;
-  if(ofs>=4){
-    setTimeout(()=>{tr.style.transition='none';ofs=0;tr.style.transform='translateX(0)'},600);
+  // 5パネル分ずれたらリセット
+  if(ofs>=SET){
+    setTimeout(()=>{tr.style.transition='none';ofs=0;tr.style.transform='translateX(0)'},650);
   }
 }
 setInterval(slide,C.slide);
 
-// WBGT推定式（気象庁データに基づく近似計算）
-function est(t,rh){
-  const e=(rh/100)*6.105*Math.exp(17.27*t/(237.7+t));
-  return .567*t+.393*e+3.94;
-}
+function est(t,rh){const e=(rh/100)*6.105*Math.exp(17.27*t/(237.7+t));return .567*t+.393*e+3.94}
 
-// 画面更新処理
 function upd(tmp,wv){
   const lv=L.find(l=>wv>=l.min),wi=Math.round(wv),ts=tmp.toFixed(1)+'℃';
   document.getElementById('vp').style.display='block';
   document.getElementById('e').style.display='none';
-  tr.querySelectorAll('.c').forEach(c=>{
+
+  // 言語パネル更新
+  tr.querySelectorAll('[data-type="lang"]').forEach(c=>{
     const i=+c.dataset.l;
     c.style.background=lv.bg;
     c.querySelector('.tb').style.background=lv.bar;
@@ -81,25 +142,25 @@ function upd(tmp,wv){
     c.querySelector('.n').textContent=lv.n[i];
     c.querySelector('.a').textContent=lv.a[i];
   });
+
+  // 顔パネル更新
+  tr.querySelectorAll('[data-type="face"]').forEach(f=>{
+    f.style.background=lv.bg;
+    f.querySelector('img').src=lv.face;
+  });
 }
 
-// エラーハンドリング
 function err(){document.getElementById('vp').style.display='none';document.getElementById('e').style.display='flex'}
 
-// データ取得（Open-Meteo API）
 async function go(){
   try{
     const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=temperature_2m,relative_humidity_2m&timezone=Asia%2FTokyo`);
-    if(!r.ok) throw new Error();
-    const d=await r.json(), t=d?.current?.temperature_2m, rh=d?.current?.relative_humidity_2m;
-    if(t==null||rh==null) throw new Error();
+    if(!r.ok)throw 0;const d=await r.json(),t=d?.current?.temperature_2m,rh=d?.current?.relative_humidity_2m;
+    if(t==null||rh==null||isNaN(t)||isNaN(rh))throw 0;
     upd(t,est(t,rh));
   }catch(_){err()}
 }
-
-// 初回実行と定期取得
-go();
-setInterval(go,C.ms);
+go();setInterval(go,C.ms);
 </script>
 </body>
 </html>
