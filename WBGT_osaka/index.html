@@ -263,31 +263,45 @@
     function playScene3() {
         s3.classList.add('active');
         buildTicker();
-        const scrollDist = 256 * 8;
+        const scrollDist = 256 * 8;   // 2048px: 8ブロック分、パネル境界で止まる
+        const easeStart = 500;         // 残り500pxから減速開始
+        const speedMax = 1.0;          // 通常速度（px/frame）
+        const speedMin = 0.25;         // 最低速度
         const barW = barTrack.scrollWidth / 2;
         let tickerX = 0;
         let barX = 0;
-        const speed = 1.8;
-        const barSpeed = 0.4;
 
         tickerTrack.style.transform = 'translateX(0px)';
 
         function animate() {
-            tickerX -= speed;
-            barX -= barSpeed;
+            const remaining = scrollDist + tickerX; // あと何px
+            let currentSpeed;
+            if (remaining <= easeStart) {
+                // イージング: 残距離に比例して減速、最低speedMinを保証
+                const t = remaining / easeStart;
+                currentSpeed = Math.max(speedMin, speedMax * t * t);
+            } else {
+                currentSpeed = speedMax;
+            }
+
+            tickerX -= currentSpeed;
+            barX -= currentSpeed * 0.25;
             if (barX <= -barW) barX = 0;
-            tickerTrack.style.transform = `translateX(${tickerX}px)`;
-            barTrack.style.transform = `translateX(${barX}px)`;
+
             if (tickerX > -scrollDist) {
+                tickerTrack.style.transform = `translateX(${tickerX}px)`;
+                barTrack.style.transform = `translateX(${barX}px)`;
                 tickerAnimId = requestAnimationFrame(animate);
             } else {
+                // パネル境界にスナップ
                 tickerTrack.style.transform = `translateX(-${scrollDist}px)`;
+                barTrack.style.transform = `translateX(${barX}px)`;
                 cancelAnimationFrame(tickerAnimId);
                 tickerAnimId = null;
                 setTimeout(() => {
                     s3.classList.remove('active');
                     startSequence();
-                }, 1500);
+                }, 2000);
             }
         }
         tickerAnimId = requestAnimationFrame(animate);
@@ -320,10 +334,10 @@
             step++;
             conveyor.style.transition = 'transform 0.6s ease-in-out';
             conveyor.style.transform = `translateX(-${step * 128}px)`;
-            if (step < 8) { setTimeout(slideNext, 5000); } 
+            if (step < 8) { setTimeout(slideNext, 8000); } 
             else { setTimeout(() => { s2.classList.remove('active'); playScene4(); }, 1000); }
         }
-        setTimeout(slideNext, 5000);
+        setTimeout(slideNext, 8000);
     }
 
     function playScene4() {
