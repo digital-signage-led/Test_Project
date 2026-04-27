@@ -2,104 +2,196 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=512, initial-scale=1">
-<title>WBGT 熱中症警報サイネージ</title>
+<meta name="viewport" content="width=640, initial-scale=1">
+<title>WBGT 熱中症警報サイネージ 5面</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&family=Noto+Sans:wght@700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{width:512px;height:128px;overflow:hidden;background:#000;font-family:'Noto Sans JP','Noto Sans',sans-serif}
-#vp{width:512px;height:128px;overflow:hidden;position:relative}
+body{width:640px;height:128px;overflow:hidden;background:#000;font-family:'Noto Sans JP','Noto Sans',sans-serif;display:flex}
+
+/* === 1-512px：言語スライド === */
+#slide-area{width:512px;height:128px;overflow:hidden;position:relative;flex-shrink:0}
 #tr{height:128px;position:absolute;top:0;left:0;display:flex;transition:transform .6s ease-in-out}
 .c{width:128px;height:128px;position:relative;flex-shrink:0}
 .tb{position:absolute;top:1px;left:0;width:128px;height:25px}
 .wb{position:absolute;top:108px;left:0;width:128px;height:20px;background:#fff}
-.t{position:absolute;top:0px;width:128px;text-align:center;font-size:16px;font-weight:700;color:#fff}
+.t{position:absolute;top:5px;width:128px;text-align:center;font-size:16px;font-weight:700;color:#fff}
 .w{position:absolute;top:25px;width:128px;text-align:center;font-size:36px;font-weight:900;color:#fff;line-height:40px}
-.d{position:absolute;top:64px;left:14px;width:100px;height:1.5px;background:rgba(255,255,255,.8)}
+.dvd{position:absolute;top:64px;left:14px;width:100px;height:1.5px;background:rgba(255,255,255,.8)}
 .n{position:absolute;top:73px;width:128px;text-align:center;font-size:24px;font-weight:900;color:#fff;line-height:28px;overflow:hidden;white-space:nowrap}
 .a{position:absolute;top:109px;width:128px;text-align:center;font-size:14px;font-weight:700;color:#1e1e1e;line-height:18px;overflow:hidden;white-space:nowrap}
-#e{display:none;width:512px;height:128px;background:#333;color:#fff;justify-content:center;align-items:center;flex-direction:column;gap:4px}
+
+/* === 513-640px：顔 固定 === */
+#face{width:128px;height:128px;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+
+/* 顔全体：5秒ごとに1回転 */
+.face-wrap{width:100px;height:100px;position:relative;animation:spin5 5s linear infinite}
+@keyframes spin5{
+  0%{transform:rotate(0deg)}
+  80%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
+
+/* 白丸（頭） */
+.head{width:88px;height:88px;background:#fff;border-radius:50%;position:absolute;top:6px;left:6px}
+
+/* 目 */
+.eye{position:absolute;top:34px;width:12px;height:12px;border-radius:50%;transition:all .4s}
+.eye-l{left:24px}.eye-r{right:24px}
+
+/* まばたき */
+.blinker{animation:blink 3s ease-in-out infinite}
+@keyframes blink{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
+
+/* 口 */
+.mouth{position:absolute;left:50%;transform:translateX(-50%);transition:all .4s}
+
+/* 汗 */
+.sweat{position:absolute;width:7px;height:11px;border-radius:0 0 50% 50%;opacity:0;transition:opacity .4s}
+.sweat-l{top:10px;left:14px}
+.sweat-r{top:14px;right:10px}
+.drip{animation:drip 1.8s ease-in infinite}
+@keyframes drip{0%{transform:translateY(0);opacity:.9}60%{opacity:.9}100%{transform:translateY(16px);opacity:0}}
+
+/* 眉 */
+.brow{position:absolute;top:26px;width:14px;height:3px;border-radius:2px;opacity:0;transition:all .4s}
+.brow-l{left:22px}.brow-r{right:22px}
+
+/* ===== 表情パターン ===== */
+
+/* ほぼ安全：にっこり */
+.expr-safe .eye{background:#1976D2}
+.expr-safe .blinker{animation:blink 3s ease-in-out infinite}
+.expr-safe .mouth{bottom:22px;width:26px;height:13px;border:3px solid #1976D2;border-top:none;border-radius:0 0 50% 50%}
+.expr-safe .brow{opacity:0}
+.expr-safe .sweat{opacity:0}
+
+/* 注意：真顔＋汗 */
+.expr-caution .eye{background:#2E7D32}
+.expr-caution .blinker{animation:blink 2.5s ease-in-out infinite}
+.expr-caution .mouth{bottom:24px;width:22px;height:3px;background:#2E7D32;border:none;border-radius:2px}
+.expr-caution .sweat-l{opacity:1;background:#2E7D32}
+.expr-caution .drip{animation:drip 2s ease-in infinite}
+.expr-caution .brow{opacity:0}
+
+/* 警戒：ギュッと目＋ぐにゃ口 */
+.expr-warning .eye{background:#C2185B;width:14px;height:3px;border-radius:2px;top:37px}
+.expr-warning .eye-l{transform:rotate(20deg)}
+.expr-warning .eye-r{transform:rotate(-20deg)}
+.expr-warning .blinker{animation:none}
+.expr-warning .mouth{bottom:20px;width:24px;height:8px;border:3px solid #C2185B;border-top:none;border-radius:0 0 60% 40%;transform:translateX(-50%) rotate(-8deg)}
+.expr-warning .mouth{animation:mouthWiggle 1.5s ease-in-out infinite}
+@keyframes mouthWiggle{0%,100%{transform:translateX(-50%) rotate(-8deg)}50%{transform:translateX(-50%) rotate(8deg)}}
+.expr-warning .brow{opacity:0}
+.expr-warning .sweat{opacity:0}
+
+/* 厳重警戒：困り眉＋半目＋あんぐり */
+.expr-severe .eye{background:#E65100;height:7px;border-radius:50%;top:36px}
+.expr-severe .blinker{animation:blink 2s ease-in-out infinite}
+.expr-severe .brow{opacity:1;background:#E65100;top:27px}
+.expr-severe .brow-l{transform:rotate(-12deg)}
+.expr-severe .brow-r{transform:rotate(12deg)}
+.expr-severe .mouth{bottom:18px;width:16px;height:12px;border:3px solid #E65100;border-radius:50%;background:transparent}
+.expr-severe .mouth{animation:mouthOpen 2s ease-in-out infinite}
+@keyframes mouthOpen{0%,100%{transform:translateX(-50%) scaleY(1)}50%{transform:translateX(-50%) scaleY(1.3)}}
+.expr-severe .sweat{opacity:0}
+
+/* 危険：×目＋への字＋汗ダラダラ */
+.expr-danger .eye{background:transparent;width:14px;height:14px;border-radius:0;top:32px}
+.expr-danger .eye::before,.expr-danger .eye::after{content:'';position:absolute;width:14px;height:3px;background:#B71C1C;border-radius:2px;top:5px;left:0}
+.expr-danger .eye::before{transform:rotate(45deg)}
+.expr-danger .eye::after{transform:rotate(-45deg)}
+.expr-danger .blinker{animation:none}
+.expr-danger .mouth{bottom:20px;width:24px;height:10px;border:3px solid #B71C1C;border-bottom:none;border-radius:50% 50% 0 0;background:transparent}
+.expr-danger .mouth{animation:mouthTremble .4s ease-in-out infinite}
+@keyframes mouthTremble{0%,100%{transform:translateX(-50%)}50%{transform:translateX(calc(-50% + 2px))}}
+.expr-danger .brow{opacity:0}
+.expr-danger .sweat-l,.expr-danger .sweat-r{opacity:1;background:#B71C1C}
+.expr-danger .sweat-l .drip{animation:drip 1.2s ease-in infinite}
+.expr-danger .sweat-r .drip{animation:drip 1.2s ease-in .5s infinite}
+
+/* エラー */
+#e{display:none;width:640px;height:128px;background:#333;color:#fff;justify-content:center;align-items:center;flex-direction:column;gap:4px}
 #e .m{font-size:28px;font-weight:900}
 #e .u{font-size:12px;opacity:.7}
 </style>
 </head>
 <body>
-<div id="vp"><div id="tr"></div></div>
+<!-- 1-512px -->
+<div id="slide-area"><div id="tr"></div></div>
+<!-- 513-640px 固定 -->
+<div id="face">
+  <div class="face-wrap" id="fw">
+    <div class="head"></div>
+    <div class="eye eye-l"><div class="blinker"></div></div>
+    <div class="eye eye-r"><div class="blinker"></div></div>
+    <div class="brow brow-l"></div>
+    <div class="brow brow-r"></div>
+    <div class="mouth"></div>
+    <div class="sweat sweat-l"><div class="drip"></div></div>
+    <div class="sweat sweat-r"><div class="drip"></div></div>
+  </div>
+</div>
 <div id="e"><div class="m">WBGT 取得不可</div><div class="u">データ提供：気象庁 / Open-Meteo</div></div>
 
 <script>
-// 設定：仙台市（宮城県庁付近）
-const C={lat:38.2686,lon:140.8720,ms:30*60*1000,slide:10000};
+const C={lat:38.2682,lon:140.8694,ms:30*60*1000,slide:10000};
 const L=[
-  {min:31,bg:'#EC3817',bar:'#EE6145',n:['危険','Danger','Nguy hiểm','危险'],a:['作業を直ちに中止','Stop work immediately','Dừng công việc ngay','立即停止作业']},
-  {min:28,bg:'#FB8C00',bar:'#FCA633',n:['厳重警戒','Severe Warning','Cảnh báo nghiêm trọng','严重警戒'],a:['激しい作業は中止','Stop intense work','Ngừng làm việc nặng','停止剧烈作业']},
-  {min:25,bg:'#FDD835',bar:'#FDE366',n:['警戒','Warning','Cảnh báo','警戒'],a:['定期的に休憩','Take regular breaks','Nghỉ ngơi định kỳ','定时休息']},
-  {min:21,bg:'#42A5F5',bar:'#61B8F8',n:['注意','Caution','Chú ý','注意'],a:['積極的に水分補給','Actively hydrate','Uống nước thường xuyên','及时补水']},
-  {min:-Infinity,bg:'#0289DE',bar:'#319EE3',n:['ほぼ安全','Safe','An toàn','基本安全'],a:['適宜水分補給','Stay hydrated','Bổ sung nước','注意补水']}
+  {min:31,bg:'#B71C1C',expr:'expr-danger',tbg:'#EC3817',tbar:'#EE6145',
+   n:['危険','Danger','Nguy hiểm','危险'],a:['作業を直ちに中止','Stop work immediately','Dừng công việc ngay','立即停止作业']},
+  {min:28,bg:'#E65100',expr:'expr-severe',tbg:'#FB8C00',tbar:'#FCA633',
+   n:['厳重警戒','Severe Warning','Cảnh báo nghiêm trọng','严重警戒'],a:['激しい作業は中止','Stop intense work','Ngừng làm việc nặng','停止剧烈作业']},
+  {min:25,bg:'#C2185B',expr:'expr-warning',tbg:'#FDD835',tbar:'#FDE366',
+   n:['警戒','Warning','Cảnh báo','警戒'],a:['定期的に休憩','Take regular breaks','Nghỉ ngơi định kỳ','定时休息']},
+  {min:21,bg:'#2E7D32',expr:'expr-caution',tbg:'#42A5F5',tbar:'#61B8F8',
+   n:['注意','Caution','Chú ý','注意'],a:['積極的に水分補給','Actively hydrate','Uống nước thường xuyên','及时补水']},
+  {min:-Infinity,bg:'#1976D2',expr:'expr-safe',tbg:'#0289DE',tbar:'#319EE3',
+   n:['ほぼ安全','Safe','An toàn','基本安全'],a:['適宜水分補給','Stay hydrated','Bổ sung nước','注意补水']}
 ];
 
-// 初期化：スライド用DOM生成
 const tr=document.getElementById('tr');
 for(let i=0;i<8;i++){
-  const d=document.createElement('div');
-  d.className='c';
-  d.dataset.l=i%4;
-  d.innerHTML='<div class="tb"></div><div class="wb"></div><div class="t"></div><div class="w"></div><div class="d"></div><div class="n"></div><div class="a"></div>';
+  const d=document.createElement('div');d.className='c';d.dataset.l=i%4;
+  d.innerHTML='<div class="tb"></div><div class="wb"></div><div class="t"></div><div class="w"></div><div class="dvd"></div><div class="n"></div><div class="a"></div>';
   tr.appendChild(d);
 }
 tr.style.width='1024px';
 
-// スライド処理
 let ofs=0;
 function slide(){
-  ofs++;
-  tr.style.transition='transform .6s ease-in-out';
+  ofs++;tr.style.transition='transform .6s ease-in-out';
   tr.style.transform=`translateX(-${ofs*128}px)`;
-  if(ofs>=4){
-    setTimeout(()=>{tr.style.transition='none';ofs=0;tr.style.transform='translateX(0)'},600);
-  }
+  if(ofs>=4){setTimeout(()=>{tr.style.transition='none';ofs=0;tr.style.transform='translateX(0)'},650)}
 }
 setInterval(slide,C.slide);
 
-// WBGT推定式（気象庁データに基づく近似計算）
-function est(t,rh){
-  const e=(rh/100)*6.105*Math.exp(17.27*t/(237.7+t));
-  return .567*t+.393*e+3.94;
-}
+function est(t,rh){const e=(rh/100)*6.105*Math.exp(17.27*t/(237.7+t));return .567*t+.393*e+3.94}
 
-// 画面更新処理
 function upd(tmp,wv){
   const lv=L.find(l=>wv>=l.min),wi=Math.round(wv),ts=tmp.toFixed(1)+'℃';
-  document.getElementById('vp').style.display='block';
+  document.getElementById('slide-area').style.display='block';
+  document.getElementById('face').style.display='flex';
   document.getElementById('e').style.display='none';
   tr.querySelectorAll('.c').forEach(c=>{
-    const i=+c.dataset.l;
-    c.style.background=lv.bg;
-    c.querySelector('.tb').style.background=lv.bar;
-    c.querySelector('.t').textContent=ts;
-    c.querySelector('.w').textContent=wi;
-    c.querySelector('.n').textContent=lv.n[i];
-    c.querySelector('.a').textContent=lv.a[i];
+    const i=+c.dataset.l;c.style.background=lv.tbg;
+    c.querySelector('.tb').style.background=lv.tbar;
+    c.querySelector('.t').textContent=ts;c.querySelector('.w').textContent=wi;
+    c.querySelector('.n').textContent=lv.n[i];c.querySelector('.a').textContent=lv.a[i];
   });
+  document.getElementById('face').style.background=lv.bg;
+  document.getElementById('fw').className='face-wrap '+lv.expr;
 }
 
-// エラーハンドリング
-function err(){document.getElementById('vp').style.display='none';document.getElementById('e').style.display='flex'}
+function err(){document.getElementById('slide-area').style.display='none';document.getElementById('face').style.display='none';document.getElementById('e').style.display='flex'}
 
-// データ取得（Open-Meteo API）
 async function go(){
   try{
     const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=temperature_2m,relative_humidity_2m&timezone=Asia%2FTokyo`);
-    if(!r.ok) throw new Error();
-    const d=await r.json(), t=d?.current?.temperature_2m, rh=d?.current?.relative_humidity_2m;
-    if(t==null||rh==null) throw new Error();
-    upd(t,est(t,rh));
+    if(!r.ok)throw 0;const d=await r.json(),t=d?.current?.temperature_2m,rh=d?.current?.relative_humidity_2m;
+    if(t==null||rh==null||isNaN(t)||isNaN(rh))throw 0;upd(t,est(t,rh));
   }catch(_){err()}
 }
-
-// 初回実行と定期取得
-go();
-setInterval(go,C.ms);
+go();setInterval(go,C.ms);
 </script>
 </body>
 </html>
