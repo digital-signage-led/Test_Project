@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>WBGT Signage - Sendai</title>
+    <style>
+        /* ...既存のフォント・CSSはそのまま維持... */
+        /* === WBGT配色 (環境省基準ベース) === */
+        .bg-lvl-0 { background: rgba(2, 137, 222, 0.45); }    /* ほぼ安全 */
+        .bg-lvl-1 { background: rgba(43, 179, 224, 0.45); }   /* 注意 */
+        .bg-lvl-2 { background: rgba(255, 199, 0, 0.45); }    /* 警戒 */
+        .bg-lvl-3 { background: rgba(253, 135, 26, 0.45); }   /* 厳重警戒 */
+        .bg-lvl-4 { background: rgba(236, 56, 23, 0.45); }    /* 危険 */
+        
+        /* 予測・ティッカー等その他スタイルは既存のロジックを踏襲 */
+        .fc-panel { transition: background 0.3s ease; }
+    </style>
+</head>
+<body>
+
+<script>
+    // 仙台市の座標
+    const lat = '38.2682'; 
+    const lon = '140.8694';
+
+    // WBGTレベル判定（環境省基準）
+    function wbgtLevel(w) {
+        if (w >= 31) return 4; // 危険
+        if (w >= 28) return 3; // 厳重警戒
+        if (w >= 25) return 2; // 警戒
+        if (w >= 21) return 1; // 注意
+        return 0;              // ほぼ安全
+    }
+
+    // 3時間刻みのデータ抽出ロジック
+    function updateForecast(hourlyTime, hourlyTemp, hourlyHumi) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        
+        // 現在時刻以降のデータから3時間刻みのものを取得
+        const forecastSlots = [];
+        for (let i = 0; i < hourlyTime.length; i++) {
+            const date = new Date(hourlyTime[i]);
+            // 0時、3時、6時...のデータを抽出
+            if (date >= now && date.getHours() % 3 === 0) {
+                forecastSlots.push(i);
+                if (forecastSlots.length === 4) break;
+            }
+        }
+
+        for (let offset = 0; offset < 4; offset++) {
+            const idx = forecastSlots[offset];
+            const hours = document.querySelectorAll('.fc-hour-' + offset);
+            const vals = document.querySelectorAll('.fc-val-' + offset);
+            const lvs = document.querySelectorAll('.fc-lv-' + offset);
+            const panels = document.querySelectorAll('.fc-slot-' + offset);
+            
+            if (idx === undefined) {
+                // データ取得不可時の処理
+                panels.forEach(p => p.className = 'fc-panel fc-slot-' + offset + ' bg-lvl-0');
+            } else {
+                const hr = new Date(hourlyTime[idx]).getHours();
+                const w = calcWbgt(hourlyTemp[idx], hourlyHumi[idx]);
+                const lv = wbgtLevel(w);
+                
+                hours.forEach(el => el.innerText = hr + '時');
+                vals.forEach(el => el.innerText = w.toFixed(1));
+                lvs.forEach(el => el.innerText = levelNames[lv]);
+                panels.forEach(p => {
+                    p.className = 'fc-panel fc-slot-' + offset + (offset === 0 ? ' fc-now' : '') + ' bg-lvl-' + lv;
+                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href', '#face-' + lv));
+                });
+            }
+        }
+    }
+
+    // 場所名を「仙台市」に置き換え
+    document.querySelectorAll('.s2-loc').forEach(el => el.innerText = '仙台市');
+
+    // ...以下、既存のfetchWeather関数等を適用...
+</script>
+</body>
+</html>
