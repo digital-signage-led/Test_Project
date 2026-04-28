@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>WBGT Signage - Sendai (Updated Faces)</title>
+    <title>WBGT Signage - Sendai</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: "Inter", "Noto Sans JP", sans-serif; }
@@ -37,13 +37,15 @@
         .fc-hour { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.75); font-family: "Inter", "Noto Sans JP", sans-serif; }
         .fc-wbgt { font-size: 36px; font-weight: 800; color: #fff; line-height: 1; font-variant-numeric: tabular-nums; font-family: "Inter", sans-serif; }
         .fc-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); letter-spacing: 0.55px; font-family: "Inter", "Noto Sans JP", sans-serif; }
-        .fc-face { width: 26px; height: 26px; position: absolute; top: 4px; right: 6px; }
+        .fc-face { width: 26px; height: 26px; position: absolute; top: 4px; right: 6px; border: 2px solid rgba(255,255,255,0.85); border-radius: 50%; }
         .fc-now { border: 2px solid rgba(255,255,255,0.35); }
-        .fc-bg-0 { background: rgba(2,137,222,0.40); }
-        .fc-bg-1 { background: rgba(43,179,224,0.40); }
-        .fc-bg-2 { background: rgba(255,199,0,0.40); }
-        .fc-bg-3 { background: rgba(253,135,26,0.40); }
-        .fc-bg-4 { background: rgba(236,56,23,0.40); }
+
+        /* 予測パネル背景: ベタ塗り */
+        .fc-bg-0 { background-color: #0289DE; }
+        .fc-bg-1 { background-color: #2BB3E0; }
+        .fc-bg-2 { background-color: #FFC700; }
+        .fc-bg-3 { background-color: #FD871A; }
+        .fc-bg-4 { background-color: #EC3817; }
 
         .ticker-scene { background-color: #000; display: none; position: relative; overflow: hidden; }
         .ticker-scene.active { display: block !important; }
@@ -59,40 +61,58 @@
 </head>
 <body>
 
+<!--
+  ★ 顔アイコン デザインルール
+  ・丸の塗り: レベル色（輪郭線なし）
+  ・目・口: すべて白（#fff）
+  ・全レベル統一フォーマット
+-->
 <svg style="display: none;">
     <symbol id="icon-sunny" viewBox="0 0 120 120"><circle cx="60" cy="60" r="24" fill="#ff4d00"/><g stroke="#ff4d00" stroke-width="8" stroke-linecap="round"><line x1="60" y1="15" x2="60" y2="30"/><line x1="60" y1="90" x2="60" y2="105"/><line x1="15" y1="60" x2="30" y2="60"/><line x1="90" y1="60" x2="105" y2="60"/><line x1="28" y1="28" x2="39" y2="39"/><line x1="81" y1="81" x2="92" y2="92"/><line x1="28" y1="92" x2="39" y2="81"/><line x1="81" y1="39" x2="92" y2="28"/></g></symbol>
     <symbol id="icon-cloudy" viewBox="0 0 100 100"><path d="M25,65 a20,20 0 1,1 20,-20 a25,25 0 1,1 40,5 a15,15 0 1,1 0,30 h-60 a20,20 0 1,1 0,-40" fill="#999"/></symbol>
     <symbol id="icon-rainy" viewBox="0 0 100 100"><path d="M25,65 a20,20 0 1,1 20,-20 a25,25 0 1,1 40,5 a15,15 0 1,1 0,30 h-60 a20,20 0 1,1 0,-40" fill="#666"/><path d="M45,75 L40,90 M65,75 L60,90" stroke="#00b0f0" stroke-width="6" stroke-linecap="round"/></symbol>
-    
+
+    <!-- face-0: ほぼ安全 #0289DE  笑顔 -->
     <symbol id="face-0" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="#fff"/>
-        <circle cx="35" cy="40" r="5" fill="#0289DE"/>
-        <circle cx="65" cy="40" r="5" fill="#0289DE"/>
-        <path d="M 30 65 Q 50 85 70 65" stroke="#0289DE" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <circle cx="50" cy="50" r="45" fill="#0289DE"/>
+        <circle cx="35" cy="40" r="5" fill="#fff"/>
+        <circle cx="65" cy="40" r="5" fill="#fff"/>
+        <path d="M 30 65 Q 50 85 70 65" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
     </symbol>
+
+    <!-- face-1: 注意 #2BB3E0  真顔 -->
     <symbol id="face-1" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="#fff"/>
-        <circle cx="35" cy="40" r="5" fill="#2BB3E0"/>
-        <circle cx="65" cy="40" r="5" fill="#2BB3E0"/>
-        <line x1="30" y1="70" x2="70" y2="70" stroke="#2BB3E0" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="50" cy="50" r="45" fill="#2BB3E0"/>
+        <circle cx="35" cy="40" r="5" fill="#fff"/>
+        <circle cx="65" cy="40" r="5" fill="#fff"/>
+        <line x1="30" y1="70" x2="70" y2="70" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
     </symbol>
+
+    <!-- face-2: 警戒 #FFC700  困り顔 -->
     <symbol id="face-2" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="#fff"/>
-        <circle cx="35" cy="40" r="5" fill="#FFC700"/>
-        <circle cx="65" cy="40" r="5" fill="#FFC700"/>
-        <path d="M 35 75 Q 50 65 65 75" stroke="#FFC700" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <circle cx="50" cy="50" r="45" fill="#FFC700"/>
+        <path d="M 30 45 Q 35 35 40 45 M 60 45 Q 65 35 70 45" stroke="#fff" stroke-width="4" fill="none"/>
+        <path d="M 35 75 Q 50 65 65 75" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
     </symbol>
+
+    <!-- face-3: 厳重警戒 #FD871A  バツ目 -->
     <symbol id="face-3" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="#fff"/>
-        <circle cx="35" cy="40" r="5" fill="#FD871A"/>
-        <circle cx="65" cy="40" r="5" fill="#FD871A"/>
-        <path d="M 35 75 Q 50 65 65 75" stroke="#FD871A" stroke-width="5" fill="none"/>
+        <circle cx="50" cy="50" r="45" fill="#FD871A"/>
+        <line x1="25" y1="35" x2="40" y2="45" stroke="#fff" stroke-width="5"/>
+        <line x1="40" y1="35" x2="25" y2="45" stroke="#fff" stroke-width="5"/>
+        <line x1="60" y1="35" x2="75" y2="45" stroke="#fff" stroke-width="5"/>
+        <line x1="75" y1="35" x2="60" y2="45" stroke="#fff" stroke-width="5"/>
+        <path d="M 35 75 Q 50 65 65 75" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
     </symbol>
+
+    <!-- face-4: 危険 #EC3817  バツ目+波口 -->
     <symbol id="face-4" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="#fff"/>
-        <circle cx="35" cy="40" r="5" fill="#EC3817"/>
-        <circle cx="65" cy="40" r="5" fill="#EC3817"/>
-        <path d="M 30 75 Q 35 65 40 75 T 50 75 T 60 75 T 70 75" stroke="#EC3817" stroke-width="5" fill="none"/>
+        <circle cx="50" cy="50" r="45" fill="#EC3817"/>
+        <line x1="25" y1="35" x2="40" y2="45" stroke="#fff" stroke-width="5"/>
+        <line x1="40" y1="35" x2="25" y2="45" stroke="#fff" stroke-width="5"/>
+        <line x1="60" y1="35" x2="75" y2="45" stroke="#fff" stroke-width="5"/>
+        <line x1="75" y1="35" x2="60" y2="45" stroke="#fff" stroke-width="5"/>
+        <path d="M 30 75 Q 35 65 40 75 T 50 75 T 60 75 T 70 75" stroke="#fff" stroke-width="5" fill="none"/>
     </symbol>
 </svg>
 
@@ -131,20 +151,18 @@
 
     <div class="scene forecast-scene" id="scene4">
         <div class="fc-track" id="fc-conveyor">
-            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">取得不可</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2"></div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">取得不可</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3"></div></div>
-            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">取得不可</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0"></div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">取得不可</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1"></div></div>
-            
-            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">取得不可</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2"></div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">取得不可</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3"></div></div>
-            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">取得不可</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0"></div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">取得不可</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1"></div></div>
-
-            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">取得不可</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2"></div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">取得不可</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3"></div></div>
-            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">取得不可</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0"></div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">取得不可</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1"></div></div>
+            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">--時</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">--時</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">--時</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">--時</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3">--</div></div>
+            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">--時</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">--時</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">--時</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">--時</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3">--</div></div>
+            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">--時</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">--時</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">--時</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2">--</div></div>
+            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">--時</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3">--</div></div>
         </div>
     </div>
 
@@ -155,12 +173,8 @@
 </div>
 
 <script>
-    // ============================================================
-    // 設定
-    // ============================================================
     const SHEET_CSV_URL = new URLSearchParams(window.location.search).get('sheet') || '';
-    const lat = '38.2682';
-    const lon = '140.8694';
+    const lat = '38.2682'; const lon = '140.8694';
 
     const multi = [
         { jp:"【ほぼ安全】適宜水分補給", en:"Safe: Stay hydrated", vn:"An toàn: Bổ sung nước", cn:"基本安全：注意补水" },
@@ -170,184 +184,89 @@
         { jp:"【危険】作業を直ちに中止", en:"Danger: Stop work immediately", vn:"Nguy hiểm: Dừng công việc ngay", cn:"危険：立即停止作业" }
     ];
     const levelNames = ['ほぼ安全','注意','警戒','厳重警戒','危険'];
+    let currentWbgtLevel = 0; let tickerAnimId = null;
 
-    let currentWbgtLevel = 0;
-    let tickerAnimId = null;
+    const s1 = document.getElementById('scene1'); const s1A = document.getElementById('s1-stateA'); const s1B = document.getElementById('s1-stateB');
+    const s2 = document.getElementById('scene2'); const conveyor = document.getElementById('conveyor');
+    const s3 = document.getElementById('scene3'); const tickerTrack = document.getElementById('ticker-track'); const barTrack = document.getElementById('bar-track');
+    const s4 = document.getElementById('scene4'); const fcConveyor = document.getElementById('fc-conveyor');
 
-    // DOM
-    const s1 = document.getElementById('scene1');
-    const s1A = document.getElementById('s1-stateA');
-    const s1B = document.getElementById('s1-stateB');
-    const s2 = document.getElementById('scene2');
-    const conveyor = document.getElementById('conveyor');
-    const s3 = document.getElementById('scene3');
-    const tickerTrack = document.getElementById('ticker-track');
-    const barTrack = document.getElementById('bar-track');
-    const s4 = document.getElementById('scene4');
-    const fcConveyor = document.getElementById('fc-conveyor');
-
-    // 時計
-    function updateClock() {
-        const now = new Date();
-        const t = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
-        document.querySelectorAll('.clock-hm').forEach(el => el.innerText = t);
-    }
-
-    // WBGT判定（フォールバック用）
+    function updateClock() { const now = new Date(); const t = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0'); document.querySelectorAll('.clock-hm').forEach(el => el.innerText = t); }
     function calcWbgt(t, h) { return (0.725*t) + (0.0368*h) + (0.00115*t*h) - 2.503; }
     function wbgtLevel(w) { return w>=31?4:w>=28?3:w>=25?2:w>=21?1:0; }
 
-    // 環境省公式WBGT取得
     async function fetchWbgtFromSheet() {
         if (!SHEET_CSV_URL) return false;
         try {
-            const res = await fetch(SHEET_CSV_URL);
-            if (!res.ok) return false;
-            const text = await res.text();
-            const rows = text.split('\n').map(r => r.split(','));
+            const res = await fetch(SHEET_CSV_URL); if (!res.ok) return false;
+            const text = await res.text(); const rows = text.split('\n').map(r => r.split(','));
             if (rows.length < 4) return false;
-            const slots = []; // [現在, +3h, +6h, +9h]
+            const slots = [];
             for (let i = 0; i < 4; i++) {
-                const r = rows[i];
-                if (!r || r.length < 4) {
-                    slots.push({ wbgt: null, levelIdx: 0, hour: '取得不可', level: '取得不可' });
-                    continue;
-                }
-                const wbgtStr = r[0].trim().replace(/"/g, '');
-                const levelIdx = parseInt(r[2].trim().replace(/"/g, ''), 10);
-                const hour = r[3].trim().replace(/"/g, '');
-                const wbgt = parseFloat(wbgtStr);
-                if (isNaN(wbgt) || wbgtStr === '取得不可') {
-                    slots.push({ wbgt: null, levelIdx: 0, hour: hour || '取得不可', level: '取得不可' });
-                } else {
-                    slots.push({ wbgt: wbgt, levelIdx: levelIdx >= 0 ? levelIdx : 0, hour: hour, level: levelNames[levelIdx] || '--' });
-                }
+                const r = rows[i]; if (!r || r.length < 4) { slots.push({ wbgt: null, levelIdx: 0, hour: '--', level: '取得不可' }); continue; }
+                const wbgtStr = r[0].trim().replace(/"/g, ''); const levelIdx = parseInt(r[2].trim().replace(/"/g, ''), 10);
+                const hour = r[3].trim().replace(/"/g, ''); const wbgt = parseFloat(wbgtStr);
+                if (isNaN(wbgt) || wbgtStr === '取得不可') { slots.push({ wbgt: null, levelIdx: 0, hour: hour, level: '取得不可' });
+                } else { slots.push({ wbgt, levelIdx: levelIdx >= 0 ? levelIdx : 0, hour, level: levelNames[levelIdx] || '--' }); }
             }
-            if (slots[0].wbgt !== null) {
-                currentWbgtLevel = slots[0].levelIdx;
-                document.querySelectorAll('.face-use').forEach(el => el.setAttribute('href', '#face-' + currentWbgtLevel));
-            }
-            updateForecastFromSheet(slots);
-            buildTicker();
-            return true;
-        } catch (e) {
-            console.error('Google Sheets取得エラー:', e);
-            return false;
+            if (slots[0].wbgt !== null) { currentWbgtLevel = slots[0].levelIdx; document.querySelectorAll('.face-use').forEach(el => el.setAttribute('href', '#face-' + currentWbgtLevel)); }
+            updateForecastSlots(slots); buildTicker(); return true;
+        } catch (e) { console.error('Sheets error:', e); return false; }
+    }
+
+    function updateForecastSlots(slots) {
+        for (let i = 0; i < 4; i++) {
+            const s = slots[i];
+            document.querySelectorAll('.fc-hour-'+i).forEach(el => el.innerText = s.wbgt !== null ? s.hour : (s.hour || '取得不可'));
+            document.querySelectorAll('.fc-val-'+i).forEach(el => el.innerText = s.wbgt !== null ? s.wbgt.toFixed(1) : '--');
+            document.querySelectorAll('.fc-lv-'+i).forEach(el => el.innerText = s.wbgt !== null ? levelNames[s.levelIdx] : '');
+            const lv = s.wbgt !== null ? s.levelIdx : 0;
+            document.querySelectorAll('.fc-slot-'+i).forEach(p => {
+                p.className = 'fc-panel fc-slot-'+i+(i===0?' fc-now':'')+' fc-bg-'+lv;
+                p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-'+lv));
+            });
         }
     }
 
-    // 予測コンベア更新 (Sheetデータ)
-    function updateForecastFromSheet(slots) {
-        // [現在=0, +3h=1, +6h=2, +9h=3]
-        for (let offset = 0; offset < 4; offset++) {
-            const s = slots[offset];
-            const hours = document.querySelectorAll('.fc-hour-' + offset);
-            const vals = document.querySelectorAll('.fc-val-' + offset);
-            const lvs = document.querySelectorAll('.fc-lv-' + offset);
-            const panels = document.querySelectorAll('.fc-slot-' + offset);
-            if (s.wbgt === null) {
-                hours.forEach(el => el.innerText = s.hour || '取得不可');
-                vals.forEach(el => el.innerText = '--');
-                lvs.forEach(el => el.innerText = '');
-                panels.forEach(p => {
-                    p.className = 'fc-panel fc-slot-' + offset + (offset===0?' fc-now':'') + ' fc-bg-0';
-                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-0'));
-                });
-            } else {
-                const lv = s.levelIdx;
-                hours.forEach(el => el.innerText = s.hour);
-                vals.forEach(el => el.innerText = s.wbgt.toFixed(1));
-                lvs.forEach(el => el.innerText = levelNames[lv]);
-                panels.forEach(p => {
-                    p.className = 'fc-panel fc-slot-' + offset + (offset===0?' fc-now':'') + ' fc-bg-' + lv;
-                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-'+lv));
-                });
-            }
-        }
-    }
-
-    // 天気データ取得
     async function fetchWeather() {
         const sheetOk = await fetchWbgtFromSheet();
         try {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&hourly=temperature_2m,relative_humidity_2m&forecast_days=1&timezone=Asia%2FTokyo`);
             const data = await res.json();
-            const temp = data.current.temperature_2m;
-            const humi = data.current.relative_humidity_2m;
-            const code = data.current.weather_code;
             let wIcon = "#icon-sunny";
-            if (code >= 1 && code <= 3) wIcon = "#icon-cloudy";
-            else if (code >= 51) wIcon = "#icon-rainy";
+            if (data.current.weather_code >= 1 && data.current.weather_code <= 3) wIcon = "#icon-cloudy";
+            else if (data.current.weather_code >= 51) wIcon = "#icon-rainy";
             document.querySelectorAll('.weather-icon-use').forEach(el => el.setAttribute('href', wIcon));
-            document.querySelectorAll('.temp-val').forEach(el => el.innerText = Math.round(temp));
-            document.querySelectorAll('.humi-val').forEach(el => el.innerText = Math.round(humi));
+            document.querySelectorAll('.temp-val').forEach(el => el.innerText = Math.round(data.current.temperature_2m));
+            document.querySelectorAll('.humi-val').forEach(el => el.innerText = Math.round(data.current.relative_humidity_2m));
+
             if (!sheetOk) {
-                const wbgt = calcWbgt(temp, humi);
+                const wbgt = calcWbgt(data.current.temperature_2m, data.current.relative_humidity_2m);
                 currentWbgtLevel = wbgtLevel(wbgt);
                 document.querySelectorAll('.face-use').forEach(el => el.setAttribute('href', '#face-' + currentWbgtLevel));
-                if (data.hourly) { updateForecastFromOpenMeteo(data.hourly.time, data.hourly.temperature_2m, data.hourly.relative_humidity_2m); }
+                if (data.hourly) {
+                    const now = new Date(); const ch = now.getHours();
+                    let si = -1;
+                    for (let i = 0; i < data.hourly.time.length; i++) { if (new Date(data.hourly.time[i]).getDate()===now.getDate() && new Date(data.hourly.time[i]).getHours()===ch) { si=i; break; } }
+                    const offsets = [0,3,6,9]; const slots = [];
+                    for (let j = 0; j < 4; j++) {
+                        const idx = si>=0 ? si+offsets[j] : -1;
+                        if (idx<0||idx>=data.hourly.time.length||data.hourly.temperature_2m[idx]==null) { slots.push({wbgt:null,levelIdx:0,hour:'取得不可'}); continue; }
+                        const w = calcWbgt(data.hourly.temperature_2m[idx], data.hourly.relative_humidity_2m[idx]);
+                        slots.push({ wbgt:w, levelIdx:wbgtLevel(w), hour: new Date(data.hourly.time[idx]).getHours()+'時' });
+                    }
+                    updateForecastSlots(slots);
+                }
             }
             buildTicker();
         } catch (e) {
-            console.error('Open-Meteoエラー:', e);
-            if (!sheetOk) {
-                // image_0.pngの状態にする
-                for (let i = 0; i < 4; i++) {
-                    document.querySelectorAll('.fc-hour-'+i).forEach(el => el.innerText = '取得不可');
-                    document.querySelectorAll('.fc-val-'+i).forEach(el => el.innerText = '--');
-                    document.querySelectorAll('.fc-lv-'+i).forEach(el => el.innerText = '');
-                    document.querySelectorAll('.fc-slot-'+i).forEach(p => {
-                        p.className = 'fc-panel fc-slot-'+i+(i===0?' fc-now':'')+' fc-bg-0';
-                        p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-0'));
-                    });
-                }
-            }
+            console.error(e);
+            if (!sheetOk) { for (let i=0;i<4;i++) { document.querySelectorAll('.fc-hour-'+i).forEach(el=>el.innerText='取得不可'); document.querySelectorAll('.fc-val-'+i).forEach(el=>el.innerText='--'); document.querySelectorAll('.fc-lv-'+i).forEach(el=>el.innerText=''); } }
         }
     }
 
-    // フォールバック用予測コンベア更新
-    function updateForecastFromOpenMeteo(hourlyTime, hourlyTemp, hourlyHumi) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        let startIdx = -1;
-        for (let i = 0; i < hourlyTime.length; i++) {
-            const h = new Date(hourlyTime[i]).getHours();
-            if (new Date(hourlyTime[i]).getDate() === now.getDate() && h === currentHour) { startIdx = i; break; }
-        }
-        const offsets = [0, 3, 6, 9];
-        for (let slot = 0; slot < 4; slot++) {
-            const idx = startIdx >= 0 ? startIdx + offsets[slot] : -1;
-            const hours = document.querySelectorAll('.fc-hour-' + slot);
-            const vals = document.querySelectorAll('.fc-val-' + slot);
-            const lvs = document.querySelectorAll('.fc-lv-' + slot);
-            const panels = document.querySelectorAll('.fc-slot-' + slot);
-            if (idx < 0 || idx >= hourlyTime.length || hourlyTemp[idx] == null || hourlyHumi[idx] == null) {
-                hours.forEach(el => el.innerText = '取得不可');
-                vals.forEach(el => el.innerText = '--');
-                lvs.forEach(el => el.innerText = '');
-                panels.forEach(p => {
-                    p.className = 'fc-panel fc-slot-' + slot + (slot===0?' fc-now':'') + ' fc-bg-0';
-                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-0'));
-                });
-            } else {
-                const hr = new Date(hourlyTime[idx]).getHours();
-                const w = calcWbgt(hourlyTemp[idx], hourlyHumi[idx]);
-                const lv = wbgtLevel(w);
-                hours.forEach(el => el.innerText = hr + '時');
-                vals.forEach(el => el.innerText = w.toFixed(1));
-                lvs.forEach(el => el.innerText = levelNames[lv]);
-                panels.forEach(p => {
-                    p.className = 'fc-panel fc-slot-' + slot + (slot===0?' fc-now':'') + ' fc-bg-' + lv;
-                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-'+lv));
-                });
-            }
-        }
-    }
-
-    // ティッカー
     function buildTicker() {
-        const m = multi[currentWbgtLevel];
-        const lv = currentWbgtLevel;
+        const m = multi[currentWbgtLevel]; const lv = currentWbgtLevel;
         const msgs = [m.jp, m.en, m.vn, m.cn];
         const block = (text) => `<div class="msg-block"><svg class="msg-face"><use href="#face-${lv}"/></svg><div class="msg-text">${text}</div></div>`;
         let html = '';
@@ -358,46 +277,38 @@
         barTrack.innerHTML = `<span class="bar-text">${provider}</span><span class="bar-text">${provider}</span>`;
     }
 
-    // シーケンス制御
-    function playScene1() {
-        s1.classList.add('active'); s2.classList.remove('active'); s3.classList.remove('active'); s4.classList.remove('active'); s4.style.display='none';
-        s1A.classList.add('active'); s1B.classList.remove('active');
-        setTimeout(() => { s1A.classList.remove('active'); s1B.classList.add('active'); setTimeout(() => { s1.classList.remove('active'); playScene2(); }, 5000); }, 5000);
-    }
-    function playScene2() {
-        s2.classList.add('active');
-        let step = 0;
-        conveyor.style.transition = 'none'; conveyor.style.transform = 'translateX(0px)';
-        function slideNext() { step++; conveyor.style.transition = 'transform 0.6s ease-in-out'; conveyor.style.transform = `translateX(-${step*128}px)`; if(step<8){setTimeout(slideNext,5000);}else{setTimeout(()=>{s2.classList.remove('active');playScene4();},1000);} }
-        setTimeout(slideNext, 5000);
-    }
-    function playScene4() {
-        s4.classList.add('active'); s4.style.display = 'block';
-        let step = 0;
-        fcConveyor.style.transition = 'none'; fcConveyor.style.transform = 'translateX(0px)';
-        function fcSlideNext() { step++; fcConveyor.style.transition = 'transform 0.6s ease-in-out'; fcConveyor.style.transform = `translateX(-${step*128}px)`; if(step<8){setTimeout(fcSlideNext,8000);}else{setTimeout(()=>{s4.classList.remove('active');s4.style.display='none';playScene3();},1000);} }
-        setTimeout(fcSlideNext, 8000);
-    }
     function playScene3() {
-        s3.classList.add('active');
-        buildTicker();
-        const scrollDist = 256 * 8;
-        const barW = barTrack.scrollWidth / 2;
-        let tickerX = 0, barX = 0;
+        s3.classList.add('active'); buildTicker();
+        const scrollDist = 256*8; const barW = barTrack.scrollWidth/2;
+        let tickerX=0, barX=0;
         tickerTrack.style.transform = 'translateX(0px)';
         function animate() {
-            tickerX -= 1.8; barX -= 0.4;
-            if (barX <= -barW) barX = 0;
-            tickerTrack.style.transform = `translateX(${tickerX}px)`;
-            barTrack.style.transform = `translateX(${barX}px)`;
+            tickerX -= 1.8; barX -= 0.4; if (barX<=-barW) barX=0;
+            tickerTrack.style.transform = `translateX(${tickerX}px)`; barTrack.style.transform = `translateX(${barX}px)`;
             if (tickerX > -scrollDist) { tickerAnimId = requestAnimationFrame(animate); }
-            else { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; setTimeout(() => { s3.classList.remove('active'); startSequence(); }, 1500); }
+            else { cancelAnimationFrame(tickerAnimId); tickerAnimId=null; setTimeout(()=>{ s3.classList.remove('active'); startSequence(); },1500); }
         }
         tickerAnimId = requestAnimationFrame(animate);
     }
+    function playScene1() {
+        s1.classList.add('active'); s2.classList.remove('active'); s3.classList.remove('active'); s4.classList.remove('active'); s4.style.display='none';
+        s1A.classList.add('active'); s1B.classList.remove('active');
+        setTimeout(()=>{ s1A.classList.remove('active'); s1B.classList.add('active'); setTimeout(()=>{ s1.classList.remove('active'); playScene2(); },5000); },5000);
+    }
+    function playScene2() {
+        s2.classList.add('active'); let step=0;
+        conveyor.style.transition='none'; conveyor.style.transform='translateX(0px)';
+        function slideNext() { step++; conveyor.style.transition='transform 0.6s ease-in-out'; conveyor.style.transform=`translateX(-${step*128}px)`; if(step<8){setTimeout(slideNext,5000);}else{setTimeout(()=>{s2.classList.remove('active');playScene4();},1000);} }
+        setTimeout(slideNext, 5000);
+    }
+    function playScene4() {
+        s4.classList.add('active'); s4.style.display='block'; let step=0;
+        fcConveyor.style.transition='none'; fcConveyor.style.transform='translateX(0px)';
+        function fcSlideNext() { step++; fcConveyor.style.transition='transform 0.6s ease-in-out'; fcConveyor.style.transform=`translateX(-${step*128}px)`; if(step<8){setTimeout(fcSlideNext,8000);}else{setTimeout(()=>{s4.classList.remove('active');s4.style.display='none';playScene3();},1000);} }
+        setTimeout(fcSlideNext, 8000);
+    }
     function startSequence() { playScene1(); }
 
-    // 初期化
     window.onload = function() {
         updateClock(); setInterval(updateClock, 1000);
         buildTicker(); fetchWeather(); setInterval(fetchWeather, 300000);
