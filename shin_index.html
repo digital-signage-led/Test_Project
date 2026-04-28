@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+
+<style>
+body{
+margin:0;
+overflow:hidden;
+font-family:Arial;
+}
+
+.wrap{
+position:relative;
+width:100vw;
+height:100vh;
+overflow:hidden;
+}
+
+/* ===== 滚动区域 ===== */
+.scrollArea{
+position:absolute;
+left:0;
+top:0;
+width:80%;
+height:100%;
+overflow:hidden;
+}
+
+.track{
+display:flex;
+width:200%;
+height:100%;
+animation:scroll 20s linear infinite;
+}
+
+.panel{
+width:25vw;
+height:100%;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+color:#fff;
+}
+
+/* ===== 文字 ===== */
+.city{font-size:2vw;}
+
+.temp{
+font-size:7vw;
+font-weight:bold;
+text-shadow:0 0 15px currentColor;
+}
+
+.wbgt{
+font-size:2vw;
+margin-top:5px;
+}
+
+.line{
+width:60%;
+height:4px;
+background:linear-gradient(to right,transparent,#fff,transparent);
+margin:15px 0;
+}
+
+.status{font-size:2.5vw;}
+
+.warning{
+color:#fff;
+font-size:2vw;
+margin-top:10px;
+text-align:center;
+}
+
+/* ===== 背景 ===== */
+.safe{background:#000;}
+.danger{background:#FF0000;}
+
+/* ===== 滚动 ===== */
+@keyframes scroll{
+0%{transform:translateX(0);}
+100%{transform:translateX(-50%);}
+}
+
+/* ===== 闪烁 ===== */
+@keyframes flash{
+0%{opacity:1;}
+50%{opacity:0.4;}
+100%{opacity:1;}
+}
+
+.flash{
+animation:flash 2s infinite;
+}
+
+/* ===== Logo ===== */
+.logoArea{
+position:absolute;
+right:0;
+top:0;
+width:20%;
+height:100%;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+.logoArea.safe{background:#000;}
+.logoArea.danger{background:#FF0000;}
+
+.logoimg{
+width:60%;
+animation:logoAnim 8s infinite;
+}
+
+@keyframes logoAnim{
+0%{transform:rotate(0deg);}
+30%{transform:rotate(0deg);}
+40%{transform:rotate(90deg);}
+70%{transform:rotate(90deg);}
+80%{transform:rotate(180deg);}
+100%{transform:rotate(180deg);}
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="scrollArea">
+<div class="track">
+
+<div class="panel" id="p1"></div>
+<div class="panel" id="p2"></div>
+<div class="panel" id="p3"></div>
+<div class="panel" id="p4"></div>
+
+<div class="panel" id="p1b"></div>
+<div class="panel" id="p2b"></div>
+<div class="panel" id="p3b"></div>
+<div class="panel" id="p4b"></div>
+
+</div>
+</div>
+
+<div class="logoArea" id="logo">
+<img src="logo.png" class="logoimg">
+</div>
+
+</div>
+
+<script>
+
+// ===== 温度渐变（兼容版）=====
+function getTempColor(temp){
+
+if(temp < 0) temp = 0;
+if(temp > 40) temp = 40;
+
+// 蓝 → 绿
+if(temp <= 20){
+var ratio = temp / 20;
+var g = Math.floor(255 * ratio);
+return "rgb(0,"+g+",255)";
+}
+
+// 绿 → 黄
+if(temp <= 30){
+var ratio = (temp - 20) / 10;
+var r = Math.floor(255 * ratio);
+return "rgb("+r+",255,0)";
+}
+
+// 黄 → 红
+var ratio = (temp - 30) / 10;
+var g = Math.floor(255 * (1 - ratio));
+return "rgb(255,"+g+",0)";
+}
+
+// ===== WBGT计算 =====
+function calcWBGT(temp, hum){
+return 0.7 * temp + 0.3 * (hum / 5);
+}
+
+// ===== WBGT等级 =====
+function getLevel(w){
+
+if(w < 25) return {text:["安全","安全","SAFE","ปลอดภัย"],rest:0};
+if(w < 28) return {text:["注意","注意","CAUTION","ระวัง"],rest:300};
+if(w < 31) return {text:["警告","警告","WARNING","เตือน"],rest:600};
+if(w < 33) return {text:["危险","危険","DANGER","อันตราย"],rest:900};
+
+return {text:["停止作业","作業中止","STOP","หยุด"],rest:1200};
+}
+
+// ===== 倒计时 =====
+var restTime = 0;
+var lastRest = -1;
+
+function getRest(){
+var m = Math.floor(restTime/60);
+var s = restTime%60;
+return m+":"+(s<10?"0"+s:s);
+}
+
+setInterval(function(){
+if(restTime>0) restTime--;
+},1000);
+
+// ===== 主逻辑 =====
+async function updateData(){
+
+try{
+
+var res = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Osaka&appid=25dfd71750eff566cb115e3dc1c9db1a&units=metric");
+var data = await res.json();
+
+var temp = Math.round(data.main.temp);
+var hum = data.main.humidity;
+
+// ===== 测试模式开关 =====
+var testMode = true;
+
+if(testMode){
+temp = 19;
+hum = 90;
+}
+
+var color = getTempColor(temp);
+var wbgt = calcWBGT(temp, hum);
+var info = getLevel(wbgt);
+
+// 控制休息时间
+if(info.rest != lastRest){
+restTime = info.rest;
+lastRest = info.rest;
+}
+
+// 状态
+var isDanger = info.rest > 0;
+var cls = isDanger ? "danger" : "safe";
+
+// ===== 内容 =====
+var texts = [
+
+["大阪","请休息"],
+["大阪","休憩してください"],
+["OSAKA","TAKE A BREAK"],
+["โอซาก้า","พัก"]
+
+];
+
+for(var i=1;i<=4;i++){
+
+var t = texts[i-1];
+
+var html =
+'<div class="city">'+t[0]+'</div>'+
+'<div class="temp" style="color:'+color+'">'+temp+'℃</div>'+
+'<div class="wbgt">WBGT '+wbgt.toFixed(1)+'</div>'+
+'<div class="line"></div>'+
+'<div class="status">'+info.text[i-1]+'</div>';
+
+if(info.rest>0){
+html += '<div class="warning">⚠️ '+t[1]+'<br>⏳ '+getRest()+'</div>';
+}
+
+var el1 = document.getElementById("p"+i);
+var el2 = document.getElementById("p"+i+"b");
+
+el1.innerHTML = html;
+el2.innerHTML = html;
+
+el1.className = "panel "+cls + (isDanger?" flash":"");
+el2.className = "panel "+cls + (isDanger?" flash":"");
+
+}
+
+// 第5面
+var logo = document.getElementById("logo");
+logo.className = "logoArea " + cls + (isDanger?" flash":"");
+
+}catch(e){
+console.log(e);
+}
+
+}
+
+updateData();
+setInterval(updateData,5000);
+
+</script>
+
+</body>
+</html>
