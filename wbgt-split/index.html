@@ -93,6 +93,10 @@ const C = {
   proxy: "https://api.allorigins.win/raw?url=",
   moePageBase: "https://www.wbgt.env.go.jp/wbgt_data.php"
 };
+const DEMO_MODE = new URLSearchParams(window.location.search).get("demo") === "1";
+const DEMO_WBGT = [20, 23, 26, 29, 32];
+const DEMO_TEMP = [19.4, 24.2, 28.6, 31.4, 34.0];
+let demoLevelIndex = 0;
 
 const L = [
   { min: 31, bg: "#EC3817", tbg: "#EC3817", tbar: "#EE6145", face: "./images/face-danger.png", n: ["危険", "Danger", "Nguy hiểm", "危险"], a: ["作業を直ちに中止", "Stop work immediately", "Dừng công việc ngay", "立即停止作业"] },
@@ -136,6 +140,10 @@ function startSynchronizedLoop() {
         step = 0;
         tr.style.transform = "translateX(0)";
         faceRotator.style.transform = "translate(-50%,-50%) rotate(0deg)";
+        if (DEMO_MODE) {
+          demoLevelIndex = (demoLevelIndex + 1) % 5;
+          upd(DEMO_TEMP[demoLevelIndex], DEMO_WBGT[demoLevelIndex]);
+        }
         setTimeout(nextStep, C.holdMs);
       }, C.rotateMs);
       return;
@@ -216,8 +224,12 @@ async function go() {
   }
 }
 
-go();
-setInterval(go, C.ms);
+if (DEMO_MODE) {
+  upd(DEMO_TEMP[demoLevelIndex], DEMO_WBGT[demoLevelIndex]);
+} else {
+  go();
+  setInterval(go, C.ms);
+}
   </script>
 </body>
 </html>
