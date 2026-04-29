@@ -184,6 +184,8 @@
     const LOOP_HOLD_MS = 8000;
     const LOOP_ROTATE_MS = 1000;
     const LOOP_STEPS = 8;
+    const SCENE1_HOLD_MS = 8000;
+    const TICKER_SPEED_PX = 1.2;
     let logoQuarter = 0;
 
     function updateClock() {
@@ -200,12 +202,36 @@
     function calcWbgt(t, h) { return (0.725 * t) + (0.0368 * h) + (0.00115 * t * h) - 2.503; }
     function wbgtLevel(w) { return w >= 31 ? 4 : w >= 28 ? 3 : w >= 25 ? 2 : w >= 21 ? 1 : 0; }
     function setFace(levelIdx) { document.querySelectorAll('.face-use').forEach(el => el.setAttribute('href', '#face-' + levelIdx)); }
+    function hasFull4Slots(slots) {
+        return Array.isArray(slots) && slots.length >= 4 && slots.every(s => s && s.wbgt != null);
+    }
+    function buildWbgtSlotsFromHourly(hourly) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        let startIdx = -1;
+        for (let i = 0; i < hourly.time.length; i++) {
+            const dt = new Date(hourly.time[i]);
+            if (dt.getDate() === now.getDate() && dt.getHours() === currentHour) { startIdx = i; break; }
+        }
+        const offsets = [0, 3, 6, 9];
+        return offsets.map((offset, i) => {
+            const idx = startIdx >= 0 ? startIdx + offset : -1;
+            if (idx < 0 || idx >= hourly.time.length || hourly.temperature_2m[idx] == null || hourly.relative_humidity_2m[idx] == null) {
+                return { wbgt: null, levelIdx: 0, hour: i === 0 ? '現在' : ('+' + offset + 'h') };
+            }
+            const w = calcWbgt(hourly.temperature_2m[idx], hourly.relative_humidity_2m[idx]);
+            const h = new Date(hourly.time[idx]).getHours() + '時';
+            return { wbgt: w, levelIdx: wbgtLevel(w), hour: i === 0 ? '現在' : h };
+        });
+    }
 
     function updateForecastSlots(slots) {
         for (let i = 0; i < 4; i++) {
             const s = slots[i] || { wbgt: null, levelIdx: 0, hour: '取得不可' };
             const lv = Number.isInteger(s.levelIdx) ? s.levelIdx : 0;
-            document.querySelectorAll('.fc-hour-' + i).forEach(el => { el.innerText = s.hour || '取得不可'; });
+            const hourText = String(s.hour || '');
+            const normalizedHour = /^\+\d+h$/i.test(hourText) ? '' : hourText;
+            document.querySelectorAll('.fc-hour-' + i).forEach(el => { el.innerText = normalizedHour; });
             document.querySelectorAll('.fc-val-' + i).forEach(el => { el.innerText = s.wbgt != null ? Number(s.wbgt).toFixed(1) : '--'; });
             document.querySelectorAll('.fc-lv-' + i).forEach(el => { el.innerText = s.wbgt != null ? levelNames[lv] : ''; });
             document.querySelectorAll('.fc-slot-' + i).forEach(panel => {
@@ -275,7 +301,7 @@
     async function fetchWeatherAndWbgt() {
         let wbgtSlots = await fetchWbgtFromMoeApi();
         try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m,weather_code&hourly=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m&forecast_days=1&timezone=Asia%2FTokyo`);
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m,weather_code&hourly=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m&forecast_days=2&timezone=Asia%2FTokyo`);
             const data = await res.json();
             let wIcon = '#icon-sunny';
             if (data.current.weather_code >= 1 && data.current.weather_code <= 3) wIcon = '#icon-cloudy';
@@ -288,25 +314,15 @@
             document.querySelectorAll('.dir-val').forEach(el => { el.innerText = degToCompassJa(Number(data.current.wind_direction_10m)); });
             document.querySelectorAll('.pres-val').forEach(el => { el.innerText = Math.round(Number(data.current.surface_pressure ?? 0)); });
 
-            // 環境省データが取得できない場合のみ推定値で埋める
-            if (!wbgtSlots) {
-                const now = new Date();
-                const currentHour = now.getHours();
-                let startIdx = -1;
-                for (let i = 0; i < data.hourly.time.length; i++) {
-                    const dt = new Date(data.hourly.time[i]);
-                    if (dt.getDate() === now.getDate() && dt.getHours() === currentHour) { startIdx = i; break; }
+            // 環境省データが欠けている場合も含め、Open-Meteoで4枠補完
+            const fallbackSlots = buildWbgtSlotsFromHourly(data.hourly);
+            if (!wbgtSlots) wbgtSlots = fallbackSlots;
+            else if (!hasFull4Slots(wbgtSlots)) {
+                wbgtSlots = wbgtSlots.slice(0, 4);
+                while (wbgtSlots.length < 4) wbgtSlots.push({ wbgt: null, levelIdx: 0, hour: '取得不可' });
+                for (let i = 0; i < 4; i++) {
+                    if (wbgtSlots[i]?.wbgt == null && fallbackSlots[i]?.wbgt != null) wbgtSlots[i] = fallbackSlots[i];
                 }
-                const offsets = [0, 3, 6, 9];
-                wbgtSlots = offsets.map((offset, i) => {
-                    const idx = startIdx >= 0 ? startIdx + offset : -1;
-                    if (idx < 0 || idx >= data.hourly.time.length || data.hourly.temperature_2m[idx] == null) {
-                        return { wbgt: null, levelIdx: 0, hour: i === 0 ? '現在' : ('+' + offset + 'h') };
-                    }
-                    const w = calcWbgt(data.hourly.temperature_2m[idx], data.hourly.relative_humidity_2m[idx]);
-                    const h = new Date(data.hourly.time[idx]).getHours() + '時';
-                    return { wbgt: w, levelIdx: wbgtLevel(w), hour: i === 0 ? '現在' : h };
-                });
             }
 
             currentWbgtLevel = wbgtSlots[0]?.levelIdx ?? 0;
@@ -346,7 +362,7 @@
         let barX = 0;
         tickerTrack.style.transform = 'translateX(0px)';
         function animate() {
-            tickerX -= 1.8;
+            tickerX -= TICKER_SPEED_PX;
             barX -= 0.4;
             if (barX <= -barW) barX = 0;
             tickerTrack.style.transform = `translateX(${tickerX}px)`;
@@ -372,8 +388,8 @@
         setTimeout(() => {
             s1A.classList.remove('active');
             s1B.classList.add('active');
-            setTimeout(() => { s1.classList.remove('active'); playScene2(); }, 5000);
-        }, 5000);
+            setTimeout(() => { s1.classList.remove('active'); playScene2(); }, SCENE1_HOLD_MS);
+        }, SCENE1_HOLD_MS);
     }
     function playScene2() {
         s2.classList.add('active');
