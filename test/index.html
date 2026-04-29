@@ -1,470 +1,606 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>WBGT Signage - Sendai</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
-        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: "Inter", "Noto Sans JP", sans-serif; }
-        .canvas { width: 512px; height: 128px; position: relative; overflow: hidden; }
-        .scene { position: absolute; top: 0; left: 0; width: 512px; height: 128px; display: none; }
-        .scene.active { display: flex; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パトロール犬（柴犬）改良版</title>
+<style>
+  :root {
+    --bg: #171717;
+    --panel: #242424;
+    --line: #3b3b3b;
+    --text: #f3f3f3;
+    --muted: #b2b2b2;
+    --accent: #ffd94d;
+  }
 
-        .panel { width: 128px; height: 128px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-sizing: border-box; border-right: 1px solid #222; flex-shrink: 0; gap: 4px; }
-        .s1-label { font-size: 16px; font-weight: 700; color: #ebebeb; font-family: "Noto Sans JP", sans-serif; }
-        .time-val { font-size: 38px; font-weight: 800; color: #ebebeb; line-height: 1; font-variant-numeric: tabular-nums; font-family: "Inter", sans-serif; }
-        .face-svg { width: 85px; height: 85px; }
-        .scene1-state { display: none; width: 512px; height: 128px; flex-direction: row; }
-        .scene1-state.active { display: flex; }
+  * { box-sizing: border-box; }
 
-        .s2-panel, .s2-panel-data { width: 128px; height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box; border-right: 1px solid #222; flex-shrink: 0; overflow: hidden; }
-        .s2-zone-top { width: 100%; height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .s2-zone-mid { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .s2-zone-bot { width: 100%; height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .s2-label { font-size: 15px; font-weight: 700; color: #ebebeb; letter-spacing: 0.42px; font-family: "Noto Sans JP", sans-serif; padding-top: 15px; }
-        .s2-loc { font-size: 15px; font-weight: 700; color: #ebebeb; font-family: "Noto Sans JP", sans-serif; margin-top: -5px; }
-        .s2-val { display: flex; align-items: flex-end; gap: 2px; }
-        .s2-num { font-size: 42px; font-weight: 800; color: #ebebeb; line-height: 1; font-family: "Inter", sans-serif; }
-        .s2-unit { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.8); font-family: "Inter", sans-serif; padding-bottom: 5px; }
-        .weather-svg { width: 54px; height: 54px; }
-        .s2-face { width: 54px; height: 54px; }
-        .conveyor-track { display: flex; flex-direction: row; width: 1536px; transition: transform 0.6s ease-in-out; }
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #262626, #111);
+    color: var(--text);
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  }
 
-        .forecast-scene { display: none; overflow: hidden; }
-        .fc-track { display: flex; flex-direction: row; width: 1536px; transition: transform 0.6s ease-in-out; }
-        .fc-panel { width: 128px; height: 128px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; position: relative; gap: 2px; padding: 8px 0; overflow: hidden; }
-        .fc-header { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.55); align-self: stretch; padding-left: 8px; font-family: "Inter", "Noto Sans JP", sans-serif; }
-        .fc-hour { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.75); font-family: "Inter", "Noto Sans JP", sans-serif; }
-        .fc-wbgt { font-size: 36px; font-weight: 800; color: #fff; line-height: 1; font-variant-numeric: tabular-nums; font-family: "Inter", sans-serif; }
-        .fc-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); letter-spacing: 0.55px; font-family: "Inter", "Noto Sans JP", sans-serif; }
-        .fc-face { width: 26px; height: 26px; position: absolute; top: 4px; right: 6px; }
-        .fc-now { border: 2px solid rgba(255,255,255,0.35); }
-        .fc-bg-0 { background: rgba(2,137,222,0.40); }
-        .fc-bg-1 { background: rgba(43,179,224,0.40); }
-        .fc-bg-2 { background: rgba(255,199,0,0.40); }
-        .fc-bg-3 { background: rgba(253,135,26,0.40); }
-        .fc-bg-4 { background: rgba(236,56,23,0.40); }
+  .app {
+    width: 100%;
+    max-width: 1080px;
+  }
 
-        .ticker-scene { background-color: #000; display: none; position: relative; overflow: hidden; }
-        .ticker-scene.active { display: block !important; }
-        .ticker-main { width: 512px; height: 108px; overflow: hidden; position: relative; }
-        .ticker-track { display: flex; align-items: center; height: 108px; position: absolute; top: 0; left: 0; }
-        .msg-block { width: 256px; height: 108px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; gap: 10px; box-sizing: border-box; padding: 0 12px; }
-        .msg-face { width: 36px; height: 36px; flex-shrink: 0; }
-        .msg-text { font-size: 18px; font-weight: 800; color: #fff; white-space: nowrap; text-align: center; font-family: "Noto Sans JP", "Inter", sans-serif; }
-        .ticker-bar { width: 512px; height: 20px; background: rgba(255,255,255,0.06); overflow: hidden; position: absolute; bottom: 0; left: 0; }
-        .bar-track { display: flex; align-items: center; height: 20px; position: absolute; top: 0; left: 0; white-space: nowrap; }
-        .bar-text { font-size: 10px; font-weight: 400; color: rgba(255,255,255,0.3); letter-spacing: 0.5px; padding-right: 80px; flex-shrink: 0; }
-    </style>
+  h1 {
+    margin: 0 0 10px;
+    font-size: clamp(20px, 3vw, 30px);
+  }
+
+  .desc {
+    margin: 0 0 14px;
+    color: var(--muted);
+  }
+
+  .panel-labels {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    color: #b8b8b8;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .panel-labels span:nth-child(1) { text-align: left; }
+  .panel-labels span:nth-child(2),
+  .panel-labels span:nth-child(3) { text-align: center; }
+  .panel-labels span:nth-child(4) { text-align: right; }
+
+  .stage-wrap {
+    width: 100%;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    background: #000;
+  }
+
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  .hud {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(36, 36, 36, 0.95);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 14px;
+  }
+
+  .hud b { color: var(--accent); }
+
+  .controls {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .control {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    padding: 12px;
+  }
+
+  .control label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .control input[type="range"] { width: 100%; }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    border: 1px solid #515151;
+    background: #2f2f2f;
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  button:hover { background: #3a3a3a; }
+  button.active {
+    border-color: #8a6f00;
+    background: #4e3e00;
+  }
+</style>
 </head>
 <body>
+  <main class="app">
+    <h1>パトロール犬（柴犬）改良版</h1>
+    <p class="desc">ランダム行動のドット犬。速度調整・一時停止・背景密度変更・状態モニター付き。</p>
 
-<!-- ★顔アイコン: 指定色に変更 -->
-<svg style="display: none;">
-    <symbol id="icon-sunny" viewBox="0 0 120 120"><circle cx="60" cy="60" r="24" fill="#ff4d00"/><g stroke="#ff4d00" stroke-width="8" stroke-linecap="round"><line x1="60" y1="15" x2="60" y2="30"/><line x1="60" y1="90" x2="60" y2="105"/><line x1="15" y1="60" x2="30" y2="60"/><line x1="90" y1="60" x2="105" y2="60"/><line x1="28" y1="28" x2="39" y2="39"/><line x1="81" y1="81" x2="92" y2="92"/><line x1="28" y1="92" x2="39" y2="81"/><line x1="81" y1="39" x2="92" y2="28"/></g></symbol>
-    <symbol id="icon-cloudy" viewBox="0 0 100 100"><path d="M25,65 a20,20 0 1,1 20,-20 a25,25 0 1,1 40,5 a15,15 0 1,1 0,30 h-60 a20,20 0 1,1 0,-40" fill="#999"/></symbol>
-    <symbol id="icon-rainy" viewBox="0 0 100 100"><path d="M25,65 a20,20 0 1,1 20,-20 a25,25 0 1,1 40,5 a15,15 0 1,1 0,30 h-60 a20,20 0 1,1 0,-40" fill="#666"/><path d="M45,75 L40,90 M65,75 L60,90" stroke="#00b0f0" stroke-width="6" stroke-linecap="round"/></symbol>
-    <!-- face-0: ほぼ安全 #0289DE -->
-    <symbol id="face-0" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#0289DE"/><circle cx="35" cy="40" r="5" fill="#fff"/><circle cx="65" cy="40" r="5" fill="#fff"/><path d="M 30 65 Q 50 85 70 65" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/></symbol>
-    <!-- face-1: 注意 #2BB3E0 -->
-    <symbol id="face-1" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#2BB3E0"/><circle cx="35" cy="40" r="5" fill="#fff"/><circle cx="65" cy="40" r="5" fill="#fff"/><line x1="30" y1="70" x2="70" y2="70" stroke="#fff" stroke-width="5" stroke-linecap="round"/></symbol>
-    <!-- face-2: 警戒 #FFC700 -->
-    <symbol id="face-2" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#FFC700"/><path d="M 30 45 Q 35 35 40 45 M 60 45 Q 65 35 70 45" stroke="#000" stroke-width="4" fill="none"/><path d="M 35 75 Q 50 65 65 75" stroke="#000" stroke-width="5" fill="none" stroke-linecap="round"/></symbol>
-    <!-- face-3: 厳重警戒 #FD871A -->
-    <symbol id="face-3" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#FD871A"/><line x1="25" y1="35" x2="40" y2="45" stroke="#fff" stroke-width="6"/><line x1="40" y1="35" x2="25" y2="45" stroke="#fff" stroke-width="6"/><line x1="60" y1="35" x2="75" y2="45" stroke="#fff" stroke-width="6"/><line x1="75" y1="35" x2="60" y2="45" stroke="#fff" stroke-width="6"/><path d="M 35 75 Q 50 65 65 75" stroke="#fff" stroke-width="5" fill="none"/></symbol>
-    <!-- face-4: 危険 #EC3817 -->
-    <symbol id="face-4" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#EC3817"/><line x1="25" y1="35" x2="40" y2="45" stroke="#fff" stroke-width="6"/><line x1="40" y1="35" x2="25" y2="45" stroke="#fff" stroke-width="6"/><line x1="60" y1="35" x2="75" y2="45" stroke="#fff" stroke-width="6"/><line x1="75" y1="35" x2="60" y2="45" stroke="#fff" stroke-width="6"/><path d="M 30 75 Q 35 65 40 75 T 50 75 T 60 75 T 70 75" stroke="#fff" stroke-width="5" fill="none"/></symbol>
-</svg>
-
-<div class="canvas">
-    <!-- Scene1: 顔+時刻 -->
-    <div class="scene active" id="scene1">
-        <div class="scene1-state active" id="s1-stateA">
-            <div class="panel"><svg class="face-svg"><use class="face-use" href="#face-0"/></svg></div>
-            <div class="panel"><div class="s1-label">時刻</div><div class="clock-hm time-val">--:--</div></div>
-            <div class="panel"><svg class="face-svg"><use class="face-use" href="#face-0"/></svg></div>
-            <div class="panel"><div class="s1-label">時刻</div><div class="clock-hm time-val">--:--</div></div>
-        </div>
-        <div class="scene1-state" id="s1-stateB">
-            <div class="panel"><div class="s1-label">時刻</div><div class="clock-hm time-val">--:--</div></div>
-            <div class="panel"><svg class="face-svg"><use class="face-use" href="#face-0"/></svg></div>
-            <div class="panel"><div class="s1-label">時刻</div><div class="clock-hm time-val">--:--</div></div>
-            <div class="panel"><svg class="face-svg"><use class="face-use" href="#face-0"/></svg></div>
-        </div>
+    <div class="panel-labels">
+      <span>← パネル1</span>
+      <span>パネル2</span>
+      <span>パネル3</span>
+      <span>パネル4 →</span>
     </div>
 
-    <!-- Scene2: 天気コンベア -->
-    <div class="scene" id="scene2">
-        <div class="conveyor-track" id="conveyor">
-            <!-- Set 1〜3 (計12パネル) -->
-            <div class="s2-panel"><div class="s2-zone-top"><div class="s2-label">天気</div></div><div class="s2-zone-mid"><svg class="weather-svg"><use class="weather-icon-use" href="#icon-sunny"/></svg></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel-data"><div class="s2-zone-top"><div class="s2-label">気温</div></div><div class="s2-zone-mid"><div class="s2-val"><span class="s2-num temp-val">--</span><span class="s2-unit">℃</span></div></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel-data"><div class="s2-zone-top"><div class="s2-label">湿度</div></div><div class="s2-zone-mid"><div class="s2-val"><span class="s2-num humi-val">--</span><span class="s2-unit">%</span></div></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel"><div class="s2-zone-top"><div class="s2-label">WBGT</div></div><div class="s2-zone-mid"><svg class="s2-face"><use class="face-use" href="#face-0"/></svg></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel"><div class="s2-zone-top"><div class="s2-label">天気</div></div><div class="s2-zone-mid"><svg class="weather-svg"><use class="weather-icon-use" href="#icon-sunny"/></svg></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel-data"><div class="s2-zone-top"><div class="s2-label">気温</div></div><div class="s2-zone-mid"><div class="s2-val"><span class="s2-num temp-val">--</span><span class="s2-unit">℃</span></div></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel-data"><div class="s2-zone-top"><div class="s2-label">湿度</div></div><div class="s2-zone-mid"><div class="s2-val"><span class="s2-num humi-val">--</span><span class="s2-unit">%</span></div></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel"><div class="s2-zone-top"><div class="s2-label">WBGT</div></div><div class="s2-zone-mid"><svg class="s2-face"><use class="face-use" href="#face-0"/></svg></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel"><div class="s2-zone-top"><div class="s2-label">天気</div></div><div class="s2-zone-mid"><svg class="weather-svg"><use class="weather-icon-use" href="#icon-sunny"/></svg></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel-data"><div class="s2-zone-top"><div class="s2-label">気温</div></div><div class="s2-zone-mid"><div class="s2-val"><span class="s2-num temp-val">--</span><span class="s2-unit">℃</span></div></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel-data"><div class="s2-zone-top"><div class="s2-label">湿度</div></div><div class="s2-zone-mid"><div class="s2-val"><span class="s2-num humi-val">--</span><span class="s2-unit">%</span></div></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-            <div class="s2-panel"><div class="s2-zone-top"><div class="s2-label">WBGT</div></div><div class="s2-zone-mid"><svg class="s2-face"><use class="face-use" href="#face-0"/></svg></div><div class="s2-zone-bot"><div class="s2-loc">仙台市</div></div></div>
-        </div>
+    <div class="stage-wrap">
+      <canvas id="signage" width="512" height="128"></canvas>
     </div>
 
-    <!-- Scene4: WBGT予測 3時間刻み（現在/+3h/+6h/+9h × 3セット） -->
-    <div class="scene forecast-scene" id="scene4">
-        <div class="fc-track" id="fc-conveyor">
-            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">--時</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">--時</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">--時</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">--時</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3">--</div></div>
-            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">--時</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">--時</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">--時</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">--時</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3">--</div></div>
-            <div class="fc-panel fc-now fc-bg-0 fc-slot-0"><div class="fc-header">現在</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-0">--時</div><div class="fc-wbgt fc-val-0">--</div><div class="fc-label fc-lv-0">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-1"><div class="fc-header">+3h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-1">--時</div><div class="fc-wbgt fc-val-1">--</div><div class="fc-label fc-lv-1">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-2"><div class="fc-header">+6h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-2">--時</div><div class="fc-wbgt fc-val-2">--</div><div class="fc-label fc-lv-2">--</div></div>
-            <div class="fc-panel fc-bg-0 fc-slot-3"><div class="fc-header">+9h</div><svg class="fc-face"><use class="fc-face-use" href="#face-0"/></svg><div class="fc-hour fc-hour-3">--時</div><div class="fc-wbgt fc-val-3">--</div><div class="fc-label fc-lv-3">--</div></div>
-        </div>
-    </div>
+    <section class="hud">
+      <div>状態: <b id="stateLabel">walk</b></div>
+      <div>向き: <b id="dirLabel">右</b></div>
+      <div>座標X: <b id="xLabel">50</b></div>
+      <div>FPS: <b id="fpsLabel">--</b></div>
+    </section>
 
-    <!-- Scene3: ティッカー -->
-    <div class="scene ticker-scene" id="scene3">
-        <div class="ticker-main"><div class="ticker-track" id="ticker-track"></div></div>
-        <div class="ticker-bar"><div class="bar-track" id="bar-track"></div></div>
-    </div>
-</div>
+    <section class="controls">
+      <div class="control">
+        <label for="speed">移動速度倍率: <span id="speedValue">1.0</span>x</label>
+        <input id="speed" type="range" min="0.5" max="2.5" step="0.1" value="1.0">
+      </div>
+
+      <div class="control">
+        <label for="gravel">砂利密度: <span id="gravelValue">200</span></label>
+        <input id="gravel" type="range" min="60" max="400" step="10" value="200">
+      </div>
+
+      <div class="control">
+        <label>操作</label>
+        <div class="actions">
+          <button id="pauseBtn" type="button">一時停止</button>
+          <button id="resetBtn" type="button">リセット</button>
+          <button id="autoBtn" type="button" class="active">自動行動ON</button>
+        </div>
+      </div>
+    </section>
+  </main>
 
 <script>
-    // ============================================================
-    // ★設定: ここだけ変更★
-    // ============================================================
-    
-    // Google Sheets 公開CSV URL（公開手順は下部コメント参照）
-    // 形式: https://docs.google.com/spreadsheets/d/{SHEET_ID}/pub?gid=0&single=true&output=csv
-    const SHEET_CSV_URL = new URLSearchParams(window.location.search).get('sheet') || '';
-    
-    // Open-Meteo用 仙台座標（天気・気温・湿度のみ使用）
-    const lat = '38.2682';
-    const lon = '140.8694';
+const canvas = document.getElementById("signage");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
 
-    // ============================================================
-    // 定数
-    // ============================================================
-    const multi = [
-        { jp:"【ほぼ安全】適宜水分補給", en:"Safe: Stay hydrated", vn:"An toàn: Bổ sung nước", cn:"基本安全：注意补水" },
-        { jp:"【注意】積極的に水分補給", en:"Caution: Actively hydrate", vn:"Chú ý: Uống nước thường xuyên", cn:"注意：及时补水" },
-        { jp:"【警戒】定期的に休憩", en:"Warning: Take regular breaks", vn:"Cảnh báo: Nghỉ ngơi định kỳ", cn:"警戒：定时休息" },
-        { jp:"【厳重警戒】激しい作業中止", en:"Severe Warning: Stop intense work", vn:"Cảnh báo nghiêm trọng: Ngừng làm việc nặng", cn:"严重警戒：停止剧烈作业" },
-        { jp:"【危険】作業を直ちに中止", en:"Danger: Stop work immediately", vn:"Nguy hiểm: Dừng công việc ngay", cn:"危険：立即停止作业" }
+const stateLabel = document.getElementById("stateLabel");
+const dirLabel = document.getElementById("dirLabel");
+const xLabel = document.getElementById("xLabel");
+const fpsLabel = document.getElementById("fpsLabel");
+const speedInput = document.getElementById("speed");
+const speedValue = document.getElementById("speedValue");
+const gravelInput = document.getElementById("gravel");
+const gravelValue = document.getElementById("gravelValue");
+const pauseBtn = document.getElementById("pauseBtn");
+const resetBtn = document.getElementById("resetBtn");
+const autoBtn = document.getElementById("autoBtn");
+
+const C = {
+  bg: "#000000",
+  ground1: "#996633", ground2: "#774422", ground3: "#553311",
+  dogMain: "#E58A24", dogDark: "#B25A00", dogLight: "#FFA845",
+  dogWhite: "#FFF5E6", dogWhiteDark: "#DDCBAA",
+  helm: "#FFD700", helmDark: "#B89600", helmLight: "#FFE866",
+  eye: "#1A0D00", tongue: "#FF5555",
+  coneMain: "#FF3300", coneSub: "#FFFFFF",
+  craneMain: "#FFB300"
+};
+
+const dog = {
+  x: 50,
+  y: 98,
+  dir: 1,
+  state: "walk",
+  stateTimer: 90,
+  bubbleText: "",
+  bubbleTimer: 0
+};
+
+let frameCount = 0;
+let paused = false;
+let autoMode = true;
+let speedRate = 1.0;
+let gravelCount = 200;
+let lastTime = performance.now();
+let fps = 0;
+
+function decideNextAction() {
+  if (!autoMode) return;
+  const rand = Math.random();
+  let nextState = "walk";
+  let duration = 60 + Math.floor(Math.random() * 120);
+  let message = "";
+
+  if (rand < 0.7) {
+    nextState = "walk";
+    if (Math.random() < 0.3) message = "トコトコ";
+  } else if (rand < 0.9) {
+    nextState = "run";
+    duration = 40 + Math.floor(Math.random() * 60);
+    if (Math.random() < 0.5) message = "タタタッ！";
+    else if (Math.random() < 0.2) message = "急げ〜！";
+  } else {
+    const stops = [
+      { s: "sit", m: "ワン！安全第一！" },
+      { s: "dig", m: "ホリホリ" },
+      { s: "look", m: "異常なし！" }
     ];
-    const levelNames = ['ほぼ安全','注意','警戒','厳重警戒','危険'];
+    const choice = stops[Math.floor(Math.random() * stops.length)];
+    nextState = choice.s;
+    message = choice.m;
+    duration = 90 + Math.floor(Math.random() * 60);
+  }
 
-    let currentWbgtLevel = 0;
+  dog.state = nextState;
+  dog.stateTimer = duration;
+  if (message) {
+    dog.bubbleText = message;
+    dog.bubbleTimer = duration - 20;
+  }
+}
 
-    // DOM
-    const s1 = document.getElementById('scene1');
-    const s1A = document.getElementById('s1-stateA');
-    const s1B = document.getElementById('s1-stateB');
-    const s2 = document.getElementById('scene2');
-    const conveyor = document.getElementById('conveyor');
-    const s3 = document.getElementById('scene3');
-    const s4 = document.getElementById('scene4');
-    const fcConveyor = document.getElementById('fc-conveyor');
-    const tickerTrack = document.getElementById('ticker-track');
-    const barTrack = document.getElementById('bar-track');
+function checkBoundaries() {
+  if (dog.x > 490 && dog.dir === 1) {
+    dog.dir = -1;
+    dog.state = "look";
+    dog.stateTimer = 60;
+    dog.bubbleText = "折り返し！";
+    dog.bubbleTimer = 50;
+  } else if (dog.x < 20 && dog.dir === -1) {
+    dog.dir = 1;
+    dog.state = "look";
+    dog.stateTimer = 60;
+    dog.bubbleText = "パトロール中";
+    dog.bubbleTimer = 50;
+  }
+}
 
-    // ============================================================
-    // 時計
-    // ============================================================
-    function updateClock() {
-        const now = new Date();
-        const t = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
-        document.querySelectorAll('.clock-hm').forEach(el => el.innerText = t);
+function drawBackground() {
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, 512, 128);
+
+  ctx.fillStyle = C.ground1;
+  ctx.fillRect(0, 98, 512, 4);
+  ctx.fillStyle = C.ground2;
+  ctx.fillRect(0, 102, 512, 6);
+  ctx.fillStyle = C.ground3;
+  ctx.fillRect(0, 108, 512, 20);
+
+  ctx.fillStyle = "#A07A5A";
+  for (let i = 0; i < gravelCount; i++) {
+    const gx = (i * 17) % 512;
+    const gy = 100 + ((i * 11) % 25);
+    ctx.fillRect(gx, gy, 1, 1);
+  }
+
+  ctx.fillStyle = "#111";
+  ctx.fillRect(128, 0, 1, 128);
+  ctx.fillRect(256, 0, 1, 128);
+  ctx.fillRect(384, 0, 1, 128);
+
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 5; i < 125; i += 8) {
+    ctx.moveTo(i, 60);
+    ctx.lineTo(i + 8, 98);
+    ctx.moveTo(i + 8, 60);
+    ctx.lineTo(i, 98);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = "#997744";
+  ctx.beginPath();
+  ctx.moveTo(70, 98);
+  ctx.lineTo(95, 65);
+  ctx.lineTo(120, 98);
+  ctx.fill();
+  ctx.fillStyle = "#775522";
+  ctx.beginPath();
+  ctx.moveTo(95, 65);
+  ctx.lineTo(120, 98);
+  ctx.lineTo(95, 98);
+  ctx.fill();
+
+  ctx.fillStyle = C.craneMain;
+  ctx.fillRect(140, 20, 90, 12);
+  ctx.fillStyle = "#333";
+  for (let i = 142; i < 220; i += 10) ctx.fillRect(i, 22, 6, 8);
+  ctx.fillStyle = C.craneMain;
+  ctx.fillRect(210, 32, 10, 66);
+  ctx.fillStyle = "#222";
+  ctx.fillRect(212, 32, 6, 66);
+
+  ctx.fillStyle = "#667788";
+  ctx.fillRect(270, 75, 40, 23);
+  ctx.fillStyle = "#445566";
+  ctx.fillRect(270, 90, 40, 8);
+  ctx.fillStyle = "#8899AA";
+  ctx.fillRect(270, 75, 40, 2);
+
+  ctx.fillStyle = "#4499CC";
+  ctx.beginPath();
+  ctx.ellipse(340, 102, 28, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (frameCount % 60 < 20) {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(325, 101, 3, 1);
+    ctx.fillRect(348, 102, 2, 1);
+  }
+
+  drawCone(420, 98);
+  drawCone(460, 98);
+}
+
+function drawCone(x, y) {
+  ctx.fillStyle = C.coneMain;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 22);
+  ctx.lineTo(x - 9, y);
+  ctx.lineTo(x + 9, y);
+  ctx.fill();
+  ctx.fillStyle = C.coneSub;
+  ctx.beginPath();
+  ctx.moveTo(x - 2, y - 16);
+  ctx.lineTo(x - 5, y - 8);
+  ctx.lineTo(x + 5, y - 8);
+  ctx.lineTo(x + 2, y - 16);
+  ctx.fill();
+  ctx.fillStyle = "#222";
+  ctx.fillRect(x - 11, y, 22, 2);
+}
+
+function drawDog(x, y, dir, state) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+
+  let headY = 0;
+  let bodyY = 0;
+  if (state === "walk") {
+    headY = frameCount % 30 < 15 ? 1 : 0;
+    bodyY = frameCount % 15 < 7 ? 1 : 0;
+  } else if (state === "run") {
+    headY = 1;
+    bodyY = 1;
+  } else if (state === "dig") {
+    headY = 4;
+  } else if (state === "sit") {
+    bodyY = 3;
+    headY = 2;
+  }
+
+  ctx.translate(0, bodyY);
+  ctx.fillStyle = C.dogDark;
+  ctx.fillRect(-13, -13, 26, 12);
+  ctx.fillStyle = C.dogMain;
+  ctx.fillRect(-14, -16, 26, 13);
+  ctx.fillRect(-15, -14, 28, 9);
+  ctx.fillStyle = C.dogWhiteDark;
+  ctx.fillRect(-9, -8, 18, 7);
+  ctx.fillStyle = C.dogWhite;
+  ctx.fillRect(-8, -10, 16, 8);
+
+  ctx.translate(0, headY - bodyY);
+  ctx.fillStyle = C.dogDark;
+  ctx.fillRect(6, -24, 15, 13);
+  ctx.fillStyle = C.dogMain;
+  ctx.fillRect(7, -25, 14, 14);
+  ctx.fillRect(5, -23, 17, 10);
+
+  ctx.fillStyle = C.dogMain;
+  ctx.fillRect(8, -29, 5, 5);
+  ctx.fillRect(11, -29, 3, 3);
+  ctx.fillStyle = C.dogWhite;
+  ctx.fillRect(9, -28, 2, 3);
+
+  ctx.fillStyle = C.dogWhiteDark;
+  ctx.fillRect(14, -15, 9, 7);
+  ctx.fillStyle = C.dogWhite;
+  ctx.fillRect(15, -17, 9, 7);
+
+  ctx.fillStyle = C.eye;
+  ctx.fillRect(22, -17, 3, 2);
+  ctx.fillRect(23, -15, 1, 1);
+  if (frameCount % 180 > 12) ctx.fillRect(13, -20, 2, 3);
+
+  if (state === "run" || state === "sit") {
+    ctx.fillStyle = C.tongue;
+    ctx.fillRect(18, -11, 4, 3);
+    ctx.fillRect(19, -8, 2, 1);
+  }
+
+  ctx.fillStyle = C.helmDark;
+  ctx.fillRect(4, -28, 17, 7);
+  ctx.fillStyle = C.helm;
+  ctx.fillRect(5, -29, 15, 6);
+  ctx.fillRect(3, -24, 22, 2);
+  ctx.fillStyle = C.helmLight;
+  ctx.fillRect(7, -28, 4, 2);
+
+  ctx.translate(0, -(headY - bodyY));
+  ctx.fillStyle = C.dogLight;
+  if (state === "run") {
+    ctx.fillRect(-22, -14, 10, 4);
+    ctx.fillStyle = C.dogWhite;
+    ctx.fillRect(-24, -14, 3, 3);
+  } else {
+    ctx.fillStyle = C.dogLight;
+    ctx.fillRect(-17, -20, 6, 8);
+    ctx.fillRect(-19, -22, 5, 4);
+    ctx.fillStyle = C.dogWhite;
+    ctx.fillRect(-16, -18, 3, 3);
+  }
+
+  let legF1 = 0, legF2 = 0, legB1 = 0, legB2 = 0;
+  if (state === "walk") {
+    const t = frameCount % 40;
+    legF1 = t < 20 ? 2 : -1;
+    legF2 = t < 20 ? -1 : 2;
+    legB1 = t < 20 ? -1 : 2;
+    legB2 = t < 20 ? 2 : -1;
+  } else if (state === "run") {
+    const t = frameCount % 16;
+    legF1 = t < 8 ? 4 : -3;
+    legF2 = t < 8 ? -3 : 4;
+    legB1 = t < 8 ? -3 : 4;
+    legB2 = t < 8 ? 4 : -3;
+  } else if (state === "dig") {
+    const t = frameCount % 10;
+    legF1 = t < 5 ? 3 : -2;
+    legF2 = t >= 5 ? 3 : -2;
+    if (Math.random() > 0.3) {
+      ctx.fillStyle = C.ground2;
+      ctx.fillRect(14 + Math.random() * 15, -2 - Math.random() * 10, 2, 2);
     }
+  }
 
-    // ============================================================
-    // WBGT判定（Open-Meteoフォールバック用）
-    // ============================================================
-    function calcWbgt(t, h) { return (0.725*t) + (0.0368*h) + (0.00115*t*h) - 2.503; }
-    function wbgtLevel(w) { return w>=31?4:w>=28?3:w>=25?2:w>=21?1:0; }
+  ctx.fillStyle = C.dogDark;
+  if (state === "sit") {
+    ctx.fillRect(-13, -3, 8, 3);
+    ctx.fillRect(13, -1, 3, 3);
+  } else {
+    ctx.fillRect(-8 + legB2, -3, 4, 3);
+    ctx.fillRect(14 + legF2, -3, 3, 3);
+  }
 
-    // ============================================================
-    // 環境省公式WBGT取得（Google Sheets経由）
-    // ============================================================
-    async function fetchWbgtFromSheet() {
-        if (!SHEET_CSV_URL) return false; // URL未設定→フォールバック
+  ctx.fillStyle = C.dogLight;
+  if (state === "sit") {
+    ctx.fillRect(-10, -5, 7, 5);
+    ctx.fillRect(9, -3, 4, 5);
+  } else {
+    ctx.fillRect(-11 + legB1, -4, 4, 4);
+    ctx.fillRect(9 + legF1, -4, 4, 4);
+  }
 
-        try {
-            const res = await fetch(SHEET_CSV_URL);
-            if (!res.ok) return false;
-            const text = await res.text();
-            const rows = text.split('\n').map(r => r.split(','));
+  ctx.fillStyle = C.dogWhite;
+  if (state !== "sit") {
+    ctx.fillRect(-11 + legB1, 0, 4, 1);
+    ctx.fillRect(9 + legF1, 0, 4, 1);
+  }
 
-            if (rows.length < 4) return false;
+  ctx.restore();
+}
 
-            // GASの出力フォーマット:
-            // A:WBGT値, B:レベル名, C:レベル番号(0-4), D:時刻, E:データ種別
-            const slots = []; // [現在, +3h, +6h, +9h]
-            for (let i = 0; i < 4; i++) {
-                const r = rows[i];
-                if (!r || r.length < 4) {
-                    slots.push({ wbgt: null, levelIdx: 0, hour: '--', level: '取得不可' });
-                    continue;
-                }
-                const wbgtStr = r[0].trim().replace(/"/g, '');
-                const levelIdx = parseInt(r[2].trim().replace(/"/g, ''), 10);
-                const hour = r[3].trim().replace(/"/g, '');
-                const wbgt = parseFloat(wbgtStr);
+function drawBubble(text, x, y) {
+  if (!text) return;
+  ctx.font = "bold 11px sans-serif";
+  const textWidth = ctx.measureText(text).width;
+  const boxW = textWidth + 14;
+  const boxH = 22;
+  let boxX = x - boxW / 2;
+  const boxY = y - 55;
 
-                if (isNaN(wbgt) || wbgtStr === '取得不可') {
-                    slots.push({ wbgt: null, levelIdx: 0, hour: hour, level: '取得不可' });
-                } else {
-                    slots.push({ wbgt: wbgt, levelIdx: levelIdx >= 0 ? levelIdx : 0, hour: hour, level: levelNames[levelIdx] || '--' });
-                }
-            }
+  if (boxX < 5) boxX = 5;
+  if (boxX + boxW > 507) boxX = 507 - boxW;
 
-            // 現在のWBGTレベルで顔アイコンを更新
-            if (slots[0].wbgt !== null) {
-                currentWbgtLevel = slots[0].levelIdx;
-                document.querySelectorAll('.face-use').forEach(el => el.setAttribute('href', '#face-' + currentWbgtLevel));
-            }
+  const isWarn = text.includes("！");
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(boxX + 2, boxY + 2, boxW, boxH);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(boxX, boxY, boxW, boxH);
+  ctx.beginPath();
+  ctx.moveTo(x - 4, boxY + boxH);
+  ctx.lineTo(x + 4, boxY + boxH);
+  ctx.lineTo(x, boxY + boxH + 6);
+  ctx.fill();
+  ctx.fillStyle = isWarn ? "#DD1100" : "#111";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, boxX + boxW / 2, boxY + boxH / 2 + 1);
+}
 
-            // Scene4（予測コンベア）を更新
-            updateForecastFromSheet(slots);
-            buildTicker();
-            return true;
+function updateHud() {
+  stateLabel.textContent = dog.state;
+  dirLabel.textContent = dog.dir === 1 ? "右" : "左";
+  xLabel.textContent = dog.x.toFixed(1);
+  fpsLabel.textContent = String(fps);
+}
 
-        } catch (e) {
-            console.error('Google Sheets取得エラー:', e);
-            return false;
-        }
-    }
+function tick(now) {
+  const dt = Math.max(0.5, Math.min(2.0, (now - lastTime) / (1000 / 60)));
+  lastTime = now;
+  fps = Math.round(60 / dt);
 
-    function updateForecastFromSheet(slots) {
-        for (let offset = 0; offset < 4; offset++) {
-            const s = slots[offset];
-            const hours = document.querySelectorAll('.fc-hour-' + offset);
-            const vals = document.querySelectorAll('.fc-val-' + offset);
-            const lvs = document.querySelectorAll('.fc-lv-' + offset);
-            const panels = document.querySelectorAll('.fc-slot-' + offset);
+  if (!paused) {
+    frameCount++;
+    dog.stateTimer -= 1;
+    if (dog.stateTimer <= 0) decideNextAction();
+    if (dog.bubbleTimer > 0) dog.bubbleTimer--;
 
-            if (s.wbgt === null) {
-                hours.forEach(el => el.innerText = s.hour || '取得不可');
-                vals.forEach(el => el.innerText = '--');
-                lvs.forEach(el => el.innerText = '');
-                panels.forEach(p => {
-                    p.className = 'fc-panel fc-slot-' + offset + (offset===0?' fc-now':'') + ' fc-bg-0';
-                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-0'));
-                });
-            } else {
-                const lv = s.levelIdx;
-                hours.forEach(el => el.innerText = s.hour);
-                vals.forEach(el => el.innerText = s.wbgt.toFixed(1));
-                lvs.forEach(el => el.innerText = levelNames[lv]);
-                panels.forEach(p => {
-                    p.className = 'fc-panel fc-slot-' + offset + (offset===0?' fc-now':'') + ' fc-bg-' + lv;
-                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-'+lv));
-                });
-            }
-        }
-    }
+    if (dog.state === "walk") dog.x += 0.8 * dog.dir * speedRate * dt;
+    if (dog.state === "run") dog.x += 2.2 * dog.dir * speedRate * dt;
+    checkBoundaries();
+  }
 
-    // ============================================================
-    // 天気データ取得（Open-Meteo: 天気/気温/湿度のみ）
-    // + Google Sheets未接続時はWBGTもここで簡易計算
-    // ============================================================
-    async function fetchWeather() {
-        // まず環境省公式WBGT（Google Sheets経由）を試す
-        const sheetOk = await fetchWbgtFromSheet();
+  drawBackground();
+  drawDog(dog.x, dog.y, dog.dir, dog.state);
+  if (dog.bubbleTimer > 0) drawBubble(dog.bubbleText, dog.x, dog.y);
+  updateHud();
 
-        try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&hourly=temperature_2m,relative_humidity_2m&forecast_days=1&timezone=Asia%2FTokyo`);
-            const data = await res.json();
-            const temp = data.current.temperature_2m;
-            const humi = data.current.relative_humidity_2m;
-            const code = data.current.weather_code;
+  requestAnimationFrame(tick);
+}
 
-            // 天気アイコン
-            let wIcon = "#icon-sunny";
-            if (code >= 1 && code <= 3) wIcon = "#icon-cloudy";
-            else if (code >= 51) wIcon = "#icon-rainy";
-            document.querySelectorAll('.weather-icon-use').forEach(el => el.setAttribute('href', wIcon));
+function resetDog() {
+  dog.x = 50;
+  dog.y = 98;
+  dog.dir = 1;
+  dog.state = "walk";
+  dog.stateTimer = 90;
+  dog.bubbleText = "";
+  dog.bubbleTimer = 0;
+}
 
-            // 気温・湿度
-            document.querySelectorAll('.temp-val').forEach(el => el.innerText = Math.round(temp));
-            document.querySelectorAll('.humi-val').forEach(el => el.innerText = Math.round(humi));
+speedInput.addEventListener("input", (e) => {
+  speedRate = Number(e.target.value);
+  speedValue.textContent = speedRate.toFixed(1);
+});
 
-            // Google Sheets未接続の場合のみ、Open-Meteoで簡易WBGT計算
-            if (!sheetOk) {
-                const wbgt = calcWbgt(temp, humi);
-                currentWbgtLevel = wbgtLevel(wbgt);
-                document.querySelectorAll('.face-use').forEach(el => el.setAttribute('href', '#face-' + currentWbgtLevel));
+gravelInput.addEventListener("input", (e) => {
+  gravelCount = Number(e.target.value);
+  gravelValue.textContent = String(gravelCount);
+});
 
-                // 予測コンベアもOpen-Meteoベースで更新
-                if (data.hourly) {
-                    updateForecastFromOpenMeteo(data.hourly.time, data.hourly.temperature_2m, data.hourly.relative_humidity_2m);
-                }
-            }
-            buildTicker();
+pauseBtn.addEventListener("click", () => {
+  paused = !paused;
+  pauseBtn.textContent = paused ? "再開" : "一時停止";
+});
 
-        } catch (e) {
-            console.error('Open-Meteoエラー:', e);
-            if (!sheetOk) {
-                for (let i = 0; i < 4; i++) {
-                    document.querySelectorAll('.fc-hour-'+i).forEach(el => el.innerText = '取得不可');
-                    document.querySelectorAll('.fc-val-'+i).forEach(el => el.innerText = '--');
-                    document.querySelectorAll('.fc-lv-'+i).forEach(el => el.innerText = '');
-                }
-            }
-        }
-    }
+resetBtn.addEventListener("click", () => {
+  resetDog();
+});
 
-    // Open-Meteoフォールバック: 3時間刻み予測
-    function updateForecastFromOpenMeteo(hourlyTime, hourlyTemp, hourlyHumi) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        let startIdx = -1;
-        for (let i = 0; i < hourlyTime.length; i++) {
-            const h = new Date(hourlyTime[i]).getHours();
-            if (new Date(hourlyTime[i]).getDate() === now.getDate() && h === currentHour) { startIdx = i; break; }
-        }
-        // offset: 0=現在, 1=+3h, 2=+6h, 3=+9h
-        const offsets = [0, 3, 6, 9];
-        for (let slot = 0; slot < 4; slot++) {
-            const idx = startIdx >= 0 ? startIdx + offsets[slot] : -1;
-            const hours = document.querySelectorAll('.fc-hour-' + slot);
-            const vals = document.querySelectorAll('.fc-val-' + slot);
-            const lvs = document.querySelectorAll('.fc-lv-' + slot);
-            const panels = document.querySelectorAll('.fc-slot-' + slot);
-            if (idx < 0 || idx >= hourlyTime.length || hourlyTemp[idx] == null || hourlyHumi[idx] == null) {
-                hours.forEach(el => el.innerText = '取得不可');
-                vals.forEach(el => el.innerText = '--');
-                lvs.forEach(el => el.innerText = '');
-                panels.forEach(p => {
-                    p.className = 'fc-panel fc-slot-' + slot + (slot===0?' fc-now':'') + ' fc-bg-0';
-                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-0'));
-                });
-            } else {
-                const hr = new Date(hourlyTime[idx]).getHours();
-                const w = calcWbgt(hourlyTemp[idx], hourlyHumi[idx]);
-                const lv = wbgtLevel(w);
-                hours.forEach(el => el.innerText = hr + '時');
-                vals.forEach(el => el.innerText = w.toFixed(1));
-                lvs.forEach(el => el.innerText = levelNames[lv]);
-                panels.forEach(p => {
-                    p.className = 'fc-panel fc-slot-' + slot + (slot===0?' fc-now':'') + ' fc-bg-' + lv;
-                    p.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href','#face-'+lv));
-                });
-            }
-        }
-    }
+autoBtn.addEventListener("click", () => {
+  autoMode = !autoMode;
+  autoBtn.classList.toggle("active", autoMode);
+  autoBtn.textContent = autoMode ? "自動行動ON" : "自動行動OFF";
+});
 
-    // ============================================================
-    // ティッカー
-    // ============================================================
-    function buildTicker() {
-        const m = multi[currentWbgtLevel];
-        const lv = currentWbgtLevel;
-        const msgs = [m.jp, m.en, m.vn, m.cn];
-        const block = (text) => `<div class="msg-block"><svg class="msg-face"><use href="#face-${lv}"/></svg><div class="msg-text">${text}</div></div>`;
-        let html = '';
-        for (let loop = 0; loop < 2; loop++) { for (const t of msgs) html += block(t); }
-        html += block(msgs[0]) + block(msgs[1]);
-        tickerTrack.innerHTML = html;
-        const provider = 'データ提供：環境省熱中症予防情報サイト ／ 気象庁 ／ Open-Meteo API';
-        barTrack.innerHTML = `<span class="bar-text">${provider}</span><span class="bar-text">${provider}</span>`;
-    }
+window.addEventListener("keydown", (e) => {
+  if (e.key === " ") {
+    e.preventDefault();
+    pauseBtn.click();
+  }
+  if (e.key.toLowerCase() === "r") resetBtn.click();
+});
 
-    // ============================================================
-    // シーケンス制御（変更なし）
-    // ============================================================
-    let tickerAnimId = null;
-
-    function playScene3() {
-        s3.classList.add('active');
-        buildTicker();
-        const scrollDist = 256 * 8;
-        const barW = barTrack.scrollWidth / 2;
-        let tickerX = 0, barX = 0;
-        tickerTrack.style.transform = 'translateX(0px)';
-        function animate() {
-            tickerX -= 1.8; barX -= 0.4;
-            if (barX <= -barW) barX = 0;
-            tickerTrack.style.transform = `translateX(${tickerX}px)`;
-            barTrack.style.transform = `translateX(${barX}px)`;
-            if (tickerX > -scrollDist) { tickerAnimId = requestAnimationFrame(animate); }
-            else { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; setTimeout(() => { s3.classList.remove('active'); startSequence(); }, 1500); }
-        }
-        tickerAnimId = requestAnimationFrame(animate);
-    }
-
-    function playScene1() {
-        s1.classList.add('active'); s2.classList.remove('active'); s3.classList.remove('active'); s4.classList.remove('active'); s4.style.display='none';
-        s1A.classList.add('active'); s1B.classList.remove('active');
-        setTimeout(() => { s1A.classList.remove('active'); s1B.classList.add('active'); setTimeout(() => { s1.classList.remove('active'); playScene2(); }, 5000); }, 5000);
-    }
-
-    function playScene2() {
-        s2.classList.add('active');
-        let step = 0;
-        conveyor.style.transition = 'none'; conveyor.style.transform = 'translateX(0px)';
-        function slideNext() { step++; conveyor.style.transition = 'transform 0.6s ease-in-out'; conveyor.style.transform = `translateX(-${step*128}px)`; if(step<8){setTimeout(slideNext,5000);}else{setTimeout(()=>{s2.classList.remove('active');playScene4();},1000);} }
-        setTimeout(slideNext, 5000);
-    }
-
-    function playScene4() {
-        s4.classList.add('active'); s4.style.display = 'block';
-        let step = 0;
-        fcConveyor.style.transition = 'none'; fcConveyor.style.transform = 'translateX(0px)';
-        function fcSlideNext() { step++; fcConveyor.style.transition = 'transform 0.6s ease-in-out'; fcConveyor.style.transform = `translateX(-${step*128}px)`; if(step<8){setTimeout(fcSlideNext,8000);}else{setTimeout(()=>{s4.classList.remove('active');s4.style.display='none';playScene3();},1000);} }
-        setTimeout(fcSlideNext, 8000);
-    }
-
-    function startSequence() { playScene1(); }
-
-    // ============================================================
-    // 初期化
-    // ============================================================
-    window.onload = function() {
-        updateClock();
-        setInterval(updateClock, 1000);
-        buildTicker();
-        fetchWeather();
-        setInterval(fetchWeather, 300000); // 5分毎に更新
-        setTimeout(startSequence, 500);
-    };
+requestAnimationFrame(tick);
 </script>
-<!--
-============================================================
-Google Sheets 公開CSV 接続手順
-============================================================
-
-【前提】GASが環境省CSVを取得→スプレッドシート「WBGT」シートに書き込み済み
-
-【手順】
-1. Google Sheets を開く
-2. メニュー「ファイル」→「共有」→「ウェブに公開」
-3. 公開設定:
-   - シート: 「WBGT」を選択
-   - 形式: 「カンマ区切り形式(.csv)」を選択
-4. 「公開」をクリック
-5. 生成されたURLをコピー
-   形式: https://docs.google.com/spreadsheets/d/{SHEET_ID}/pub?gid={GID}&single=true&output=csv
-
-【HTMLへの接続方法（2通り）】
-(A) URLパラメータで指定:
-    wbgt_sendai_v2.html?sheet=https://docs.google.com/spreadsheets/d/xxx/pub?gid=0&single=true&output=csv
-
-(B) コード内に直書き:
-    SHEET_CSV_URL変数にURLを直接設定
-
-【Google Sheets未接続時】
-Open-Meteoの気温・湿度から簡易WBGT計算でフォールバック動作。
-※ただし公式値ではないため、建設現場等での正式運用には環境省CSV接続を推奨。
-============================================================
--->
 </body>
 </html>
