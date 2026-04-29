@@ -1,260 +1,606 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=640, initial-scale=1">
-  <title>WBGT 熱中症警報サイネージ 5面</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&family=Noto+Sans:wght@700;900&display=swap" rel="stylesheet">
-  <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{
-  width:640px;
-  height:128px;
-  overflow:hidden;
-  background:#000;
-  font-family:'Noto Sans JP','Noto Sans',sans-serif;
-  display:flex;
-}
-#slide-area{width:512px;height:128px;overflow:hidden;position:relative;flex-shrink:0}
-#tr{height:128px;position:absolute;top:0;left:0;display:flex}
-.c{width:128px;height:128px;position:relative;flex-shrink:0}
-.tb{position:absolute;top:1px;left:0;width:128px;height:25px}
-.wb{position:absolute;top:108px;left:0;width:128px;height:20px;background:#fff}
-.t{position:absolute;top:5px;width:128px;text-align:center;font-size:16px;font-weight:700;color:#fff}
-.w{position:absolute;top:25px;width:128px;text-align:center;font-size:36px;font-weight:900;color:#fff;line-height:40px}
-.dvd{position:absolute;top:64px;left:14px;width:100px;height:1.5px;background:rgba(255,255,255,.8)}
-.n{position:absolute;top:73px;width:128px;text-align:center;font-size:24px;font-weight:900;color:#fff;line-height:28px;overflow:hidden;white-space:nowrap}
-.a{position:absolute;top:109px;width:128px;text-align:center;font-size:14px;font-weight:700;color:#1e1e1e;line-height:18px;overflow:hidden;white-space:nowrap}
-#face{
-  position:relative;
-  width:128px;
-  height:128px;
-  flex-shrink:0;
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.face-rotator{
-  width:128px;
-  height:128px;
-  transform:rotate(0deg);
-  transform-origin:center center;
-  will-change:transform;
-}
-#face-image{
-  width:128px;
-  height:128px;
-  object-fit:contain;
-  display:block;
-}
-#e{
-  display:none;
-  width:640px;
-  height:128px;
-  background:#333;
-  color:#fff;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-  gap:4px;
-}
-#e .m{font-size:28px;font-weight:900}
-#e .u{font-size:12px;opacity:.8}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パトロール犬（柴犬）改良版</title>
+<style>
+  :root {
+    --bg: #171717;
+    --panel: #242424;
+    --line: #3b3b3b;
+    --text: #f3f3f3;
+    --muted: #b2b2b2;
+    --accent: #ffd94d;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #262626, #111);
+    color: var(--text);
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 1080px;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: clamp(20px, 3vw, 30px);
+  }
+
+  .desc {
+    margin: 0 0 14px;
+    color: var(--muted);
+  }
+
+  .panel-labels {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    color: #b8b8b8;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .panel-labels span:nth-child(1) { text-align: left; }
+  .panel-labels span:nth-child(2),
+  .panel-labels span:nth-child(3) { text-align: center; }
+  .panel-labels span:nth-child(4) { text-align: right; }
+
+  .stage-wrap {
+    width: 100%;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    background: #000;
+  }
+
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  .hud {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(36, 36, 36, 0.95);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 14px;
+  }
+
+  .hud b { color: var(--accent); }
+
+  .controls {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .control {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    padding: 12px;
+  }
+
+  .control label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .control input[type="range"] { width: 100%; }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    border: 1px solid #515151;
+    background: #2f2f2f;
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  button:hover { background: #3a3a3a; }
+  button.active {
+    border-color: #8a6f00;
+    background: #4e3e00;
+  }
+</style>
 </head>
 <body>
-  <div id="slide-area"><div id="tr"></div></div>
+  <main class="app">
+    <h1>パトロール犬（柴犬）改良版</h1>
+    <p class="desc">ランダム行動のドット犬。速度調整・一時停止・背景密度変更・状態モニター付き。</p>
 
-  <div id="face">
-    <div class="face-rotator" id="face-rotator">
-      <img id="face-image" src="./images/face-safe.png" alt="WBGT face">
+    <div class="panel-labels">
+      <span>← パネル1</span>
+      <span>パネル2</span>
+      <span>パネル3</span>
+      <span>パネル4 →</span>
     </div>
-  </div>
 
-  <div id="e">
-    <div class="m">WBGT 取得不可</div>
-    <div class="u">環境省WBGTデータのURL設定を確認してください</div>
-  </div>
+    <div class="stage-wrap">
+      <canvas id="signage" width="512" height="128"></canvas>
+    </div>
 
-  <script>
+    <section class="hud">
+      <div>状態: <b id="stateLabel">walk</b></div>
+      <div>向き: <b id="dirLabel">右</b></div>
+      <div>座標X: <b id="xLabel">50</b></div>
+      <div>FPS: <b id="fpsLabel">--</b></div>
+    </section>
+
+    <section class="controls">
+      <div class="control">
+        <label for="speed">移動速度倍率: <span id="speedValue">1.0</span>x</label>
+        <input id="speed" type="range" min="0.5" max="2.5" step="0.1" value="1.0">
+      </div>
+
+      <div class="control">
+        <label for="gravel">砂利密度: <span id="gravelValue">200</span></label>
+        <input id="gravel" type="range" min="60" max="400" step="10" value="200">
+      </div>
+
+      <div class="control">
+        <label>操作</label>
+        <div class="actions">
+          <button id="pauseBtn" type="button">一時停止</button>
+          <button id="resetBtn" type="button">リセット</button>
+          <button id="autoBtn" type="button" class="active">自動行動ON</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+const canvas = document.getElementById("signage");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+const stateLabel = document.getElementById("stateLabel");
+const dirLabel = document.getElementById("dirLabel");
+const xLabel = document.getElementById("xLabel");
+const fpsLabel = document.getElementById("fpsLabel");
+const speedInput = document.getElementById("speed");
+const speedValue = document.getElementById("speedValue");
+const gravelInput = document.getElementById("gravel");
+const gravelValue = document.getElementById("gravelValue");
+const pauseBtn = document.getElementById("pauseBtn");
+const resetBtn = document.getElementById("resetBtn");
+const autoBtn = document.getElementById("autoBtn");
+
 const C = {
-  ms: 30 * 60 * 1000,
-  retryMs: 15000,
-  lat: 34.6937,
-  lon: 135.5023,
-  region: "07",
-  prefecture: "62",
-  point: "62078",
-  proxy: "https://api.allorigins.win/raw?url=",
-  moePageBase: "https://www.wbgt.env.go.jp/wbgt_data.php"
+  bg: "#000000",
+  ground1: "#996633", ground2: "#774422", ground3: "#553311",
+  dogMain: "#E58A24", dogDark: "#B25A00", dogLight: "#FFA845",
+  dogWhite: "#FFF5E6", dogWhiteDark: "#DDCBAA",
+  helm: "#FFD700", helmDark: "#B89600", helmLight: "#FFE866",
+  eye: "#1A0D00", tongue: "#FF5555",
+  coneMain: "#FF3300", coneSub: "#FFFFFF",
+  craneMain: "#FFB300"
 };
-const A = {
-  conveyorMin: 8,
-  conveyorMax: 42,
-  faceDegMin: 18,
-  faceDegMax: 120,
-  speedChangeMinMs: 2200,
-  speedChangeMaxMs: 6500,
-  smooth: 0.08
+
+const dog = {
+  x: 50,
+  y: 98,
+  dir: 1,
+  state: "walk",
+  stateTimer: 90,
+  bubbleText: "",
+  bubbleTimer: 0
 };
-const DEMO_MODE = new URLSearchParams(window.location.search).get("demo") === "1";
-const DEMO_WBGT = [20, 23, 26, 29, 32];
-const DEMO_TEMP = [19.4, 24.2, 28.6, 31.4, 34.0];
-let demoLevelIndex = 0;
 
-const L = [
-  { min: 31, bg: "#EC3817", tbg: "#EC3817", tbar: "#EE6145", face: "./images/face-danger.png", n: ["危険", "Danger", "Nguy hiểm", "危险"], a: ["作業を直ちに中止", "Stop work immediately", "Dừng công việc ngay", "立即停止作业"] },
-  { min: 28, bg: "#FD871A", tbg: "#FD871A", tbar: "#FCA633", face: "./images/face-severe.png", n: ["厳重警戒", "Severe Warning", "Cảnh báo nghiêm trọng", "严重警戒"], a: ["激しい作業は中止", "Stop intense work", "Ngừng làm việc nặng", "停止剧烈作业"] },
-  { min: 25, bg: "#FFC700", tbg: "#FFC700", tbar: "#FFD84D", face: "./images/face-warning.png", n: ["警戒", "Warning", "Cảnh báo", "警戒"], a: ["定期的に休憩", "Take regular breaks", "Nghỉ ngơi định kỳ", "定时休息"] },
-  { min: 21, bg: "#2BB3E0", tbg: "#2BB3E0", tbar: "#5FC7E8", face: "./images/face-caution.png", n: ["注意", "Caution", "Chú ý", "注意"], a: ["積極的に水分補給", "Actively hydrate", "Uống nước thường xuyên", "及时补水"] },
-  { min: -Infinity, bg: "#0289DE", tbg: "#0289DE", tbar: "#319EE3", face: "./images/face-safe.png", n: ["ほぼ安全", "Safe", "An toàn", "基本安全"], a: ["適宜水分補給", "Stay hydrated", "Bổ sung nước", "注意补水"] }
-];
+let frameCount = 0;
+let paused = false;
+let autoMode = true;
+let speedRate = 1.0;
+let gravelCount = 200;
+let lastTime = performance.now();
+let fps = 0;
 
-const tr = document.getElementById("tr");
-const facePanel = document.getElementById("face");
-const faceRotator = document.getElementById("face-rotator");
-const faceImage = document.getElementById("face-image");
-const slideArea = document.getElementById("slide-area");
-const errorArea = document.getElementById("e");
+function decideNextAction() {
+  if (!autoMode) return;
+  const rand = Math.random();
+  let nextState = "walk";
+  let duration = 60 + Math.floor(Math.random() * 120);
+  let message = "";
 
-for (let i = 0; i < 8; i++) {
-  const d = document.createElement("div");
-  d.className = "c";
-  d.dataset.l = i % 4;
-  d.innerHTML = '<div class="tb"></div><div class="wb"></div><div class="t"></div><div class="w"></div><div class="dvd"></div><div class="n"></div><div class="a"></div>';
-  tr.appendChild(d);
-}
-tr.style.width = "1024px";
-
-function randomRange(min, max) {
-  return min + Math.random() * (max - min);
-}
-
-let conveyorX = 0;
-let faceDeg = 0;
-let conveyorSpeed = randomRange(A.conveyorMin, A.conveyorMax);
-let targetConveyorSpeed = conveyorSpeed;
-let faceSpeed = randomRange(A.faceDegMin, A.faceDegMax);
-let targetFaceSpeed = faceSpeed;
-let nextSpeedChange = performance.now() + randomRange(A.speedChangeMinMs, A.speedChangeMaxMs);
-let lastTs = performance.now();
-
-function startRandomFlowLoop() {
-  function tick(ts) {
-    const dt = Math.min(0.06, (ts - lastTs) / 1000);
-    lastTs = ts;
-
-    if (ts >= nextSpeedChange) {
-      targetConveyorSpeed = randomRange(A.conveyorMin, A.conveyorMax);
-      targetFaceSpeed = randomRange(A.faceDegMin, A.faceDegMax);
-      nextSpeedChange = ts + randomRange(A.speedChangeMinMs, A.speedChangeMaxMs);
-    }
-
-    conveyorSpeed += (targetConveyorSpeed - conveyorSpeed) * A.smooth;
-    faceSpeed += (targetFaceSpeed - faceSpeed) * A.smooth;
-
-    conveyorX -= conveyorSpeed * dt;
-    let wrapped = 0;
-    while (conveyorX <= -512) {
-      conveyorX += 512;
-      wrapped += 1;
-    }
-
-    faceDeg = (faceDeg + faceSpeed * dt) % 360;
-
-    tr.style.transform = `translateX(${conveyorX}px)`;
-    faceRotator.style.transform = `rotate(${faceDeg}deg)`;
-
-    if (DEMO_MODE && wrapped > 0) {
-      for (let i = 0; i < wrapped; i++) {
-        demoLevelIndex = (demoLevelIndex + 1) % 5;
-      }
-      upd(DEMO_TEMP[demoLevelIndex], DEMO_WBGT[demoLevelIndex]);
-    }
-
-    requestAnimationFrame(tick);
+  if (rand < 0.7) {
+    nextState = "walk";
+    if (Math.random() < 0.3) message = "トコトコ";
+  } else if (rand < 0.9) {
+    nextState = "run";
+    duration = 40 + Math.floor(Math.random() * 60);
+    if (Math.random() < 0.5) message = "タタタッ！";
+    else if (Math.random() < 0.2) message = "急げ〜！";
+  } else {
+    const stops = [
+      { s: "sit", m: "ワン！安全第一！" },
+      { s: "dig", m: "ホリホリ" },
+      { s: "look", m: "異常なし！" }
+    ];
+    const choice = stops[Math.floor(Math.random() * stops.length)];
+    nextState = choice.s;
+    message = choice.m;
+    duration = 90 + Math.floor(Math.random() * 60);
   }
+
+  dog.state = nextState;
+  dog.stateTimer = duration;
+  if (message) {
+    dog.bubbleText = message;
+    dog.bubbleTimer = duration - 20;
+  }
+}
+
+function checkBoundaries() {
+  if (dog.x > 490 && dog.dir === 1) {
+    dog.dir = -1;
+    dog.state = "look";
+    dog.stateTimer = 60;
+    dog.bubbleText = "折り返し！";
+    dog.bubbleTimer = 50;
+  } else if (dog.x < 20 && dog.dir === -1) {
+    dog.dir = 1;
+    dog.state = "look";
+    dog.stateTimer = 60;
+    dog.bubbleText = "パトロール中";
+    dog.bubbleTimer = 50;
+  }
+}
+
+function drawBackground() {
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, 512, 128);
+
+  ctx.fillStyle = C.ground1;
+  ctx.fillRect(0, 98, 512, 4);
+  ctx.fillStyle = C.ground2;
+  ctx.fillRect(0, 102, 512, 6);
+  ctx.fillStyle = C.ground3;
+  ctx.fillRect(0, 108, 512, 20);
+
+  ctx.fillStyle = "#A07A5A";
+  for (let i = 0; i < gravelCount; i++) {
+    const gx = (i * 17) % 512;
+    const gy = 100 + ((i * 11) % 25);
+    ctx.fillRect(gx, gy, 1, 1);
+  }
+
+  ctx.fillStyle = "#111";
+  ctx.fillRect(128, 0, 1, 128);
+  ctx.fillRect(256, 0, 1, 128);
+  ctx.fillRect(384, 0, 1, 128);
+
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 5; i < 125; i += 8) {
+    ctx.moveTo(i, 60);
+    ctx.lineTo(i + 8, 98);
+    ctx.moveTo(i + 8, 60);
+    ctx.lineTo(i, 98);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = "#997744";
+  ctx.beginPath();
+  ctx.moveTo(70, 98);
+  ctx.lineTo(95, 65);
+  ctx.lineTo(120, 98);
+  ctx.fill();
+  ctx.fillStyle = "#775522";
+  ctx.beginPath();
+  ctx.moveTo(95, 65);
+  ctx.lineTo(120, 98);
+  ctx.lineTo(95, 98);
+  ctx.fill();
+
+  ctx.fillStyle = C.craneMain;
+  ctx.fillRect(140, 20, 90, 12);
+  ctx.fillStyle = "#333";
+  for (let i = 142; i < 220; i += 10) ctx.fillRect(i, 22, 6, 8);
+  ctx.fillStyle = C.craneMain;
+  ctx.fillRect(210, 32, 10, 66);
+  ctx.fillStyle = "#222";
+  ctx.fillRect(212, 32, 6, 66);
+
+  ctx.fillStyle = "#667788";
+  ctx.fillRect(270, 75, 40, 23);
+  ctx.fillStyle = "#445566";
+  ctx.fillRect(270, 90, 40, 8);
+  ctx.fillStyle = "#8899AA";
+  ctx.fillRect(270, 75, 40, 2);
+
+  ctx.fillStyle = "#4499CC";
+  ctx.beginPath();
+  ctx.ellipse(340, 102, 28, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (frameCount % 60 < 20) {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(325, 101, 3, 1);
+    ctx.fillRect(348, 102, 2, 1);
+  }
+
+  drawCone(420, 98);
+  drawCone(460, 98);
+}
+
+function drawCone(x, y) {
+  ctx.fillStyle = C.coneMain;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 22);
+  ctx.lineTo(x - 9, y);
+  ctx.lineTo(x + 9, y);
+  ctx.fill();
+  ctx.fillStyle = C.coneSub;
+  ctx.beginPath();
+  ctx.moveTo(x - 2, y - 16);
+  ctx.lineTo(x - 5, y - 8);
+  ctx.lineTo(x + 5, y - 8);
+  ctx.lineTo(x + 2, y - 16);
+  ctx.fill();
+  ctx.fillStyle = "#222";
+  ctx.fillRect(x - 11, y, 22, 2);
+}
+
+function drawDog(x, y, dir, state) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+
+  let headY = 0;
+  let bodyY = 0;
+  if (state === "walk") {
+    headY = frameCount % 30 < 15 ? 1 : 0;
+    bodyY = frameCount % 15 < 7 ? 1 : 0;
+  } else if (state === "run") {
+    headY = 1;
+    bodyY = 1;
+  } else if (state === "dig") {
+    headY = 4;
+  } else if (state === "sit") {
+    bodyY = 3;
+    headY = 2;
+  }
+
+  ctx.translate(0, bodyY);
+  ctx.fillStyle = C.dogDark;
+  ctx.fillRect(-13, -13, 26, 12);
+  ctx.fillStyle = C.dogMain;
+  ctx.fillRect(-14, -16, 26, 13);
+  ctx.fillRect(-15, -14, 28, 9);
+  ctx.fillStyle = C.dogWhiteDark;
+  ctx.fillRect(-9, -8, 18, 7);
+  ctx.fillStyle = C.dogWhite;
+  ctx.fillRect(-8, -10, 16, 8);
+
+  ctx.translate(0, headY - bodyY);
+  ctx.fillStyle = C.dogDark;
+  ctx.fillRect(6, -24, 15, 13);
+  ctx.fillStyle = C.dogMain;
+  ctx.fillRect(7, -25, 14, 14);
+  ctx.fillRect(5, -23, 17, 10);
+
+  ctx.fillStyle = C.dogMain;
+  ctx.fillRect(8, -29, 5, 5);
+  ctx.fillRect(11, -29, 3, 3);
+  ctx.fillStyle = C.dogWhite;
+  ctx.fillRect(9, -28, 2, 3);
+
+  ctx.fillStyle = C.dogWhiteDark;
+  ctx.fillRect(14, -15, 9, 7);
+  ctx.fillStyle = C.dogWhite;
+  ctx.fillRect(15, -17, 9, 7);
+
+  ctx.fillStyle = C.eye;
+  ctx.fillRect(22, -17, 3, 2);
+  ctx.fillRect(23, -15, 1, 1);
+  if (frameCount % 180 > 12) ctx.fillRect(13, -20, 2, 3);
+
+  if (state === "run" || state === "sit") {
+    ctx.fillStyle = C.tongue;
+    ctx.fillRect(18, -11, 4, 3);
+    ctx.fillRect(19, -8, 2, 1);
+  }
+
+  ctx.fillStyle = C.helmDark;
+  ctx.fillRect(4, -28, 17, 7);
+  ctx.fillStyle = C.helm;
+  ctx.fillRect(5, -29, 15, 6);
+  ctx.fillRect(3, -24, 22, 2);
+  ctx.fillStyle = C.helmLight;
+  ctx.fillRect(7, -28, 4, 2);
+
+  ctx.translate(0, -(headY - bodyY));
+  ctx.fillStyle = C.dogLight;
+  if (state === "run") {
+    ctx.fillRect(-22, -14, 10, 4);
+    ctx.fillStyle = C.dogWhite;
+    ctx.fillRect(-24, -14, 3, 3);
+  } else {
+    ctx.fillStyle = C.dogLight;
+    ctx.fillRect(-17, -20, 6, 8);
+    ctx.fillRect(-19, -22, 5, 4);
+    ctx.fillStyle = C.dogWhite;
+    ctx.fillRect(-16, -18, 3, 3);
+  }
+
+  let legF1 = 0, legF2 = 0, legB1 = 0, legB2 = 0;
+  if (state === "walk") {
+    const t = frameCount % 40;
+    legF1 = t < 20 ? 2 : -1;
+    legF2 = t < 20 ? -1 : 2;
+    legB1 = t < 20 ? -1 : 2;
+    legB2 = t < 20 ? 2 : -1;
+  } else if (state === "run") {
+    const t = frameCount % 16;
+    legF1 = t < 8 ? 4 : -3;
+    legF2 = t < 8 ? -3 : 4;
+    legB1 = t < 8 ? -3 : 4;
+    legB2 = t < 8 ? 4 : -3;
+  } else if (state === "dig") {
+    const t = frameCount % 10;
+    legF1 = t < 5 ? 3 : -2;
+    legF2 = t >= 5 ? 3 : -2;
+    if (Math.random() > 0.3) {
+      ctx.fillStyle = C.ground2;
+      ctx.fillRect(14 + Math.random() * 15, -2 - Math.random() * 10, 2, 2);
+    }
+  }
+
+  ctx.fillStyle = C.dogDark;
+  if (state === "sit") {
+    ctx.fillRect(-13, -3, 8, 3);
+    ctx.fillRect(13, -1, 3, 3);
+  } else {
+    ctx.fillRect(-8 + legB2, -3, 4, 3);
+    ctx.fillRect(14 + legF2, -3, 3, 3);
+  }
+
+  ctx.fillStyle = C.dogLight;
+  if (state === "sit") {
+    ctx.fillRect(-10, -5, 7, 5);
+    ctx.fillRect(9, -3, 4, 5);
+  } else {
+    ctx.fillRect(-11 + legB1, -4, 4, 4);
+    ctx.fillRect(9 + legF1, -4, 4, 4);
+  }
+
+  ctx.fillStyle = C.dogWhite;
+  if (state !== "sit") {
+    ctx.fillRect(-11 + legB1, 0, 4, 1);
+    ctx.fillRect(9 + legF1, 0, 4, 1);
+  }
+
+  ctx.restore();
+}
+
+function drawBubble(text, x, y) {
+  if (!text) return;
+  ctx.font = "bold 11px sans-serif";
+  const textWidth = ctx.measureText(text).width;
+  const boxW = textWidth + 14;
+  const boxH = 22;
+  let boxX = x - boxW / 2;
+  const boxY = y - 55;
+
+  if (boxX < 5) boxX = 5;
+  if (boxX + boxW > 507) boxX = 507 - boxW;
+
+  const isWarn = text.includes("！");
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(boxX + 2, boxY + 2, boxW, boxH);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(boxX, boxY, boxW, boxH);
+  ctx.beginPath();
+  ctx.moveTo(x - 4, boxY + boxH);
+  ctx.lineTo(x + 4, boxY + boxH);
+  ctx.lineTo(x, boxY + boxH + 6);
+  ctx.fill();
+  ctx.fillStyle = isWarn ? "#DD1100" : "#111";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, boxX + boxW / 2, boxY + boxH / 2 + 1);
+}
+
+function updateHud() {
+  stateLabel.textContent = dog.state;
+  dirLabel.textContent = dog.dir === 1 ? "右" : "左";
+  xLabel.textContent = dog.x.toFixed(1);
+  fpsLabel.textContent = String(fps);
+}
+
+function tick(now) {
+  const dt = Math.max(0.5, Math.min(2.0, (now - lastTime) / (1000 / 60)));
+  lastTime = now;
+  fps = Math.round(60 / dt);
+
+  if (!paused) {
+    frameCount++;
+    dog.stateTimer -= 1;
+    if (dog.stateTimer <= 0) decideNextAction();
+    if (dog.bubbleTimer > 0) dog.bubbleTimer--;
+
+    if (dog.state === "walk") dog.x += 0.8 * dog.dir * speedRate * dt;
+    if (dog.state === "run") dog.x += 2.2 * dog.dir * speedRate * dt;
+    checkBoundaries();
+  }
+
+  drawBackground();
+  drawDog(dog.x, dog.y, dog.dir, dog.state);
+  if (dog.bubbleTimer > 0) drawBubble(dog.bubbleText, dog.x, dog.y);
+  updateHud();
+
   requestAnimationFrame(tick);
 }
-startRandomFlowLoop();
 
-async function fetchMoeWbgt() {
-  const pageUrl = `${C.moePageBase}?region=${C.region}&prefecture=${C.prefecture}&point=${C.point}`;
-  const r = await fetch(`${C.proxy}${encodeURIComponent(pageUrl)}`, { cache: "no-store" });
-  if (!r.ok) throw new Error("MOE API error");
-  const text = await r.text();
-  const pointPattern = new RegExp(`submitMapGraph\\([^\\)]*'${C.region}'\\s*,\\s*'${C.prefecture}'\\s*,\\s*'${C.point}'[^\\)]*\\)[\\s\\S]*?<div class="value[^\\"]*">\\s*([-+]?\\d+(?:\\.\\d+)?)\\s*</div>`, "i");
-  const matchedPoint = text.match(pointPattern);
-  const wbgt = matchedPoint && matchedPoint[1] ? Number(matchedPoint[1]) : null;
-  const tempMatch = text.match(/気温[^0-9-+]*([-+]?\d+(?:\.\d+)?)/i);
-  const temp = tempMatch && tempMatch[1] ? Number(tempMatch[1]) : null;
-  return { wbgt: Number.isFinite(wbgt) ? wbgt : null, temp: Number.isFinite(temp) ? temp : null };
+function resetDog() {
+  dog.x = 50;
+  dog.y = 98;
+  dog.dir = 1;
+  dog.state = "walk";
+  dog.stateTimer = 90;
+  dog.bubbleText = "";
+  dog.bubbleTimer = 0;
 }
 
-async function fetchTempFallback() {
-  try {
-    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=temperature_2m&timezone=Asia%2FTokyo`, { cache: "no-store" });
-    if (!r.ok) return null;
-    const d = await r.json();
-    const t = d?.current?.temperature_2m;
-    return Number.isFinite(Number(t)) ? Number(t) : null;
-  } catch (_) {
-    return null;
+speedInput.addEventListener("input", (e) => {
+  speedRate = Number(e.target.value);
+  speedValue.textContent = speedRate.toFixed(1);
+});
+
+gravelInput.addEventListener("input", (e) => {
+  gravelCount = Number(e.target.value);
+  gravelValue.textContent = String(gravelCount);
+});
+
+pauseBtn.addEventListener("click", () => {
+  paused = !paused;
+  pauseBtn.textContent = paused ? "再開" : "一時停止";
+});
+
+resetBtn.addEventListener("click", () => {
+  resetDog();
+});
+
+autoBtn.addEventListener("click", () => {
+  autoMode = !autoMode;
+  autoBtn.classList.toggle("active", autoMode);
+  autoBtn.textContent = autoMode ? "自動行動ON" : "自動行動OFF";
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === " ") {
+    e.preventDefault();
+    pauseBtn.click();
   }
-}
+  if (e.key.toLowerCase() === "r") resetBtn.click();
+});
 
-function upd(temp, wbgt) {
-  const hasWbgt = typeof wbgt === "number" && Number.isFinite(wbgt);
-  const lv = hasWbgt ? L.find((l) => wbgt >= l.min) : L[L.length - 1];
-  const wi = hasWbgt ? String(Math.round(wbgt)) : "--";
-  const ts = temp == null ? "--.-℃" : `${temp.toFixed(1)}℃`;
-  slideArea.style.display = "block";
-  facePanel.style.display = "flex";
-  errorArea.style.display = "none";
-  tr.querySelectorAll(".c").forEach((c) => {
-    const i = Number(c.dataset.l);
-    c.style.background = lv.tbg;
-    c.querySelector(".tb").style.background = lv.tbar;
-    c.querySelector(".t").textContent = ts;
-    c.querySelector(".w").textContent = wi;
-    c.querySelector(".n").textContent = lv.n[i];
-    c.querySelector(".a").textContent = lv.a[i];
-  });
-  facePanel.style.background = lv.bg;
-  faceImage.src = lv.face;
-}
-
-async function fetchWithRetry(attempts = 3, waitMs = C.retryMs) {
-  let lastError = null;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fetchMoeWbgt();
-    } catch (e) {
-      lastError = e;
-      if (i < attempts - 1) await new Promise((resolve) => setTimeout(resolve, waitMs));
-    }
-  }
-  throw lastError || new Error("環境省WBGT取得失敗");
-}
-
-async function go() {
-  try {
-    const [obs, fallbackTemp] = await Promise.all([fetchWithRetry(3, C.retryMs), fetchTempFallback()]);
-    upd(obs.temp ?? fallbackTemp, obs.wbgt);
-  } catch (e) {
-    const fallbackTemp = await fetchTempFallback();
-    upd(fallbackTemp, null);
-    console.error(e);
-  }
-}
-
-if (DEMO_MODE) {
-  upd(DEMO_TEMP[demoLevelIndex], DEMO_WBGT[demoLevelIndex]);
-} else {
-  go();
-  setInterval(go, C.ms);
-}
-  </script>
+requestAnimationFrame(tick);
+</script>
 </body>
 </html>
