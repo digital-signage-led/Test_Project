@@ -27,27 +27,25 @@ body{
 .a{position:absolute;top:109px;width:128px;text-align:center;font-size:14px;font-weight:700;color:#1e1e1e;line-height:18px;overflow:hidden;white-space:nowrap}
 #face{
   position:relative;
-  width:140px;
-  height:140px;
+  width:128px;
+  height:128px;
   flex-shrink:0;
   overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .face-rotator{
-  position:absolute;
-  left:50%;
-  top:50%;
-  width:100px;
-  height:100px;
-  border-radius:50%;
-  overflow:hidden;
-  transform:translate(-50%,-50%) rotate(0deg);
+  width:128px;
+  height:128px;
+  transform:rotate(0deg);
   transform-origin:center center;
   will-change:transform;
 }
 #face-image{
-  width:100px;
-  height:100px;
-  object-fit:cover;
+  width:128px;
+  height:128px;
+  object-fit:contain;
   display:block;
 }
 #e{
@@ -166,7 +164,7 @@ function startRandomFlowLoop() {
     faceDeg = (faceDeg + faceSpeed * dt) % 360;
 
     tr.style.transform = `translateX(${conveyorX}px)`;
-    faceRotator.style.transform = `translate(-50%,-50%) rotate(${faceDeg}deg)`;
+    faceRotator.style.transform = `rotate(${faceDeg}deg)`;
 
     if (DEMO_MODE && wrapped > 0) {
       for (let i = 0; i < wrapped; i++) {
