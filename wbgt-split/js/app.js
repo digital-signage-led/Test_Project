@@ -1,9 +1,10 @@
 const C = {
   ms: 30 * 60 * 1000,
-  slide: 10000,
   holdMs: 8000,
   rotateMs: 1000,
   retryMs: 15000,
+  lat: 34.6937,
+  lon: 135.5023,
   // 基本は環境省のオープンデータを参照する
   region: "07",
   prefecture: "62",
@@ -82,40 +83,35 @@ for (let i = 0; i < 8; i++) {
 }
 tr.style.width = "1024px";
 
-let ofs = 0;
-function slide() {
-  ofs++;
-  tr.style.transition = "transform .6s ease-in-out";
-  tr.style.transform = `translateX(-${ofs * 128}px)`;
-  if (ofs >= 4) {
-    setTimeout(() => {
-      tr.style.transition = "none";
-      ofs = 0;
-      tr.style.transform = "translateX(0)";
-    }, 650);
-  }
-}
-setInterval(slide, C.slide);
-
-let quarter = 0;
-function rotateFaceStep() {
-  quarter += 1;
+let step = 0;
+function moveConveyorAndFace() {
+  step += 1;
+  tr.style.transition = `transform ${C.rotateMs}ms ease-in-out`;
   faceRotator.style.transition = `transform ${C.rotateMs}ms ease-in-out`;
-  faceRotator.style.transform = `rotate(${quarter * 90}deg)`;
+  tr.style.transform = `translateX(-${step * 128}px)`;
+  faceRotator.style.transform = `rotate(${step * 90}deg)`;
 }
-function startFaceLoop() {
-  setInterval(() => {
-    rotateFaceStep();
-    if (quarter >= 4) {
+
+function startSynchronizedLoop() {
+  function nextStep() {
+    moveConveyorAndFace();
+    if (step >= 4) {
       setTimeout(() => {
+        // 4ステップ完了後、左コンベアと右回転を同時に初期化して次サイクルへ。
+        tr.style.transition = "none";
         faceRotator.style.transition = "none";
-        quarter = 0;
+        step = 0;
+        tr.style.transform = "translateX(0)";
         faceRotator.style.transform = "rotate(0deg)";
+        setTimeout(nextStep, C.holdMs);
       }, C.rotateMs);
+      return;
     }
-  }, C.holdMs + C.rotateMs);
+    setTimeout(nextStep, C.holdMs + C.rotateMs);
+  }
+  setTimeout(nextStep, C.holdMs);
 }
-startFaceLoop();
+startSynchronizedLoop();
 
 function parseMoeObservation(payload) {
   if (Array.isArray(payload?.actual?.data)) {
@@ -160,6 +156,21 @@ async function fetchMoeWbgt() {
     wbgt: Number.isFinite(wbgt) ? wbgt : null,
     temp: Number.isFinite(temp) ? temp : null
   };
+}
+
+async function fetchTempFallback() {
+  try {
+    const r = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${C.lat}&longitude=${C.lon}&current=temperature_2m&timezone=Asia%2FTokyo`,
+      { cache: "no-store" }
+    );
+    if (!r.ok) return null;
+    const d = await r.json();
+    const t = d?.current?.temperature_2m;
+    return Number.isFinite(Number(t)) ? Number(t) : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 function upd(temp, wbgt) {
@@ -210,11 +221,13 @@ async function fetchWithRetry(attempts = 3, waitMs = C.retryMs) {
 async function go() {
   showNormalDisplay();
   try {
-    const obs = await fetchWithRetry(3, C.retryMs);
-    upd(obs.temp, obs.wbgt);
+    const [obs, fallbackTemp] = await Promise.all([fetchWithRetry(3, C.retryMs), fetchTempFallback()]);
+    const resolvedTemp = obs.temp ?? fallbackTemp;
+    upd(resolvedTemp, obs.wbgt);
   } catch (e) {
     // 取得失敗時はエラー画面にせず、WBGT値のみ "--" 表示にする。
-    upd(null, null);
+    const fallbackTemp = await fetchTempFallback();
+    upd(fallbackTemp, null);
     console.error(e);
   }
 }
