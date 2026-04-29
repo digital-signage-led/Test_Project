@@ -30,30 +30,6 @@
     max-width: 1080px;
   }
 
-  h1 {
-    margin: 0 0 10px;
-    font-size: clamp(20px, 3vw, 30px);
-  }
-
-  .desc {
-    margin: 0 0 14px;
-    color: var(--muted);
-  }
-
-  .panel-labels {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    color: #b8b8b8;
-    font-size: 13px;
-    margin-bottom: 6px;
-  }
-
-  .panel-labels span:nth-child(1) { text-align: left; }
-  .panel-labels span:nth-child(2),
-  .panel-labels span:nth-child(3) { text-align: center; }
-  .panel-labels span:nth-child(4) { text-align: right; }
-
   .stage-wrap {
     width: 100%;
     border: 2px solid var(--line);
@@ -69,127 +45,19 @@
     display: block;
     image-rendering: pixelated;
   }
-
-  .hud {
-    margin-top: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: rgba(36, 36, 36, 0.95);
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    font-size: 14px;
-  }
-
-  .hud b { color: var(--accent); }
-
-  .controls {
-    margin-top: 12px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
-  }
-
-  .control {
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--panel);
-    padding: 12px;
-  }
-
-  .control label {
-    display: block;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-
-  .control input[type="range"] { width: 100%; }
-
-  .actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  button {
-    border: 1px solid #515151;
-    background: #2f2f2f;
-    color: var(--text);
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-
-  button:hover { background: #3a3a3a; }
-  button.active {
-    border-color: #8a6f00;
-    background: #4e3e00;
-  }
 </style>
 </head>
 <body>
   <main class="app">
-    <h1>パトロール犬（柴犬）改良版</h1>
-    <p class="desc">ランダム行動のドット犬。速度調整・一時停止・背景密度変更・状態モニター付き。</p>
-
-    <div class="panel-labels">
-      <span>← パネル1</span>
-      <span>パネル2</span>
-      <span>パネル3</span>
-      <span>パネル4 →</span>
-    </div>
-
     <div class="stage-wrap">
       <canvas id="signage" width="512" height="128"></canvas>
     </div>
-
-    <section class="hud">
-      <div>状態: <b id="stateLabel">walk</b></div>
-      <div>向き: <b id="dirLabel">右</b></div>
-      <div>座標X: <b id="xLabel">50</b></div>
-      <div>FPS: <b id="fpsLabel">--</b></div>
-    </section>
-
-    <section class="controls">
-      <div class="control">
-        <label for="speed">移動速度倍率: <span id="speedValue">1.0</span>x</label>
-        <input id="speed" type="range" min="0.5" max="2.5" step="0.1" value="1.0">
-      </div>
-
-      <div class="control">
-        <label for="gravel">砂利密度: <span id="gravelValue">200</span></label>
-        <input id="gravel" type="range" min="60" max="400" step="10" value="200">
-      </div>
-
-      <div class="control">
-        <label>操作</label>
-        <div class="actions">
-          <button id="pauseBtn" type="button">一時停止</button>
-          <button id="resetBtn" type="button">リセット</button>
-          <button id="autoBtn" type="button" class="active">自動行動ON</button>
-        </div>
-      </div>
-    </section>
   </main>
 
 <script>
 const canvas = document.getElementById("signage");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
-
-const stateLabel = document.getElementById("stateLabel");
-const dirLabel = document.getElementById("dirLabel");
-const xLabel = document.getElementById("xLabel");
-const fpsLabel = document.getElementById("fpsLabel");
-const speedInput = document.getElementById("speed");
-const speedValue = document.getElementById("speedValue");
-const gravelInput = document.getElementById("gravel");
-const gravelValue = document.getElementById("gravelValue");
-const pauseBtn = document.getElementById("pauseBtn");
-const resetBtn = document.getElementById("resetBtn");
-const autoBtn = document.getElementById("autoBtn");
 
 const C = {
   bg: "#000000",
@@ -213,12 +81,10 @@ const dog = {
 };
 
 let frameCount = 0;
-let paused = false;
 let autoMode = true;
 let speedRate = 1.0;
 let gravelCount = 200;
 let lastTime = performance.now();
-let fps = 0;
 
 function decideNextAction() {
   if (!autoMode) return;
@@ -526,79 +392,24 @@ function drawBubble(text, x, y) {
   ctx.fillText(text, boxX + boxW / 2, boxY + boxH / 2 + 1);
 }
 
-function updateHud() {
-  stateLabel.textContent = dog.state;
-  dirLabel.textContent = dog.dir === 1 ? "右" : "左";
-  xLabel.textContent = dog.x.toFixed(1);
-  fpsLabel.textContent = String(fps);
-}
-
 function tick(now) {
   const dt = Math.max(0.5, Math.min(2.0, (now - lastTime) / (1000 / 60)));
   lastTime = now;
-  fps = Math.round(60 / dt);
+  frameCount++;
+  dog.stateTimer -= 1;
+  if (dog.stateTimer <= 0) decideNextAction();
+  if (dog.bubbleTimer > 0) dog.bubbleTimer--;
 
-  if (!paused) {
-    frameCount++;
-    dog.stateTimer -= 1;
-    if (dog.stateTimer <= 0) decideNextAction();
-    if (dog.bubbleTimer > 0) dog.bubbleTimer--;
-
-    if (dog.state === "walk") dog.x += 0.8 * dog.dir * speedRate * dt;
-    if (dog.state === "run") dog.x += 2.2 * dog.dir * speedRate * dt;
-    checkBoundaries();
-  }
+  if (dog.state === "walk") dog.x += 0.8 * dog.dir * speedRate * dt;
+  if (dog.state === "run") dog.x += 2.2 * dog.dir * speedRate * dt;
+  checkBoundaries();
 
   drawBackground();
   drawDog(dog.x, dog.y, dog.dir, dog.state);
   if (dog.bubbleTimer > 0) drawBubble(dog.bubbleText, dog.x, dog.y);
-  updateHud();
 
   requestAnimationFrame(tick);
 }
-
-function resetDog() {
-  dog.x = 50;
-  dog.y = 98;
-  dog.dir = 1;
-  dog.state = "walk";
-  dog.stateTimer = 90;
-  dog.bubbleText = "";
-  dog.bubbleTimer = 0;
-}
-
-speedInput.addEventListener("input", (e) => {
-  speedRate = Number(e.target.value);
-  speedValue.textContent = speedRate.toFixed(1);
-});
-
-gravelInput.addEventListener("input", (e) => {
-  gravelCount = Number(e.target.value);
-  gravelValue.textContent = String(gravelCount);
-});
-
-pauseBtn.addEventListener("click", () => {
-  paused = !paused;
-  pauseBtn.textContent = paused ? "再開" : "一時停止";
-});
-
-resetBtn.addEventListener("click", () => {
-  resetDog();
-});
-
-autoBtn.addEventListener("click", () => {
-  autoMode = !autoMode;
-  autoBtn.classList.toggle("active", autoMode);
-  autoBtn.textContent = autoMode ? "自動行動ON" : "自動行動OFF";
-});
-
-window.addEventListener("keydown", (e) => {
-  if (e.key === " ") {
-    e.preventDefault();
-    pauseBtn.click();
-  }
-  if (e.key.toLowerCase() === "r") resetBtn.click();
-});
 
 requestAnimationFrame(tick);
 </script>
