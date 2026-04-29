@@ -121,11 +121,15 @@ animation:logoAnim 8s infinite;
 
 @keyframes logoAnim{
 0%{transform:rotate(0deg);}
-30%{transform:rotate(0deg);}
-40%{transform:rotate(90deg);}
-70%{transform:rotate(90deg);}
-80%{transform:rotate(180deg);}
-100%{transform:rotate(180deg);}
+25%{transform:rotate(0deg);}
+
+35%{transform:rotate(120deg);}
+60%{transform:rotate(120deg);}
+
+70%{transform:rotate(240deg);}
+85%{transform:rotate(240deg);}
+
+100%{transform:rotate(360deg);}
 }
 
 </style>
@@ -193,12 +197,11 @@ return 0.7 * temp + 0.3 * (hum / 5);
 // ===== WBGT等级 =====
 function getLevel(w){
 
-if(w < 25) return {text:["安全","安全","SAFE","ปลอดภัย"],rest:0};
-if(w < 28) return {text:["注意","注意","CAUTION","ระวัง"],rest:300};
-if(w < 31) return {text:["警告","警告","WARNING","เตือน"],rest:600};
-if(w < 33) return {text:["危险","危険","DANGER","อันตราย"],rest:900};
-
-return {text:["停止作业","作業中止","STOP","หยุด"],rest:1200};
+if(w < 25) return {text:["安全","安全","SAFE","AN TOÀN"],rest:0};
+if(w < 28) return {text:["注意","注意","CAUTION","CHÚ Ý"],rest:300};
+if(w < 31) return {text:["警告","警告","WARNING","CẢNH BÁO"],rest:600};
+if(w < 33) return {text:["危险","危険","DANGER","NGUY HIỂM"],rest:900};
+return {text:["停止作业","作業中止","STOP","DỪNG LẠI"],rest:1200};
 }
 
 // ===== 倒计时 =====
@@ -260,10 +263,10 @@ if(local){
 }
 
 // ===== 测试模式开关 =====
-var testMode = false;
+var testMode = true;
 
 if(testMode){
-temp = 29;
+temp = 31;
 hum = 50;
 }
 
@@ -287,7 +290,7 @@ var texts = [
 ["大阪","请休息"],
 ["大阪","休憩してください"],
 ["OSAKA","TAKE A BREAK"],
-["โอซาก้า","พัก"]
+["OSAKA","HÃY NGHỈ NGƠI"]
 
 ];
 
@@ -330,9 +333,7 @@ console.log(e);
 updateData();
 setInterval(updateData,5000);
 
-if(isOffline){
-html += '<div class="warning">📡 OFFLINE</div>';
-}
+
 
 </script>
 
