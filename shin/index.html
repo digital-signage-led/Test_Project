@@ -13,7 +13,6 @@ height:128px;
 background:#000;
 }
 
-/* 固定画布 */
 .wrap{
 position:relative;
 width:640px;
@@ -21,25 +20,24 @@ height:128px;
 overflow:hidden;
 }
 
-/* ===== 滚动区域 ===== */
 .scrollArea{
 position:absolute;
 left:0;
 top:0;
-width:512px;   /* 80% */
+width:512px;
 height:128px;
 overflow:hidden;
 }
 
 .track{
 display:flex;
-width:1024px;  /* 200% */
+width:1024px;
 height:128px;
 animation:scroll 20s linear infinite;
 }
 
 .panel{
-width:128px;   /* 25% */
+width:128px;
 height:128px;
 display:flex;
 flex-direction:column;
@@ -48,7 +46,6 @@ align-items:center;
 color:#fff;
 }
 
-/* ===== 文字（全部改为px）===== */
 .city{font-size:14px;}
 
 .temp{
@@ -57,9 +54,11 @@ font-weight:bold;
 text-shadow:0 0 10px currentColor;
 }
 
-.wbgt{
-font-size:14px;
-margin-top:2px;
+.wbgt{font-size:14px;}
+
+.timeBig{
+font-size:42px;
+font-weight:bold;
 }
 
 .line{
@@ -72,39 +71,34 @@ margin:6px 0;
 .status{font-size:16px;}
 
 .warning{
-color:#fff;
 font-size:12px;
-margin-top:4px;
 text-align:center;
 }
 
-/* ===== 背景 ===== */
 .safe{background:#000;}
 .danger{background:#FF0000;}
 
-/* ===== 滚动 ===== */
 @keyframes scroll{
 0%{transform:translateX(0);}
 100%{transform:translateX(-512px);}
-}
-
-/* ===== 闪烁 ===== */
-@keyframes flash{
-0%{opacity:1;}
-50%{opacity:0.4;}
-100%{opacity:1;}
 }
 
 .flash{
 animation:flash 2s infinite;
 }
 
-/* ===== Logo（第5面）===== */
+@keyframes flash{
+0%{opacity:1;}
+50%{opacity:0.4;}
+100%{opacity:1;}
+}
+
+/* Logo */
 .logoArea{
 position:absolute;
 right:0;
 top:0;
-width:128px;   /* 20% */
+width:128px;
 height:128px;
 display:flex;
 justify-content:center;
@@ -116,19 +110,16 @@ align-items:center;
 
 .logoimg{
 width:80px;
-animation:logoAnim 8s infinite;
+animation:logoAnim 12s linear infinite;
 }
 
 @keyframes logoAnim{
 0%{transform:rotate(0deg);}
 25%{transform:rotate(0deg);}
-
 35%{transform:rotate(120deg);}
 60%{transform:rotate(120deg);}
-
 70%{transform:rotate(240deg);}
 85%{transform:rotate(240deg);}
-
 100%{transform:rotate(360deg);}
 }
 
@@ -142,15 +133,18 @@ animation:logoAnim 8s infinite;
 <div class="scrollArea">
 <div class="track">
 
+<!-- 8个面 -->
 <div class="panel" id="p1"></div>
-<div class="panel" id="p2"></div>
-<div class="panel" id="p3"></div>
-<div class="panel" id="p4"></div>
+<div class="panel" id="t1"></div>
 
-<div class="panel" id="p1b"></div>
-<div class="panel" id="p2b"></div>
-<div class="panel" id="p3b"></div>
-<div class="panel" id="p4b"></div>
+<div class="panel" id="p2"></div>
+<div class="panel" id="t2"></div>
+
+<div class="panel" id="p3"></div>
+<div class="panel" id="t3"></div>
+
+<div class="panel" id="p4"></div>
+<div class="panel" id="t4"></div>
 
 </div>
 </div>
@@ -163,38 +157,32 @@ animation:logoAnim 8s infinite;
 
 <script>
 
-// ===== 温度渐变（兼容版）=====
+// ===== 温度颜色 =====
 function getTempColor(temp){
 
 if(temp < 0) temp = 0;
 if(temp > 40) temp = 40;
 
-// 蓝 → 绿
 if(temp <= 20){
-var ratio = temp / 20;
-var g = Math.floor(255 * ratio);
+var g = Math.floor(255 * (temp/20));
 return "rgb(0,"+g+",255)";
 }
 
-// 绿 → 黄
 if(temp <= 30){
-var ratio = (temp - 20) / 10;
-var r = Math.floor(255 * ratio);
+var r = Math.floor(255 * ((temp-20)/10));
 return "rgb("+r+",255,0)";
 }
 
-// 黄 → 红
-var ratio = (temp - 30) / 10;
-var g = Math.floor(255 * (1 - ratio));
+var g = Math.floor(255 * (1-(temp-30)/10));
 return "rgb(255,"+g+",0)";
 }
 
-// ===== WBGT计算 =====
+// ===== WBGT =====
 function calcWBGT(temp, hum){
 return 0.7 * temp + 0.3 * (hum / 5);
 }
 
-// ===== WBGT等级 =====
+// ===== 等级 =====
 function getLevel(w){
 
 if(w < 25) return {text:["安全","安全","SAFE","AN TOÀN"],rest:0};
@@ -214,59 +202,17 @@ var s = restTime%60;
 return m+":"+(s<10?"0"+s:s);
 }
 
-setInterval(function(){
-if(restTime>0) restTime--;
-},1000);
+setInterval(()=>{ if(restTime>0) restTime--; },1000);
 
-// ===== 主逻辑 =====
+// ===== 主 =====
 async function updateData(){
 
-try{
+let temp=30, hum=60;
 
-var temp, hum;
-
-try{
-
-var res = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Osaka&appid=25dfd71750eff566cb115e3dc1c9db1a&units=metric");
-
-// 网络正常
-if(res.ok){
-    var data = await res.json();
-
-    temp = Math.round(data.main.temp);
-    hum = data.main.humidity;
-
-    // ✅ 保存缓存（本地）
-    cacheData = {temp: temp, hum: hum};
-    localStorage.setItem("weatherCache", JSON.stringify(cacheData));
-
-}else{
-    throw new Error("API错误");
-}
-
-}catch(e){
-
-// ❌ 网络失败 → 用缓存
-var local = localStorage.getItem("weatherCache");
-
-if(local){
-    var cache = JSON.parse(local);
-    temp = cache.temp;
-    hum = cache.hum;
-
-}else{
-    // ❌ 连缓存都没有 → 默认值（安全显示）
-    temp = 26;
-    hum = 60;
-}
-
-}
-
-// ===== 测试模式开关 =====
-var testMode = FAISE;
-
+// 测试模式
+var testMode = true;
 if(testMode){
-temp = 31;
+temp = 28;
 hum = 50;
 }
 
@@ -274,66 +220,66 @@ var color = getTempColor(temp);
 var wbgt = calcWBGT(temp, hum);
 var info = getLevel(wbgt);
 
-// 控制休息时间
 if(info.rest != lastRest){
 restTime = info.rest;
 lastRest = info.rest;
 }
 
-// 状态
 var isDanger = info.rest > 0;
 var cls = isDanger ? "danger" : "safe";
 
-// ===== 内容 =====
-var texts = [
+// 当前时间
+var now = new Date();
+var timeStr = now.getHours()+":"+("0"+now.getMinutes()).slice(-2);
 
+// 文本
+var texts = [
 ["大阪","请休息"],
 ["大阪","休憩してください"],
 ["OSAKA","TAKE A BREAK"],
 ["OSAKA","HÃY NGHỈ NGƠI"]
-
 ];
 
-for(var i=1;i<=4;i++){
+// ===== 生成画面 =====
+for(let i=1;i<=4;i++){
 
-var t = texts[i-1];
-
-var html =
-'<div class="city">'+t[0]+'</div>'+
+// 语言面
+let html =
+'<div class="city">'+texts[i-1][0]+'</div>'+
 '<div class="temp" style="color:'+color+'">'+temp+'℃</div>'+
 '<div class="wbgt">WBGT '+wbgt.toFixed(1)+'</div>'+
 '<div class="line"></div>'+
 '<div class="status">'+info.text[i-1]+'</div>';
 
-if(info.rest>0){
-html += '<div class="warning">⚠️ '+t[1]+'<br>⏳ '+getRest()+'</div>';
+if(isDanger){
+html += '<div class="warning">⚠️ '+texts[i-1][1]+'</div>';
 }
 
-var el1 = document.getElementById("p"+i);
-var el2 = document.getElementById("p"+i+"b");
+let p = document.getElementById("p"+i);
+p.innerHTML = html;
+p.className = "panel "+cls + (isDanger?" flash":"");
 
-el1.innerHTML = html;
-el2.innerHTML = html;
+// 时间面
+let t = document.getElementById("t"+i);
+t.innerHTML =
+'<div class="timeBig">'+timeStr+'</div>'+
+'<div class="status">TIME</div>';
 
-el1.className = "panel "+cls + (isDanger?" flash":"");
-el2.className = "panel "+cls + (isDanger?" flash":"");
+t.className = "panel "+cls;
 
 }
 
-// 第5面
-var logo = document.getElementById("logo");
-logo.className = "logoArea " + cls + (isDanger?" flash":"");
+// logo
+let logo = document.getElementById("logo");
+logo.className = "logoArea "+cls + (isDanger?" flash":"");
 
-}catch(e){
-console.log(e);
-}
+let img = document.querySelector(".logoimg");
+img.style.animationDuration = isDanger ? "4s" : "12s";
 
 }
 
 updateData();
 setInterval(updateData,5000);
-
-
 
 </script>
 
