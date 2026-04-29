@@ -26,23 +26,27 @@ body{
 .n{position:absolute;top:73px;width:128px;text-align:center;font-size:24px;font-weight:900;color:#fff;line-height:28px;overflow:hidden;white-space:nowrap}
 .a{position:absolute;top:109px;width:128px;text-align:center;font-size:14px;font-weight:700;color:#1e1e1e;line-height:18px;overflow:hidden;white-space:nowrap}
 #face{
+  position:relative;
   width:128px;
   height:128px;
   flex-shrink:0;
   overflow:hidden;
-  display:flex;
-  align-items:flex-start;
-  justify-content:center;
 }
 .face-rotator{
-  width:128px;
-  height:128px;
-  transform:rotate(0deg);
-  transform-origin:50% 50%;
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  overflow:hidden;
+  transform:translate(-50%,-50%) rotate(0deg);
+  transform-origin:center center;
+  will-change:transform;
 }
 #face-image{
-  width:128px;
-  height:128px;
+  width:100px;
+  height:100px;
   object-fit:cover;
   display:block;
 }
@@ -120,7 +124,7 @@ function moveConveyorAndFace() {
   tr.style.transition = `transform ${C.rotateMs}ms ease-in-out`;
   faceRotator.style.transition = `transform ${C.rotateMs}ms ease-in-out`;
   tr.style.transform = `translateX(-${step * 128}px)`;
-  faceRotator.style.transform = `rotate(${step * 90}deg)`;
+  faceRotator.style.transform = `translate(-50%,-50%) rotate(${step * 90}deg)`;
 }
 function startSynchronizedLoop() {
   function nextStep() {
@@ -131,7 +135,7 @@ function startSynchronizedLoop() {
         faceRotator.style.transition = "none";
         step = 0;
         tr.style.transform = "translateX(0)";
-        faceRotator.style.transform = "rotate(0deg)";
+        faceRotator.style.transform = "translate(-50%,-50%) rotate(0deg)";
         setTimeout(nextStep, C.holdMs);
       }, C.rotateMs);
       return;
