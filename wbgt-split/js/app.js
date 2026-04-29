@@ -5,7 +5,12 @@ const C = {
   rotateMs: 1000,
   retryMs: 15000,
   // 基本は環境省のオープンデータを参照する
-  moeApi: "https://www.wbgt.env.go.jp/wbgt_data.php?region=03&prefecture=17&point=35426&format=json"
+  region: "07",
+  prefecture: "62",
+  point: "62078",
+  // CORS回避のため read-only proxy 経由で環境省ページを取得
+  proxy: "https://api.allorigins.win/raw?url=",
+  moePageBase: "https://www.wbgt.env.go.jp/wbgt_data.php"
 };
 
 const L = [
@@ -134,17 +139,26 @@ function parseMoeObservation(payload) {
 }
 
 async function fetchMoeWbgt() {
-  const r = await fetch(C.moeApi, { cache: "no-store" });
+  const pageUrl = `${C.moePageBase}?region=${C.region}&prefecture=${C.prefecture}&point=${C.point}`;
+  const r = await fetch(`${C.proxy}${encodeURIComponent(pageUrl)}`, { cache: "no-store" });
   if (!r.ok) throw new Error("MOE API error");
-  const contentType = (r.headers.get("content-type") || "").toLowerCase();
-  if (contentType.includes("json")) {
-    return parseMoeObservation(await r.json());
-  }
   const text = await r.text();
-  const nums = text.match(/-?\d+(\.\d+)?/g) || [];
+
+  // 指定観測点のブロックから WBGT を抽出
+  const pointPattern = new RegExp(
+    `submitMapGraph\\([^\\)]*'${C.region}'\\s*,\\s*'${C.prefecture}'\\s*,\\s*'${C.point}'[^\\)]*\\)[\\s\\S]*?<div class=\"value[^\\\"]*\">\\s*([-+]?\\d+(?:\\.\\d+)?)\\s*</div>`,
+    "i"
+  );
+  const matchedPoint = text.match(pointPattern);
+  const wbgt = matchedPoint && matchedPoint[1] ? Number(matchedPoint[1]) : null;
+
+  // 気温は取得できなければ "--.-℃" のまま表示
+  const tempMatch = text.match(/気温[^0-9-+]*([-+]?\d+(?:\.\d+)?)/i);
+  const temp = tempMatch && tempMatch[1] ? Number(tempMatch[1]) : null;
+
   return {
-    wbgt: nums[0] ? Number(nums[0]) : null,
-    temp: nums[1] ? Number(nums[1]) : null
+    wbgt: Number.isFinite(wbgt) ? wbgt : null,
+    temp: Number.isFinite(temp) ? temp : null
   };
 }
 
