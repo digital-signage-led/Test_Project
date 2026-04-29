@@ -8,12 +8,16 @@ body{
 margin:0;
 overflow:hidden;
 font-family:Arial;
+width:640px;
+height:128px;
+background:#000;
 }
 
+/* 固定画布 */
 .wrap{
 position:relative;
-width:100vw;
-height:100vh;
+width:640px;
+height:128px;
 overflow:hidden;
 }
 
@@ -22,21 +26,21 @@ overflow:hidden;
 position:absolute;
 left:0;
 top:0;
-width:80%;
-height:100%;
+width:512px;   /* 80% */
+height:128px;
 overflow:hidden;
 }
 
 .track{
 display:flex;
-width:200%;
-height:100%;
+width:1024px;  /* 200% */
+height:128px;
 animation:scroll 20s linear infinite;
 }
 
 .panel{
-width:25vw;
-height:100%;
+width:128px;   /* 25% */
+height:128px;
 display:flex;
 flex-direction:column;
 justify-content:center;
@@ -44,33 +48,33 @@ align-items:center;
 color:#fff;
 }
 
-/* ===== 文字 ===== */
-.city{font-size:2vw;}
+/* ===== 文字（全部改为px）===== */
+.city{font-size:14px;}
 
 .temp{
-font-size:7vw;
+font-size:40px;
 font-weight:bold;
-text-shadow:0 0 15px currentColor;
+text-shadow:0 0 10px currentColor;
 }
 
 .wbgt{
-font-size:2vw;
-margin-top:5px;
+font-size:14px;
+margin-top:2px;
 }
 
 .line{
-width:60%;
-height:4px;
+width:70px;
+height:2px;
 background:linear-gradient(to right,transparent,#fff,transparent);
-margin:15px 0;
+margin:6px 0;
 }
 
-.status{font-size:2.5vw;}
+.status{font-size:16px;}
 
 .warning{
 color:#fff;
-font-size:2vw;
-margin-top:10px;
+font-size:12px;
+margin-top:4px;
 text-align:center;
 }
 
@@ -81,7 +85,7 @@ text-align:center;
 /* ===== 滚动 ===== */
 @keyframes scroll{
 0%{transform:translateX(0);}
-100%{transform:translateX(-50%);}
+100%{transform:translateX(-512px);}
 }
 
 /* ===== 闪烁 ===== */
@@ -95,13 +99,13 @@ text-align:center;
 animation:flash 2s infinite;
 }
 
-/* ===== Logo ===== */
+/* ===== Logo（第5面）===== */
 .logoArea{
 position:absolute;
 right:0;
 top:0;
-width:20%;
-height:100%;
+width:128px;   /* 20% */
+height:128px;
 display:flex;
 justify-content:center;
 align-items:center;
@@ -111,7 +115,7 @@ align-items:center;
 .logoArea.danger{background:#FF0000;}
 
 .logoimg{
-width:60%;
+width:80px;
 animation:logoAnim 8s infinite;
 }
 
@@ -216,18 +220,51 @@ async function updateData(){
 
 try{
 
-var res = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Osaka&appid=25dfd71750eff566cb115e3dc1c9db1a&units=metric");
-var data = await res.json();
+var temp, hum;
 
-var temp = Math.round(data.main.temp);
-var hum = data.main.humidity;
+try{
+
+var res = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Osaka&appid=25dfd71750eff566cb115e3dc1c9db1a&units=metric");
+
+// 网络正常
+if(res.ok){
+    var data = await res.json();
+
+    temp = Math.round(data.main.temp);
+    hum = data.main.humidity;
+
+    // ✅ 保存缓存（本地）
+    cacheData = {temp: temp, hum: hum};
+    localStorage.setItem("weatherCache", JSON.stringify(cacheData));
+
+}else{
+    throw new Error("API错误");
+}
+
+}catch(e){
+
+// ❌ 网络失败 → 用缓存
+var local = localStorage.getItem("weatherCache");
+
+if(local){
+    var cache = JSON.parse(local);
+    temp = cache.temp;
+    hum = cache.hum;
+
+}else{
+    // ❌ 连缓存都没有 → 默认值（安全显示）
+    temp = 26;
+    hum = 60;
+}
+
+}
 
 // ===== 测试模式开关 =====
 var testMode = true;
 
 if(testMode){
-temp = 19;
-hum = 90;
+temp = 30;
+hum = 50;
 }
 
 var color = getTempColor(temp);
@@ -292,6 +329,10 @@ console.log(e);
 
 updateData();
 setInterval(updateData,5000);
+
+if(isOffline){
+html += '<div class="warning">📡 OFFLINE</div>';
+}
 
 </script>
 
