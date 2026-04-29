@@ -40,7 +40,7 @@
         .fc-panel { width: 128px; height: 128px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; position: relative; gap: 2px; padding: 8px 0; overflow: hidden; }
         .fc-panel::before { content: attr(data-topwbgt); position: absolute; top: 4px; left: 6px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.95); letter-spacing: 0.2px; font-family: "Inter", "Noto Sans JP", sans-serif; }
         .fc-header { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.55); align-self: stretch; padding-left: 8px; font-family: "Inter", "Noto Sans JP", sans-serif; }
-        .fc-hour { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.75); font-family: "Inter", "Noto Sans JP", sans-serif; }
+        .fc-hour { display: none; font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.75); font-family: "Inter", "Noto Sans JP", sans-serif; }
         .fc-wbgt { font-size: 36px; font-weight: 800; color: #fff; line-height: 1; font-variant-numeric: tabular-nums; font-family: "Inter", sans-serif; }
         .fc-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); letter-spacing: 0.55px; font-family: "Inter", "Noto Sans JP", sans-serif; }
         .fc-face { width: 26px; height: 26px; position: absolute; top: 4px; right: 6px; border: 2px solid rgba(255,255,255,0.85); border-radius: 50%; }
@@ -235,12 +235,14 @@
             const lv = Number.isInteger(s.levelIdx) ? s.levelIdx : 0;
             const hourText = String(s.hour || '');
             const normalizedHour = /^\+\d+h$/i.test(hourText) ? '' : hourText;
+            const baseLabel = (i === 0) ? '現在' : ('+' + (i * 3) + 'h');
+            const mergedTopLine = normalizedHour ? (baseLabel + ' ' + normalizedHour) : baseLabel;
+            document.querySelectorAll('.fc-slot-' + i + ' .fc-header').forEach(el => { el.innerText = mergedTopLine; });
             document.querySelectorAll('.fc-hour-' + i).forEach(el => { el.innerText = normalizedHour; });
             document.querySelectorAll('.fc-val-' + i).forEach(el => { el.innerText = s.wbgt != null ? (Number(s.wbgt).toFixed(1) + '℃') : '--'; });
             document.querySelectorAll('.fc-lv-' + i).forEach(el => { el.innerText = s.wbgt != null ? levelNames[lv] : ''; });
             document.querySelectorAll('.fc-slot-' + i).forEach(panel => {
-                const slotLabel = (normalizedHour && normalizedHour.length > 0) ? normalizedHour : (i === 0 ? '現在' : ('+' + (i * 3) + 'h'));
-                panel.setAttribute('data-topwbgt', 'WBGT ' + slotLabel);
+                panel.setAttribute('data-topwbgt', 'WBGT');
                 panel.className = 'fc-panel fc-slot-' + i + (i === 0 ? ' fc-now' : '') + ' fc-bg-' + lv;
                 panel.querySelectorAll('.fc-face-use').forEach(u => u.setAttribute('href', '#face-' + lv));
             });
@@ -405,18 +407,23 @@
         s4.style.display = 'none';
         if (scene2AnimId) cancelAnimationFrame(scene2AnimId);
         let x = 0;
-        let rot = 0;
+        let rotStep = 0;
+        let lastRotateAt = performance.now();
         conveyor.style.transition = 'none';
-        logoRotator.style.transition = 'none';
+        logoRotator.style.transition = 'transform 0.6s ease-in-out';
         conveyor.style.transform = 'translateX(0px)';
         logoRotator.style.transform = 'rotate(0deg)';
 
         function animateScene2() {
             x -= SCENE2_SCROLL_PX;
-            rot += 0.35;
             if (x <= -SCENE2_SET_WIDTH) x = 0;
             conveyor.style.transform = `translateX(${x}px)`;
-            logoRotator.style.transform = `rotate(${rot}deg)`;
+            const nowMs = performance.now();
+            if (nowMs - lastRotateAt >= 5000) {
+                rotStep += 90;
+                logoRotator.style.transform = `rotate(${rotStep}deg)`;
+                lastRotateAt = nowMs;
+            }
             scene2AnimId = requestAnimationFrame(animateScene2);
         }
         scene2AnimId = requestAnimationFrame(animateScene2);
