@@ -54,12 +54,12 @@ font-weight:bold;
 text-shadow:0 0 10px currentColor;
 }
 
-.wbgt{font-size:14px;}
-
 .timeBig{
 font-size:42px;
 font-weight:bold;
 }
+
+.wbgt{font-size:14px;}
 
 .line{
 width:70px;
@@ -68,29 +68,35 @@ background:linear-gradient(to right,transparent,#fff,transparent);
 margin:6px 0;
 }
 
-.status{font-size:16px;}
-
-.warning{
-font-size:12px;
-text-align:center;
+.status{
+font-size:16px;
+font-weight:bold;
+letter-spacing:1px;
 }
 
+.warning{
+font-size:18px;
+}
+
+/* 背景 */
 .safe{background:#000;}
 .danger{background:#FF0000;}
 
+/* 滚动 */
 @keyframes scroll{
 0%{transform:translateX(0);}
 100%{transform:translateX(-512px);}
 }
 
-.flash{
-animation:flash 2s infinite;
-}
-
+/* 闪烁 */
 @keyframes flash{
 0%{opacity:1;}
 50%{opacity:0.4;}
 100%{opacity:1;}
+}
+
+.flash{
+animation:flash 2s infinite;
 }
 
 /* Logo */
@@ -122,7 +128,6 @@ animation:logoAnim 12s linear infinite;
 85%{transform:rotate(240deg);}
 100%{transform:rotate(360deg);}
 }
-
 </style>
 </head>
 
@@ -133,7 +138,6 @@ animation:logoAnim 12s linear infinite;
 <div class="scrollArea">
 <div class="track">
 
-<!-- 8个面 -->
 <div class="panel" id="p1"></div>
 <div class="panel" id="t1"></div>
 
@@ -164,16 +168,16 @@ if(temp < 0) temp = 0;
 if(temp > 40) temp = 40;
 
 if(temp <= 20){
-var g = Math.floor(255 * (temp/20));
+let g = Math.floor(255 * (temp/20));
 return "rgb(0,"+g+",255)";
 }
 
 if(temp <= 30){
-var r = Math.floor(255 * ((temp-20)/10));
+let r = Math.floor(255 * ((temp-20)/10));
 return "rgb("+r+",255,0)";
 }
 
-var g = Math.floor(255 * (1-(temp-30)/10));
+let g = Math.floor(255 * (1-(temp-30)/10));
 return "rgb(255,"+g+",0)";
 }
 
@@ -184,75 +188,75 @@ return 0.7 * temp + 0.3 * (hum / 5);
 
 // ===== 等级 =====
 function getLevel(w){
-
-if(w < 25) return {text:["安全","安全","SAFE","AN TOÀN"],rest:0};
-if(w < 28) return {text:["注意","注意","CAUTION","CHÚ Ý"],rest:300};
-if(w < 31) return {text:["警告","警告","WARNING","CẢNH BÁO"],rest:600};
-if(w < 33) return {text:["危险","危険","DANGER","NGUY HIỂM"],rest:900};
-return {text:["停止作业","作業中止","STOP","DỪNG LẠI"],rest:1200};
+if(w < 25) return ["安全","安全","SAFE","AN TOÀN"];
+if(w < 28) return ["注意","注意","CAUTION","CHÚ Ý"];
+if(w < 31) return ["警告","警告","WARNING","CẢNH BÁO"];
+if(w < 33) return ["危险","危険","DANGER","NGUY HIỂM"];
+return ["停止","停止","STOP","DỪNG"];
 }
 
-// ===== 倒计时 =====
-var restTime = 0;
-var lastRest = -1;
-
-function getRest(){
-var m = Math.floor(restTime/60);
-var s = restTime%60;
-return m+":"+(s<10?"0"+s:s);
+// ===== 时间 =====
+function getTime(){
+let d = new Date();
+let h = d.getHours();
+let m = d.getMinutes();
+return h + ":" + (m<10?"0"+m:m);
 }
 
-setInterval(()=>{ if(restTime>0) restTime--; },1000);
-
-// ===== 主 =====
+// ===== 主逻辑 =====
 async function updateData(){
 
-let temp=30, hum=60;
+try{
 
-// 测试模式
-var testMode = true;
+let temp = 28;
+let hum = 60;
+
+// ===== 测试模式 =====
+let testMode = false;
+
 if(testMode){
-temp = 28;
-hum = 50;
+temp = 35;
+hum = 70;
 }
 
-var color = getTempColor(temp);
-var wbgt = calcWBGT(temp, hum);
-var info = getLevel(wbgt);
+let color = getTempColor(temp);
+let wbgt = calcWBGT(temp, hum);
+let level = getLevel(wbgt);
 
-if(info.rest != lastRest){
-restTime = info.rest;
-lastRest = info.rest;
-}
+let isDanger = wbgt >= 28;
+let cls = isDanger ? "danger" : "safe";
 
-var isDanger = info.rest > 0;
-var cls = isDanger ? "danger" : "safe";
-
-// 当前时间
-var now = new Date();
-var timeStr = now.getHours()+":"+("0"+now.getMinutes()).slice(-2);
-
-// 文本
-var texts = [
+// ===== 内容 =====
+let texts = [
 ["大阪","请休息"],
 ["大阪","休憩してください"],
 ["OSAKA","TAKE A BREAK"],
 ["OSAKA","HÃY NGHỈ NGƠI"]
 ];
 
-// ===== 生成画面 =====
+// ===== 生成 =====
 for(let i=1;i<=4;i++){
 
-// 语言面
-let html =
+let html;
+
+if(isDanger){
+
+// 🔴 危险模式（简化）
+html =
+'<div class="temp" style="color:'+color+';font-size:52px">'+temp+'℃</div>'+
+'<div class="status">'+level[i-1]+'</div>'+
+'<div class="warning">⚠️</div>';
+
+}else{
+
+// 🔵 正常模式
+html =
 '<div class="city">'+texts[i-1][0]+'</div>'+
 '<div class="temp" style="color:'+color+'">'+temp+'℃</div>'+
 '<div class="wbgt">WBGT '+wbgt.toFixed(1)+'</div>'+
 '<div class="line"></div>'+
-'<div class="status">'+info.text[i-1]+'</div>';
+'<div class="status">'+level[i-1]+'</div>';
 
-if(isDanger){
-html += '<div class="warning">⚠️ '+texts[i-1][1]+'</div>';
 }
 
 let p = document.getElementById("p"+i);
@@ -262,19 +266,21 @@ p.className = "panel "+cls + (isDanger?" flash":"");
 // 时间面
 let t = document.getElementById("t"+i);
 t.innerHTML =
-'<div class="timeBig">'+timeStr+'</div>'+
-'<div class="status">TIME</div>';
-
+'<div class="timeBig">'+getTime()+'</div>';
 t.className = "panel "+cls;
 
 }
 
-// logo
+// ===== logo =====
 let logo = document.getElementById("logo");
 logo.className = "logoArea "+cls + (isDanger?" flash":"");
 
 let img = document.querySelector(".logoimg");
 img.style.animationDuration = isDanger ? "4s" : "12s";
+
+}catch(e){
+console.log(e);
+}
 
 }
 
