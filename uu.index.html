@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=128, height=128">
+<title>騒音振動モニター</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 128px;
+    height: 128px;
+    overflow: hidden;
+    background: #000;
+  }
+  .crop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 605px;
+    height: 540px;
+    overflow: hidden;
+    transform-origin: 0 0;
+  }
+  .crop iframe {
+    border: none;
+    position: absolute;
+    width: 1920px;
+    height: 1080px;
+    left: -700px;
+    top: -204px;
+  }
+</style>
+</head>
+<body>
+  <div class="crop" id="crop">
+    <iframe
+      src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738"
+      scrolling="no"
+    ></iframe>
+  </div>
+  <script>
+    var c = document.getElementById('crop');
+    var w = parseInt(getComputedStyle(c).width);
+    var h = parseInt(getComputedStyle(c).height);
+    c.style.transform = 'scale('+(128/w)+','+(128/h)+')';
+  </script>
+</body>
+</html>
