@@ -2,13 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=128, height=128">
+<meta name="viewport" content="width=512, height=512">
 <title>騒音振動モニター</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    width: 128px;
-    height: 128px;
+    width: 512px;
+    height: 512px;
     overflow: hidden;
     background: #000;
   }
@@ -42,7 +42,7 @@
     var c = document.getElementById('crop');
     var w = parseInt(getComputedStyle(c).width);
     var h = parseInt(getComputedStyle(c).height);
-    c.style.transform = 'scale('+(128/w)+','+(128/h)+')';
+    c.style.transform = 'scale('+(512/w)+','+(512/h)+')';
   </script>
 </body>
 </html>
