@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>WBGT Forecast Demo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: "Inter", "Noto Sans JP", sans-serif; }
+
+        .canvas { width: 512px; height: 128px; display: flex; flex-direction: row; }
+
+        .fc-panel {
+            width: 128px; height: 128px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center; box-sizing: border-box;
+            flex-shrink: 0; position: relative;
+            gap: 2px; padding: 8px 0; overflow: hidden;
+        }
+        .fc-panel::before {
+            content: attr(data-topwbgt);
+            position: absolute; top: 4px; left: 6px;
+            font-size: 10px; font-weight: 700;
+            color: rgba(255,255,255,0.95);
+            letter-spacing: 0.2px;
+            font-family: "Inter", "Noto Sans JP", sans-serif;
+        }
+        .fc-header {
+            font-size: 15px; font-weight: 500;
+            color: rgba(255,255,255,0.55);
+            align-self: stretch; padding-left: 8px;
+            font-family: "Inter", "Noto Sans JP", sans-serif;
+        }
+        .fc-wbgt {
+            font-size: 36px; font-weight: 800;
+            color: #fff; line-height: 1;
+            font-variant-numeric: tabular-nums;
+            font-family: "Inter", sans-serif;
+        }
+        .fc-label {
+            font-size: 13px; font-weight: 700;
+            color: rgba(255,255,255,0.9);
+            letter-spacing: 0.55px;
+            font-family: "Inter", "Noto Sans JP", sans-serif;
+        }
+        .fc-now { border: 2px solid rgba(255,255,255,0.35); }
+        .fc-bg-0 { background-color: #0289DE; }
+    </style>
+</head>
+<body>
+<div class="canvas">
+    <div class="fc-panel fc-now fc-bg-0" data-topwbgt="WBGT">
+        <div class="fc-header">今時刻</div>
+        <div class="fc-wbgt">15.1℃</div>
+        <div class="fc-label">ほぼ安全</div>
+    </div>
+    <div class="fc-panel fc-bg-0" data-topwbgt="WBGT">
+        <div class="fc-header">+3h 13時</div>
+        <div class="fc-wbgt">17.2℃</div>
+        <div class="fc-label">ほぼ安全</div>
+    </div>
+    <div class="fc-panel fc-bg-0" data-topwbgt="WBGT">
+        <div class="fc-header">+6h 16時</div>
+        <div class="fc-wbgt">17.0℃</div>
+        <div class="fc-label">ほぼ安全</div>
+    </div>
+    <div class="fc-panel fc-bg-0" data-topwbgt="WBGT">
+        <div class="fc-header">+9h 19時</div>
+        <div class="fc-wbgt">15.9℃</div>
+        <div class="fc-label">ほぼ安全</div>
+    </div>
+</div>
+</body>
+</html>
