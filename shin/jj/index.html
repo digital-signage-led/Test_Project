@@ -539,15 +539,19 @@ window.onload = function() {
     fetchWeatherAndWbgt();
 
 }
-       setInterval(()=>{
+     setInterval(()=>{
 
-    if(!TEST_MODE){
+    if(TEST_MODE){
+
+        applyTestMode();
+
+    }else{
 
         fetchWeatherAndWbgt();
 
     }
 
-},300000);
+},1000);
         setTimeout(startSequence, 500);
     };
 </script>
