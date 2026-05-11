@@ -155,21 +155,6 @@
 
 <script>
     const query = new URLSearchParams(window.location.search);
-const testParam = query.get('test');
-
-if(testParam !== null){
-
-    TEST_MODE = true;
-
-    TEST_LEVEL = Math.max(
-        0,
-        Math.min(
-            4,
-            parseInt(testParam)
-        )
-    );
-
-}
     // 環境省WBGT WebAPIのURLを ?moeApi= で上書き可能
     const MOE_WBGT_API_URL = query.get('moeApi') || '';
     const lat = '34.5733';
@@ -183,25 +168,10 @@ if(testParam !== null){
         { jp:"【危険】作業を直ちに中止", en:"Danger: Stop work immediately", vn:"Nguy hiểm: Dừng công việc ngay", cn:"危険：立即停止作业" }
     ];
     const levelNames = ['ほぼ安全', '注意', '警戒', '厳重警戒', '危険'];
-    let currentWbgtLevel = 0;
-let TEST_MODE = false;
+   let currentWbgtLevel = 0;
 
-let TEST_LEVEL = 0;
-const testParam = query.get('test');
-
-if(testParam !== null){
-
-    TEST_MODE = true;
-
-    TEST_LEVEL = Math.max(
-        0,
-        Math.min(
-            4,
-            parseInt(testParam) || 0
-        )
-    );
-
-}
+let TEST_MODE = true;
+let TEST_LEVEL = 4;
     let tickerAnimId = null;
 
     const s1 = document.getElementById('scene1');
@@ -344,12 +314,27 @@ if(testParam !== null){
         try {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m,weather_code&hourly=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m&forecast_days=2&timezone=Asia%2FTokyo`);
             const data = await res.json();
+let temp = data.current.temperature_2m;
+let hum = data.current.relative_humidity_2m;
+
+if(TEST_MODE){
+
+    temp = 37;
+    hum = 90;
+
+}
             let wIcon = '#icon-sunny';
             if (data.current.weather_code >= 1 && data.current.weather_code <= 3) wIcon = '#icon-cloudy';
             else if (data.current.weather_code >= 51) wIcon = '#icon-rainy';
             document.querySelectorAll('.weather-icon-use').forEach(el => el.setAttribute('href', wIcon));
-            document.querySelectorAll('.temp-val').forEach(el => { el.innerText = Math.round(data.current.temperature_2m); });
-            document.querySelectorAll('.humi-val').forEach(el => { el.innerText = Math.round(data.current.relative_humidity_2m); });
+           document.querySelectorAll('.temp-val').forEach(el => {
+    el.innerText = Math.round(temp);
+});
+
+document.querySelectorAll('.humi-val').forEach(el => {
+    el.innerText = Math.round(hum);
+});
+            document.querySelectorAll('.humi-val').forEach(el => { el.innerText = Math.round(temp.current.relative_humidity_2m); });
             document.querySelectorAll('.rain-val').forEach(el => { el.innerText = Number(data.current.precipitation ?? 0).toFixed(1); });
             document.querySelectorAll('.wind-val').forEach(el => { el.innerText = Number(data.current.wind_speed_10m ?? 0).toFixed(1); });
             document.querySelectorAll('.dir-val').forEach(el => { el.innerText = degToCompassJa(Number(data.current.wind_direction_10m)); });
@@ -366,7 +351,35 @@ if(testParam !== null){
                 }
             }
 
-            currentWbgtLevel = wbgtSlots[0]?.levelIdx ?? 0;
+if(testMode){
+
+    const fakeWbgt = calcWbgt(temp, hum);
+
+    wbgtSlots = [
+        {
+            wbgt: fakeWbgt,
+            levelIdx: wbgtLevel(fakeWbgt),
+            hour:"現在"
+        },
+        {
+            wbgt: fakeWbgt + 1,
+            levelIdx: wbgtLevel(fakeWbgt + 1),
+            hour:"3時"
+        },
+        {
+            wbgt: fakeWbgt + 2,
+            levelIdx: wbgtLevel(fakeWbgt + 2),
+            hour:"6時"
+        },
+        {
+            wbgt: fakeWbgt + 3,
+            levelIdx: wbgtLevel(fakeWbgt + 3),
+            hour:"9時"
+        }
+    ];
+
+}            
+currentWbgtLevel = wbgtSlots[0]?.levelIdx ?? 0;
             setFace(currentWbgtLevel);
             updateForecastSlots(wbgtSlots);
             buildTicker();
@@ -527,21 +540,49 @@ function applyTestMode(){
 }
     function startSequence() { playScene1(); }
 
+document.addEventListener("keydown", e=>{
+
+    // T = 开关测试模式
+    if(e.key==="t" || e.key==="T"){
+
+        TEST_MODE = !TEST_MODE;
+
+        console.log(
+          "TEST MODE:",
+          TEST_MODE
+        );
+
+    }
+
+    // 1~5 切换等级
+    if(TEST_MODE){
+
+        if(e.key==="1") TEST_LEVEL = 0;
+        if(e.key==="2") TEST_LEVEL = 1;
+        if(e.key==="3") TEST_LEVEL = 2;
+        if(e.key==="4") TEST_LEVEL = 3;
+        if(e.key==="5") TEST_LEVEL = 4;
+
+        console.log(
+          "TEST LEVEL:",
+          TEST_LEVEL
+        );
+
+        applyTestMode();
+
+    }
+
+});    
 window.onload = function() {
         updateClock();
         setInterval(updateClock, 1000);
-      buildTicker();
-
-if(TEST_MODE){
-
-    applyTestMode();
-
-}else{
+        buildTicker();
+        if(!TEST_MODE){
 
     fetchWeatherAndWbgt();
 
 }
-   setInterval(()=>{
+     setInterval(()=>{
 
     if(TEST_MODE){
 
