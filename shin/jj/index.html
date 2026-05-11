@@ -155,6 +155,21 @@
 
 <script>
     const query = new URLSearchParams(window.location.search);
+const testParam = query.get('test');
+
+if(testParam !== null){
+
+    TEST_MODE = true;
+
+    TEST_LEVEL = Math.max(
+        0,
+        Math.min(
+            4,
+            parseInt(testParam)
+        )
+    );
+
+}
     // 環境省WBGT WebAPIのURLを ?moeApi= で上書き可能
     const MOE_WBGT_API_URL = query.get('moeApi') || '';
     const lat = '34.5733';
@@ -172,6 +187,21 @@
 let TEST_MODE = false;
 
 let TEST_LEVEL = 0;
+const testParam = query.get('test');
+
+if(testParam !== null){
+
+    TEST_MODE = true;
+
+    TEST_LEVEL = Math.max(
+        0,
+        Math.min(
+            4,
+            parseInt(testParam) || 0
+        )
+    );
+
+}
     let tickerAnimId = null;
 
     const s1 = document.getElementById('scene1');
@@ -497,49 +527,21 @@ function applyTestMode(){
 }
     function startSequence() { playScene1(); }
 
-document.addEventListener("keydown", e=>{
-
-    // T = 开关测试模式
-    if(e.key==="t" || e.key==="T"){
-
-        TEST_MODE = !TEST_MODE;
-
-        console.log(
-          "TEST MODE:",
-          TEST_MODE
-        );
-
-    }
-
-    // 1~5 切换等级
-    if(TEST_MODE){
-
-        if(e.key==="1") TEST_LEVEL = 0;
-        if(e.key==="2") TEST_LEVEL = 1;
-        if(e.key==="3") TEST_LEVEL = 2;
-        if(e.key==="4") TEST_LEVEL = 3;
-        if(e.key==="5") TEST_LEVEL = 4;
-
-        console.log(
-          "TEST LEVEL:",
-          TEST_LEVEL
-        );
-
-        applyTestMode();
-
-    }
-
-});    
 window.onload = function() {
         updateClock();
         setInterval(updateClock, 1000);
-        buildTicker();
-        if(!TEST_MODE){
+      buildTicker();
+
+if(TEST_MODE){
+
+    applyTestMode();
+
+}else{
 
     fetchWeatherAndWbgt();
 
 }
-     setInterval(()=>{
+   setInterval(()=>{
 
     if(TEST_MODE){
 
