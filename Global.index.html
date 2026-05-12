@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>サイネージ 512×128</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Noto+Sans:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 512px; height: 128px;
+    background: #000;
+    overflow: hidden;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="screen" width="512" height="128"></canvas>
+<script>
+// =====================================================
+// 設定（デプロイ先に合わせて変更）
+// =====================================================
+// データソース（本ページの取得先）
+// - 天気・気温・湿度・降水・風・気圧: Open-Meteo（models=jma_seamless = 気象庁系モデル合成予報）
+// - WBGT（暑さ指数）: 環境省 熱中症予防情報サイト WebAPI のみ（getSurveyData）。Open-Meteo には WBGT は用いない。
+//
+// 環境省サイト側の更新目安（FAQ Q7-7 より https://www.wbgt.env.go.jp/sp/faq2.php ）
+// - 実況値（実測・実況推定）: 毎時30分頃・毎時45分頃の2回（2回目はより精度の良い観測データを使用）
+// - 予測値: 毎時30分頃。予測値の誤差補正は 1 時間に 1 回（サイト内「当サイトで提供する暑さ指数について」より）
+// → サーバー上の新データは「1時間に1回」ではなく、実況はおおむね毎時2回が目安。当方のポーリングは下記 apiInterval。
+//
+// レイアウト: (0,0) 開始、解像度 512×128。4言語×128px＝横幅いっぱい
+// 周内: 各画面のあいだは左方向へ横スライドで切替。一周終端後: 挟み→白フラッシュ→横スライドで先頭へ戻り次ターン
+// demo: true のとき API を使わずデモデータ。WBGT に連動して帯色が変わる（展示用）。本番は false。
+// キャンバス上では時刻・時計・観測日時の文字列は一切表示しない（DATA.obsTime は本番API用の内部保持のみ）
+const CFG = {
+  demo:   true,
+  lat:    34.69,   // 大阪
+  lon:    135.50,
+  prefCd: 27,      // 環境省 都道府県コード（大阪=27 宮城=4 群馬=10）
+  locName:'大阪府',
+  /** 表示名（治療病院など）。白帯に掲出。実在施設名に差し替えてください */
+  facilityName: '○○治療病院',
+  screenDuration: 4000,   // 各画面の静止表示（ms）→ その後スライドで次へ
+  wbgtDuration:   4000,   // WBGT も同様に 4 秒
+  /** 横スライドの所要（ms）：周内の画面切替・周回の最後→先頭の両方 */
+  beltSlideMs:    450,
+  cyclePauseMs:   700,    // 一周終わりの「挟み」静止（ms）
+  flashMs:        100,    // 切替直前の白フラッシュ（ms）
+  apiInterval:    15 * 60 * 1000,  // 当ページからの API 再取得間隔（15分）
+  /** 環境省 API がブラウザで CORS 拒否される場合、公開プロキシ経由で再試行（本番は同一オリジン・サーバプロキシ推奨） */
+  wbgtTryCorsProxy: true,
+  /** true: 最初の一周はスライドなしで即切替。一周終えてから横スライド＋周回演出に移行 */
+  skipSlideFirstLap: true,
+};
+
+// =====================================================
+// カラー（確定済み仕様）
+// =====================================================
+const LEVELS = [
+  { min:31,  name:'危険',     nameEn:'Danger',       nameVi:'Nguy hiểm',   nameZh:'危险',
+    advJp:'作業を中止',       advEn:'Stop all work',   advVi:'Dừng làm việc',  advZh:'停止工作',
+    bgColor:'#EC3817', barColor:'#EE6145' },
+  { min:28,  name:'厳重警戒', nameEn:'Strict Alert',  nameVi:'Cảnh báo nghiêm', nameZh:'严重警戒',
+    advJp:'激しい運動は中止', advEn:'Stop strenuous work', advVi:'Dừng việc nặng', advZh:'停止剧烈运动',
+    bgColor:'#FD871A', barColor:'#FA9F46' },
+  { min:25,  name:'警戒',     nameEn:'Warning',       nameVi:'Cảnh báo',    nameZh:'警戒',
+    advJp:'積極的に休憩',     advEn:'Take frequent breaks', advVi:'Nghỉ ngơi', advZh:'积极休息',
+    bgColor:'#FFC700', barColor:'#FFD433' },
+  { min:21,  name:'注意',     nameEn:'Caution',       nameVi:'Chú ý',       nameZh:'注意',
+    advJp:'積極的に水分補給', advEn:'Drink water actively', advVi:'Uống đủ nước', advZh:'积极补水',
+    bgColor:'#2BB3E0', barColor:'#53C3E8' },
+  { min:-99, name:'ほぼ安全', nameEn:'Safe',          nameVi:'An toàn',     nameZh:'基本安全',
+    advJp:'適宜水分補給',     advEn:'Stay hydrated',   advVi:'Bổ sung nước', advZh:'注意补水',
+    bgColor:'#0289DE', barColor:'#319EE3' },
+];
+function getLevel(w) { return LEVELS.find(l => w >= l.min) || LEVELS[4]; }
+
+// =====================================================
+// データ状態
+// =====================================================
+const DATA = {
+  wbgt:     null,
+  temp:     null,
+  humi:     null,
+  rain:     null,
+  windSpd:  null,
+  windDir:  null,
+  pressure: null,
+  skyCode:  null,
+  obsTime:  null,
+  wbgtTime: null,
+  lastUpdate: 0,
+  /** 直近フェッチのエラー（デバッグ・フッター表示用） */
+  errWeather: null,
+  errWbgt:    null,
+};
+
+// =====================================================
+// ユーティリティ
+// =====================================================
+function fmtDT(d) {
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}00`;
+}
+
+// 風向（16方位）
+const DIR16 = {
+  jp:['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'],
+  en:['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'],
+  vi:['Bắc','B.ĐB','Đông Bắc','Đ.ĐB','Đông','Đ.ĐN','Đông Nam','N.ĐN','Nam','N.TN','Tây Nam','T.TN','Tây','T.TB','Tây Bắc','B.TB'],
+  zh:['北','北北东','东北','东北东','东','东南东','东南','南南东','南','南南西','西南','西南西','西','西北西','西北','北北西'],
+};
+function windDirText(deg, lang) {
+  const idx = Math.round((deg % 360) / 22.5) % 16;
+  return DIR16[lang][idx];
+}
+
+// 天気コード→テキスト
+function skyText(code, lang) {
+  const ranges = [
+    { max:0,  jp:'快晴',   en:'Clear',    vi:'Quang đãng', zh:'晴' },
+    { max:3,  jp:'晴れ',   en:'Sunny',    vi:'Nắng',       zh:'晴' },
+    { max:19, jp:'一部曇', en:'P.Cloudy', vi:'Ít mây',     zh:'少云' },
+    { max:29, jp:'曇り',   en:'Cloudy',   vi:'Nhiều mây',  zh:'多云' },
+    { max:49, jp:'霧',     en:'Foggy',    vi:'Sương mù',   zh:'雾' },
+    { max:69, jp:'雨',     en:'Rain',     vi:'Mưa',        zh:'雨' },
+    { max:79, jp:'みぞれ', en:'Sleet',    vi:'Mưa tuyết',  zh:'雨夹雪' },
+    { max:89, jp:'雪',     en:'Snow',     vi:'Tuyết',      zh:'雪' },
+    { max:99, jp:'雷雨',   en:'Thunder',  vi:'Giông',      zh:'雷暴' },
+  ];
+  const r = ranges.find(x => code <= x.max) || ranges[ranges.length-1];
+  return r[lang] || r.jp;
+}
+
+// =====================================================
+// API取得: Open-Meteo（天気・気温・湿度・風・気圧）
+// ※ models=jma は廃止/無効（HTTP 400）。JMA 系は models=jma_seamless を使用（公式ドキュメント準拠）
+// =====================================================
+async function fetchWeather() {
+  DATA.errWeather = null;
+  const url = `https://api.open-meteo.com/v1/forecast`
+    + `?latitude=${CFG.lat}&longitude=${CFG.lon}`
+    + `&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,surface_pressure,weather_code`
+    + `&models=jma_seamless&wind_speed_unit=ms&timezone=Asia%2FTokyo`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.reason || JSON.stringify(json.error));
+    const c = json.current;
+    if (!c) throw new Error('current なし');
+    DATA.temp     = c.temperature_2m;
+    DATA.humi     = c.relative_humidity_2m;
+    DATA.rain     = c.precipitation;
+    DATA.windSpd  = c.wind_speed_10m;
+    DATA.windDir  = c.wind_direction_10m;
+    DATA.pressure = c.surface_pressure;
+    DATA.skyCode  = c.weather_code;
+    DATA.obsTime  = c.time;
+  } catch (e) {
+    DATA.errWeather = String(e.message || e);
+    DATA.temp = DATA.humi = DATA.rain = DATA.windSpd = DATA.windDir = DATA.pressure = DATA.skyCode = DATA.obsTime = null;
+  }
+}
+
+// =====================================================
+// API取得: 環境省 WBGT実況推定値
+// =====================================================
+function parseWbgtJson(json) {
+  if (json.status === 'success' && json.data && json.data.length > 0) {
+    const latest = json.data[json.data.length - 1];
+    const v = parseFloat(latest.wbgt_WO);
+    if (!Number.isNaN(v)) {
+      DATA.wbgt = v;
+      DATA.wbgtTime = latest.wbgt_date;
+      return true;
+    }
+  }
+  return false;
+}
+
+async function fetchWBGT() {
+  DATA.errWbgt = null;
+  const now  = new Date();
+  const from = new Date(now.getTime() - 24 * 3600 * 1000);
+  // URL は環境省マニュアル最新版を確認: https://www.wbgt.env.go.jp/man15NH/wbgt_data_api_service_manual.pdf
+  const url  = `https://www.wbgt.env.go.jp/api/v1/getSurveyData`
+    + `?data_type=0&location_type=2`
+    + `&pref_cds=${CFG.prefCd}`
+    + `&date_from=${fmtDT(from)}&date_to=${fmtDT(now)}`;
+
+  async function loadJson(res) {
+    const t = await res.text();
+    try { return JSON.parse(t); } catch (_) { throw new Error('JSON でない応答'); }
+  }
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await loadJson(res);
+    if (parseWbgtJson(json)) return;
+    DATA.errWbgt = json.message || json.status || 'データ空';
+  } catch (e1) {
+    DATA.errWbgt = String(e1.message || e1);
+    if (!CFG.wbgtTryCorsProxy) return;
+    try {
+      const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+      const res2 = await fetch(proxy);
+      if (!res2.ok) throw new Error(`proxy HTTP ${res2.status}`);
+      const json2 = await loadJson(res2);
+      if (parseWbgtJson(json2)) {
+        DATA.errWbgt = null;
+        return;
+      }
+      DATA.errWbgt = (json2 && json2.message) || 'WBGT データ空';
+    } catch (e2) {
+      DATA.errWbgt = String(e1.message || e1) + ' / ' + String(e2.message || e2);
+      DATA.wbgt = DATA.wbgtTime = null;
+    }
+  }
+}
+
+// 全API更新
+async function updateAll() {
+  if (CFG.demo) return;
+  await Promise.allSettled([fetchWeather(), fetchWBGT()]);
+  DATA.lastUpdate = Date.now();
+}
+
+// =====================================================
+// デモ用データ（WBGT レベルごとに色が変わるよう値を振る）
+// =====================================================
+const DEMO_SCENARIOS = [
+  { wbgt: 17, skyCode: 0,  temp: 22.0, humi: 48, rain: 0.0, windSpd: 1.2, windDir: 5,   pressure: 1015, note: 'ほぼ安全・快晴' },
+  { wbgt: 22, skyCode: 3,  temp: 28.5, humi: 58, rain: 0.0, windSpd: 2.4, windDir: 90,  pressure: 1012, note: '注意・晴れ' },
+  { wbgt: 25, skyCode: 19, temp: 30.2, humi: 65, rain: 0.0, windSpd: 3.1, windDir: 180, pressure: 1009, note: '警戒・やや曇' },
+  { wbgt: 28, skyCode: 65, temp: 32.0, humi: 72, rain: 1.2, windSpd: 3.8, windDir: 225, pressure: 1006, note: '厳重警戒・雨' },
+  { wbgt: 32, skyCode: 95, temp: 34.5, humi: 78, rain: 4.5, windSpd: 4.5, windDir: 270, pressure: 1002, note: '危険・雷雨' },
+  { wbgt: 20, skyCode: 71, temp: 24.0, humi: 85, rain: 0.8, windSpd: 2.0, windDir: 45,  pressure: 1011, note: '注意・雨' },
+];
+let demoScenario = 0;
+
+function applyDemoData(i) {
+  const s = DEMO_SCENARIOS[i % DEMO_SCENARIOS.length];
+  const t = new Date();
+  const dateOnly = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  DATA.wbgt     = s.wbgt;
+  DATA.wbgtTime = `デモ ${s.note}`;
+  DATA.temp     = s.temp;
+  DATA.humi     = s.humi;
+  DATA.rain     = s.rain;
+  DATA.windSpd  = s.windSpd;
+  DATA.windDir  = s.windDir;
+  DATA.pressure = s.pressure;
+  DATA.skyCode  = s.skyCode;
+  DATA.obsTime  = dateOnly;
+  DATA.errWeather = null;
+  DATA.errWbgt    = null;
+  DATA.lastUpdate = Date.now();
+}
+
+// =====================================================
+// 画面定義（表示順）
+// =====================================================
+// 各アイテム＝128×128 の箱を4つ横に並べた帯。表示順＝ベルト上を順に通過
+const SCREENS = [
+  {
+    key:'sky', dur: CFG.screenDuration,
+    label:{ jp:'天気', en:'Weather', vi:'Thời tiết', zh:'天气' },
+    getValue: () => ({
+      jp: DATA.skyCode !== null ? skyText(DATA.skyCode,'jp') : '取得不可',
+      en: DATA.skyCode !== null ? skyText(DATA.skyCode,'en') : 'N/A',
+      vi: DATA.skyCode !== null ? skyText(DATA.skyCode,'vi') : 'N/A',
+      zh: DATA.skyCode !== null ? skyText(DATA.skyCode,'zh') : '取得不可',
+    }),
+    unit:{ jp:'', en:'', vi:'', zh:'' },
+  },
+  {
+    key:'temp', dur: CFG.screenDuration,
+    label:{ jp:'気温', en:'Temperature', vi:'Nhiệt độ', zh:'气温' },
+    getValue: () => {
+      const v = DATA.temp !== null ? DATA.temp.toFixed(1) : '取得不可';
+      return { jp:v, en:v, vi:v, zh:v };
+    },
+    unit:{ jp:'℃', en:'℃', vi:'℃', zh:'℃' },
+  },
+  {
+    key:'humi', dur: CFG.screenDuration,
+    label:{ jp:'湿度', en:'Humidity', vi:'Độ ẩm', zh:'湿度' },
+    getValue: () => {
+      const v = DATA.humi !== null ? Math.round(DATA.humi).toString() : '取得不可';
+      return { jp:v, en:v, vi:v, zh:v };
+    },
+    unit:{ jp:'%', en:'%', vi:'%', zh:'%' },
+  },
+  {
+    key:'rain', dur: CFG.screenDuration,
+    label:{ jp:'降水', en:'Rainfall', vi:'Lượng mưa', zh:'降水量' },
+    getValue: () => {
+      const v = DATA.rain !== null ? DATA.rain.toFixed(1) : '取得不可';
+      return { jp:v, en:v, vi:v, zh:v };
+    },
+    unit:{ jp:'mm/h', en:'mm/h', vi:'mm/h', zh:'mm/h' },
+  },
+  {
+    key:'wind', dur: CFG.screenDuration,
+    label:{ jp:'風速', en:'Wind Speed', vi:'Tốc độ gió', zh:'风速' },
+    getValue: () => {
+      const v = DATA.windSpd !== null ? DATA.windSpd.toFixed(1) : '取得不可';
+      return { jp:v, en:v, vi:v, zh:v };
+    },
+    unit:{ jp:'m/s', en:'m/s', vi:'m/s', zh:'m/s' },
+  },
+  {
+    key:'dir', dur: CFG.screenDuration,
+    label:{ jp:'風向', en:'Wind Dir.', vi:'Hướng gió', zh:'风向' },
+    getValue: () => ({
+      jp: DATA.windDir !== null ? windDirText(DATA.windDir,'jp') : '取得不可',
+      en: DATA.windDir !== null ? windDirText(DATA.windDir,'en') : 'N/A',
+      vi: DATA.windDir !== null ? windDirText(DATA.windDir,'vi') : 'N/A',
+      zh: DATA.windDir !== null ? windDirText(DATA.windDir,'zh') : '取得不可',
+    }),
+    unit:{ jp:'', en:'', vi:'', zh:'' },
+  },
+  {
+    key:'pres', dur: CFG.screenDuration,
+    label:{ jp:'気圧', en:'Pressure', vi:'Áp suất', zh:'气压' },
+    getValue: () => {
+      const v = DATA.pressure !== null ? Math.round(DATA.pressure).toString() : '取得不可';
+      return { jp:v, en:v, vi:v, zh:v };
+    },
+    unit:{ jp:'hPa', en:'hPa', vi:'hPa', zh:'hPa' },
+  },
+  { key:'wbgt', dur: CFG.wbgtDuration },
+];
+
+const LANGS = ['jp','en','vi','zh'];
+
+// =====================================================
+// 描画定数（座標は左上 (0,0)）
+// =====================================================
+const W = 512;
+const H = 128;
+/** 1コンテンツボックス＝正方形 128×128（4列で W と一致） */
+const CELL = 128;
+/** 4言語列の左端は常に X=0 から */
+const GRID_X = 0;
+function cellOx(i) { return GRID_X + i * CELL; }
+function cellCx(i) { return cellOx(i) + CELL / 2; }
+// 多言語ストリップ（縦 128＝ S_BAR + S_MID + S_BOT、各値は偶数 px）
+const S_BAR = 32;
+const S_BOT = 24;
+const S_MID = H - S_BAR - S_BOT;
+/** 主数値行の縦位置（偶数 y、S_BAR〜H-S_BOT の帯のほぼ中央） */
+const STRIP_VAL_Y = S_BAR + (S_MID / 2 | 0);
+// WBGT 1列＝128×128。上部バーはストリップと同一（y=0・高さ S_BAR）で隙間なく揃える
+const W_WBGT_VAL_Y = 34;
+const W_DIV_Y = 68;
+const W_LVL_Y = 74;
+const W_BOT_Y = 106;
+const W_BOT_H = 22;
+const W_LINE_PAD = 12;
+
+/** 数値・見出し・通知系フォント（基本は偶数 px。はみ出し時のみ 1px ずつ縮小可） */
+const FONT = {
+  label:     16,
+  value:     32,
+  unit:      14,
+  footer:    12,
+  wbgtLevel: 18,
+  wbgtAdv:   17,
+};
+/** 主数値と単位の横方向（偶数 px） */
+const VAL_UNIT_GAP = 4;
+const CELL_PAD_X = 6;
+
+// =====================================================
+// Canvas描画: 多言語ストリップ（1アイテム × 4言語）
+// =====================================================
+function drawStrip(ctx, screen, lv) {
+  const vals = screen.getValue();
+
+  LANGS.forEach((lang, i) => {
+    const ox = cellOx(i);
+    const cw = CELL;
+    const cx = cellCx(i);
+    const val  = vals[lang];
+    const unit = screen.unit[lang];
+    const lbl  = screen.label[lang];
+    const hasUnit = unit !== '';
+
+    // 背景
+    ctx.fillStyle = lv.bgColor;
+    ctx.fillRect(ox, 0, cw, H - S_BOT);
+
+    // 上部バー
+    ctx.fillStyle = lv.barColor;
+    ctx.fillRect(ox, 0, cw, S_BAR);
+
+    // ラベル（上バー内・128 幅に収まるまで縮小）
+    ctx.fillStyle = '#FFF';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const maxLbl = cw - CELL_PAD_X * 2;
+    let lblPx = FONT.label;
+    for (;;) {
+      ctx.font = `700 ${lblPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      if (ctx.measureText(lbl).width <= maxLbl || lblPx <= 8) break;
+      lblPx -= 1;
+    }
+    ctx.font = `700 ${lblPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+    ctx.fillText(lbl, cx, S_BAR / 2);
+
+    // 主数値（単位ありは数値の右横に単位。128 幅に収まるよう縮小。単位 px は FONT.unit 固定）
+    const vy = STRIP_VAL_Y;
+    ctx.textBaseline = 'middle';
+    if (hasUnit) {
+      const gap = VAL_UNIT_GAP;
+      const pad = CELL_PAD_X;
+      const maxW = cw - pad * 2;
+      const uPx = FONT.unit;
+      let vPx = FONT.value;
+      let valW, unitW, total;
+      for (;;) {
+        ctx.font = `900 ${vPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+        valW = ctx.measureText(val).width;
+        ctx.font = `700 ${uPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+        unitW = ctx.measureText(unit).width;
+        total = valW + gap + unitW;
+        if (total <= maxW || vPx <= 10) break;
+        vPx -= 1;
+      }
+      let g = gap;
+      if (total > maxW && g > 2) {
+        g = 2;
+        ctx.font = `900 ${vPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+        valW = ctx.measureText(val).width;
+        ctx.font = `700 ${uPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+        unitW = ctx.measureText(unit).width;
+        total = valW + g + unitW;
+      }
+      let valDraw = val;
+      while (total > maxW && valDraw.length > 2) {
+        valDraw = valDraw.slice(0, -2) + '…';
+        ctx.font = `900 ${vPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+        valW = ctx.measureText(valDraw).width;
+        ctx.font = `700 ${uPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+        unitW = ctx.measureText(unit).width;
+        total = valW + g + unitW;
+      }
+      const x0 = cx - total / 2;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#FFF';
+      ctx.globalAlpha = 1;
+      ctx.font = `900 ${vPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      ctx.fillText(valDraw, x0, vy);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.globalAlpha = 0.9;
+      ctx.font = `700 ${uPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      ctx.fillText(unit, x0 + valW + g, vy);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = '#FFF';
+      let vPx0 = FONT.value;
+      const maxV = cw - CELL_PAD_X * 2;
+      for (;;) {
+        ctx.font = `900 ${vPx0}px 'Noto Sans JP','Noto Sans',sans-serif`;
+        if (ctx.measureText(val).width <= maxV || vPx0 <= 12) break;
+        vPx0 -= 1;
+      }
+      ctx.font = `900 ${vPx0}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      let disp = val;
+      for (let n = 0; n < 40 && ctx.measureText(disp).width > maxV && disp.length > 2; n++) {
+        disp = disp.slice(0, -2) + '…';
+      }
+      ctx.textAlign = 'center';
+      ctx.fillText(disp, cx, vy);
+    }
+
+    // パネル区切り線
+    if (i > 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H - S_BOT); ctx.stroke();
+    }
+  });
+
+  const botY = H - S_BOT;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, botY, W, S_BOT);
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, botY);
+  ctx.lineTo(W, botY);
+  ctx.stroke();
+
+  let line = `${CFG.facilityName}　${CFG.locName}　`;
+  line += CFG.demo
+    ? `【デモ】WBGT連動で帯色が変化`
+    : `データ提供：Open-Meteo（気象庁モデル由来）`;
+  if (!CFG.demo && (DATA.errWeather || DATA.errWbgt)) {
+    line += `　※通信:気象${DATA.errWeather ? '×' : '○'} WBGT${DATA.errWbgt ? '×' : '○'}`;
+  }
+  ctx.fillStyle = '#666';
+  ctx.font = `400 ${FONT.footer}px 'Noto Sans JP',sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const footPad = CELL_PAD_X * 2;
+  for (let n = 0; n < 120 && ctx.measureText(line).width > W - footPad && line.length > 4; n++) {
+    line = line.slice(0, -2) + '…';
+  }
+  ctx.fillText(line, W / 2, botY + S_BOT / 2);
+}
+
+// =====================================================
+// Canvas描画: WBGT（各列 128×128、偶数レイアウト）
+// =====================================================
+function drawWBGT(ctx, lv) {
+  const wbgtVal = DATA.wbgt !== null ? Math.round(DATA.wbgt).toString() : '--';
+  const tempNum = DATA.temp !== null ? DATA.temp.toFixed(1) : '--.-';
+  const tempUnit = '℃';
+
+  const panels = [
+    { name: lv.name,   adv: lv.advJp },
+    { name: lv.nameEn, adv: lv.advEn },
+    { name: lv.nameVi, adv: lv.advVi },
+    { name: lv.nameZh, adv: lv.advZh },
+  ];
+
+  panels.forEach((panel, i) => {
+    const ox = cellOx(i);
+    const cw = CELL;
+    const cx = cellCx(i);
+    // 背景
+    ctx.fillStyle = lv.bgColor;
+    ctx.fillRect(ox, 0, cw, H);
+
+    // 上部バー（ストリップと同じ y=0・高さ S_BAR。上端で揃え背景の隙間なし）
+    ctx.fillStyle = lv.barColor;
+    ctx.fillRect(ox, 0, cw, S_BAR);
+
+    // 気温: バー内中央（ストリップのラベル行と同じ縦位置基準）
+    const tempY = S_BAR / 2;
+    ctx.fillStyle = '#FFF';
+    ctx.textBaseline = 'middle';
+    let tPx = FONT.label;
+    const uPxT = FONT.unit;
+    let gapT = VAL_UNIT_GAP;
+    const maxWT = cw - CELL_PAD_X * 2;
+    let tnW, tuW, totT;
+    for (;;) {
+      ctx.font = `700 ${tPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      tnW = ctx.measureText(tempNum).width;
+      ctx.font = `700 ${uPxT}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      tuW = ctx.measureText(tempUnit).width;
+      totT = tnW + gapT + tuW;
+      if (totT <= maxWT || tPx <= 12) break;
+      tPx -= 1;
+    }
+    if (totT > maxWT && gapT > 1) {
+      gapT = 1;
+      ctx.font = `700 ${tPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      tnW = ctx.measureText(tempNum).width;
+      ctx.font = `700 ${uPxT}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      tuW = ctx.measureText(tempUnit).width;
+      totT = tnW + gapT + tuW;
+    }
+    const tx0 = cx - totT / 2;
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+    ctx.font = `700 ${tPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+    ctx.fillText(tempNum, tx0, tempY);
+    ctx.globalAlpha = 0.9;
+    ctx.font = `700 ${uPxT}px 'Noto Sans JP','Noto Sans',sans-serif`;
+    ctx.fillText(tempUnit, tx0 + tnW + gapT, tempY);
+    ctx.globalAlpha = 1;
+
+    // WBGT 指数（128 幅に収まるよう縮小）
+    ctx.fillStyle = '#FFF';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const maxWW = cw - CELL_PAD_X * 2;
+    let wPx = FONT.value;
+    for (;;) {
+      ctx.font = `900 ${wPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      if (ctx.measureText(wbgtVal).width <= maxWW || wPx <= 16) break;
+      wPx -= 1;
+    }
+    ctx.font = `900 ${wPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+    ctx.fillText(wbgtVal, cx, W_WBGT_VAL_Y);
+
+    // 区切り線
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(ox + W_LINE_PAD, W_DIV_Y); ctx.lineTo(ox + CELL - W_LINE_PAD, W_DIV_Y);
+    ctx.stroke();
+
+    // レベル名（128 幅に収まるまで縮小）
+    ctx.fillStyle = '#FFF';
+    const lt = panel.name;
+    let lPx = FONT.wbgtLevel;
+    for (;;) {
+      ctx.font = `700 ${lPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      if (ctx.measureText(lt).width <= maxWW || lPx <= 10) break;
+      lPx -= 1;
+    }
+    ctx.font = `700 ${lPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+    let ltDraw = lt;
+    for (let n = 0; n < 40 && ctx.measureText(ltDraw).width > maxWW && ltDraw.length > 3; n++) {
+      ltDraw = ltDraw.slice(0, -2) + '…';
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(ltDraw, cx, W_LVL_Y);
+
+    // 白バー
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(ox, W_BOT_Y, cw, W_BOT_H);
+
+    // アドバイス（128 幅・白帯高さに収まるまで縮小、最小でも超える場合は省略）
+    const adv = panel.adv;
+    ctx.fillStyle = '#1e1e1e';
+    let aPx = FONT.wbgtAdv;
+    for (;;) {
+      ctx.font = `700 ${aPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+      if (ctx.measureText(adv).width <= maxWW || aPx <= 8) break;
+      aPx -= 1;
+    }
+    ctx.font = `700 ${aPx}px 'Noto Sans JP','Noto Sans',sans-serif`;
+    let advDraw = adv;
+    for (let n = 0; n < 40 && ctx.measureText(advDraw).width > maxWW && advDraw.length > 3; n++) {
+      advDraw = advDraw.slice(0, -2) + '…';
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(advDraw, cx, W_BOT_Y + W_BOT_H / 2);
+
+    // パネル区切り線
+    if (i > 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke();
+    }
+  });
+}
+
+// =====================================================
+// アニメーションループ
+// =====================================================
+const canvas = document.getElementById('screen');
+const ctx    = canvas.getContext('2d');
+
+let currentScreen = 0;
+let screenTimer   = null;
+/** 周回境界：最後→先頭の横スライド中（帯色の出／入用） */
+let sliding = false;
+let slideFrom = 0;
+let slideTo   = 0;
+let slideT0   = 0;
+let slideWbgtFrom = null;
+/** 周内：隣の画面へ左方向横スライド中 */
+let panelSliding = false;
+let panFrom = 0;
+let panTo   = 0;
+let panT0   = 0;
+/** 一周終端の演出: null | 'pause'（挟み） | 'flash'（一瞬白） */
+let cyclePhase = null;
+let phaseT0 = 0;
+/** false のあいだはスライドなしで一周。true になってから横スライドで切替 */
+let transitionsEnabled = !CFG.skipSlideFirstLap;
+
+function drawScreenByIndex(ctx, idx, lv) {
+  const sc = SCREENS[idx];
+  if (sc.key === 'wbgt') drawWBGT(ctx, lv);
+  else drawStrip(ctx, sc, lv);
+}
+
+function scheduleNext() {
+  clearTimeout(screenTimer);
+  screenTimer = setTimeout(onScreenTimerDone, SCREENS[currentScreen].dur);
+}
+
+/** 周内: 左へ横スライドで次画面へ。周終端: 挟み→フラッシュ→横ベルトで一周完了→次ターン */
+function onScreenTimerDone() {
+  if (sliding || panelSliding || cyclePhase) return;
+  if (!transitionsEnabled) {
+    if (currentScreen < SCREENS.length - 1) {
+      currentScreen += 1;
+      scheduleNext();
+    } else {
+      transitionsEnabled = true;
+      currentScreen = 0;
+      scheduleNext();
+    }
+    return;
+  }
+  if (currentScreen >= SCREENS.length - 1) {
+    cyclePhase = 'pause';
+    phaseT0 = performance.now();
+    return;
+  }
+  beginPanelSlide();
+}
+
+function beginPanelSlide() {
+  if (panelSliding || sliding || cyclePhase) return;
+  panFrom = currentScreen;
+  panTo = currentScreen + 1;
+  panelSliding = true;
+  panT0 = performance.now();
+}
+
+/** 一周の終わり → 先頭へのみスライド＋デモ進行 */
+function beginWrapBeltSlide() {
+  if (sliding || panelSliding) return;
+  slideFrom = SCREENS.length - 1;
+  slideTo = 0;
+  slideWbgtFrom = DATA.wbgt != null ? DATA.wbgt : 18;
+  if (CFG.demo) {
+    demoScenario = (demoScenario + 1) % DEMO_SCENARIOS.length;
+    applyDemoData(demoScenario);
+  }
+  sliding = true;
+  slideT0 = performance.now();
+}
+
+function renderFrame() {
+  const now = performance.now();
+  const wbgtNow = DATA.wbgt !== null ? DATA.wbgt : 18;
+  const lvTo    = getLevel(wbgtNow);
+  const wbgtOut = slideWbgtFrom != null ? slideWbgtFrom : wbgtNow;
+  const lvFrom  = getLevel(wbgtOut);
+
+  if (cyclePhase === 'pause' && now - phaseT0 >= CFG.cyclePauseMs) {
+    cyclePhase = 'flash';
+    phaseT0 = now;
+  } else   if (cyclePhase === 'flash' && now - phaseT0 >= CFG.flashMs) {
+    cyclePhase = null;
+    beginWrapBeltSlide();
+  }
+
+  let tPan = 0;
+  if (panelSliding) {
+    tPan = Math.min(1, (now - panT0) / CFG.beltSlideMs);
+    if (tPan >= 1) {
+      panelSliding = false;
+      currentScreen = panTo;
+      scheduleNext();
+    }
+  }
+
+  let tBelt = 0;
+  if (sliding) {
+    tBelt = Math.min(1, (now - slideT0) / CFG.beltSlideMs);
+    if (tBelt >= 1) {
+      sliding = false;
+      currentScreen = slideTo;
+      slideWbgtFrom = null;
+      scheduleNext();
+    }
+  }
+
+  ctx.clearRect(0, 0, W, H);
+
+  if (panelSliding && tPan < 1) {
+    const easeP = tPan * tPan * (3 - 2 * tPan);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    ctx.clip();
+    ctx.translate(-easeP * W, 0);
+    drawScreenByIndex(ctx, panFrom, lvTo);
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    ctx.clip();
+    ctx.translate((1 - easeP) * W, 0);
+    drawScreenByIndex(ctx, panTo, lvTo);
+    ctx.restore();
+  } else if (sliding && tBelt < 1) {
+    const ease = tBelt * tBelt * (3 - 2 * tBelt);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    ctx.clip();
+    ctx.translate(-ease * W, 0);
+    drawScreenByIndex(ctx, slideFrom, lvFrom);
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    ctx.clip();
+    ctx.translate((1 - ease) * W, 0);
+    drawScreenByIndex(ctx, slideTo, lvTo);
+    ctx.restore();
+  } else if (cyclePhase === 'flash') {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    drawScreenByIndex(ctx, currentScreen, lvTo);
+  }
+
+  requestAnimationFrame(renderFrame);
+}
+
+// =====================================================
+// 初期化
+// =====================================================
+async function init() {
+  await document.fonts.ready;
+  if (CFG.demo) {
+    applyDemoData(0);
+  } else {
+    await updateAll();
+    setInterval(updateAll, CFG.apiInterval);
+  }
+  scheduleNext();
+  renderFrame();
+}
+
+init();
+</script>
+</body>
+</html>
