@@ -2,254 +2,108 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>仙台営業所 勉強会用現場 サイネージ（実データ取得・横スクロール）</title>
+<title>Cropped Card Scroll 512x128</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  :root { --W: 512px; --H: 128px; --CARD: 128px; --STRIP: 768px; }
   html, body {
-    width: var(--W); height: var(--H);
-    overflow: hidden; background: #f3f4f6;
-    font-family: "Inter", "Noto Sans JP", sans-serif;
-    color: #111;
-  }
-  .stage { width: var(--W); height: var(--H); overflow: hidden; position: relative; }
-  .track {
-    display: flex;
-    width: calc(var(--STRIP) * 2); height: var(--H);
-    animation: slide 32s linear infinite;
-    will-change: transform;
-  }
-  @keyframes slide {
-    from { transform: translateX(0); }
-    to   { transform: translateX(calc(-1 * var(--STRIP))); }
-  }
-  .card {
-    width: var(--CARD); height: var(--CARD); flex-shrink: 0;
-    background: linear-gradient(160deg, #ffffff 60%, #eef6ff 100%);
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    margin: 4px 3px;
-    padding: 8px 10px;
-    display: grid;
-    grid-template-rows: 28px 1fr 18px;
+    width: 512px;
+    height: 128px;
     overflow: hidden;
+    background: #f3faff;
   }
-  .head { display: flex; align-items: center; gap: 6px; }
-  .icon-box {
-    width: 22px; height: 22px; border-radius: 5px;
-    background: #e6f2ff; border: 1px solid #b9dcff;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .icon-box svg { width: 14px; height: 14px; }
-  .head-text { display: flex; flex-direction: column; line-height: 1; min-width: 0; }
-  .label { font-size: 11.5px; font-weight: 700; color: #1f2937; white-space: nowrap; }
-  .sensor { font-size: 8px; font-weight: 500; color: #9ca3af; margin-top: 2px; }
-  .value-wrap { display: flex; align-items: flex-end; justify-content: flex-end; padding-right: 4px; }
-  .value {
-    font-size: 34px; font-weight: 800; line-height: 1;
-    font-family: "Inter", sans-serif;
-    font-variant-numeric: tabular-nums;
-    color: #111; letter-spacing: -0.02em;
-    transition: opacity 0.3s;
-  }
-  .value.small { font-size: 26px; }
-  .unit-wrap { display: flex; justify-content: flex-end; padding-right: 6px; }
-  .unit { font-size: 11px; font-weight: 700; color: #374151; }
-
-  .badge {
-    position: fixed; bottom: 2px; right: 4px;
-    font-size: 8px; color: #aaa; letter-spacing: 0.3px;
-    z-index: 999; pointer-events: none;
-    background: rgba(255,255,255,0.85); padding: 1px 3px; border-radius: 2px;
-    max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .badge.live { color: #0a8a0a; }
-  .badge.err  { color: #c00; }
+  canvas { display: block; }
 </style>
 </head>
 <body>
-
-<svg style="display:none">
-  <symbol id="ic-temp" viewBox="0 0 24 24" fill="none" stroke="#1d8fe1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 3a2.5 2.5 0 0 0-2.5 2.5v9.2a4.5 4.5 0 1 0 5 0V5.5A2.5 2.5 0 0 0 12 3z"/>
-    <circle cx="12" cy="17" r="2" fill="#1d8fe1"/>
-  </symbol>
-  <symbol id="ic-rain" viewBox="0 0 24 24" fill="none" stroke="#1d8fe1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v7a2 2 0 0 0 4 0"/>
-  </symbol>
-  <symbol id="ic-wind" viewBox="0 0 24 24" fill="none" stroke="#1d8fe1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 14h14a3 3 0 1 1-3 3"/><path d="M3 11h7"/>
-  </symbol>
-  <symbol id="ic-sun" viewBox="0 0 24 24" fill="none" stroke="#1d8fe1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="4"/>
-    <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>
-  </symbol>
-  <symbol id="ic-humi" viewBox="0 0 24 24" fill="#1d8fe1">
-    <path d="M12 3c-3.5 5-6 8.2-6 11.2a6 6 0 0 0 12 0c0-3-2.5-6.2-6-11.2z"/>
-  </symbol>
-</svg>
-
-<div class="badge" id="badge">…</div>
-
-<div class="stage">
-  <div class="track" id="track"></div>
-</div>
-
+<canvas id="screen" width="512" height="128"></canvas>
 <script>
-// ============================================================
-//  ソース URL（仙台営業所 勉強会用現場 サイネージ #26）
-// ============================================================
-const SRC_URL = 'https://sooki-cloud.jp/signages/26?pwd=eyJfcmFpbHMiOnsiZGF0YSI6WzI2XSwicHVyIjoiU2lnbmFnZVxuc2hhcmVkX3VybF90b2tlblxuIn19--652d40231e39d461230d3656254f07145f2ad759';
-const REFRESH_MS = 5000;   // 5秒ごとに取得（実URLの体感に近づける）
+const CFG = {
+  viewportW: 512,
+  viewportH: 128,
+  cardSize: 128,
+  speedPxPerSec: 24,
+  topImagePath: "./clip-top.png",
+  bottomImagePath: "./clip-bottom.png",
+};
 
-// CORS プロキシ候補（優先順）
-const PROXIES = [
-  u => 'https://corsproxy.io/?url='        + encodeURIComponent(u),
-  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  u => 'https://api.codetabs.com/v1/proxy/?quest=' + u,
+// それぞれカード枠のみを切り出し（隙間を含めない）
+const TOP_CROPS = [
+  { sx: 30,  sy: 17, sw: 225, sh: 286 }, // WBGT
+  { sx: 272, sy: 17, sw: 225, sh: 286 }, // 温度
+  { sx: 514, sy: 17, sw: 225, sh: 286 }, // 湿度
+  { sx: 757, sy: 17, sw: 225, sh: 286 }, // 風速
+];
+const BOTTOM_CROPS = [
+  { sx: 25,  sy: 16, sw: 353, sh: 436 }, // 日照
+  { sx: 405, sy: 16, sw: 353, sh: 436 }, // 湿度
 ];
 
-// ============================================================
-//  カード定義
-// ============================================================
-const CARDS = [
-  { key: 'tmp', icon: 'temp', label: '温度',         sensor: 'ラビット 1', unit: '℃',     init: '--' },
-  { key: 'r1m', icon: 'rain', label: '雨量 (1分)',   sensor: 'ラビット 1', unit: 'mm',    init: '--' },
-  { key: 'r1h', icon: 'rain', label: '雨量 (1時間)', sensor: 'ラビット 1', unit: 'mm',    init: '--' },
-  { key: 'wnd', icon: 'wind', label: '瞬間風速',     sensor: 'ラビット 1', unit: 'm/sec', init: '--' },
-  { key: 'sun', icon: 'sun',  label: '日照',         sensor: 'ラビット 1', unit: 'lx',    init: '--' },
-  { key: 'hum', icon: 'humi', label: '湿度',         sensor: 'ラビット 1', unit: '%',     init: '--' },
-];
+const canvas = document.getElementById("screen");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = true;
 
-function renderCard(c) {
-  return `
-    <div class="card">
-      <div class="head">
-        <div class="icon-box"><svg><use href="#ic-${c.icon}"/></svg></div>
-        <div class="head-text">
-          <div class="label">${c.label}</div>
-          <div class="sensor">${c.sensor}</div>
-        </div>
-      </div>
-      <div class="value-wrap"><div class="value" data-key="${c.key}">${c.init}</div></div>
-      <div class="unit-wrap"><div class="unit">${c.unit}</div></div>
-    </div>`;
-}
-document.getElementById('track').innerHTML =
-  CARDS.map(renderCard).join('') + CARDS.map(renderCard).join('');
+const topImg = new Image();
+const bottomImg = new Image();
+let scrollX = 0;
+let lastTs = 0;
+let readyCount = 0;
 
-// ============================================================
-//  値の反映（2セット同時に）
-// ============================================================
-function updateAll(map) {
-  document.querySelectorAll('[data-key]').forEach(el => {
-    const v = map[el.dataset.key];
-    if (v == null || v === '') return;
-    el.textContent = v;
-    el.className = (String(v).length >= 5) ? 'value small' : 'value';
-  });
+function drawCard(image, crop, dx) {
+  const px = Math.round(dx);
+  ctx.drawImage(
+    image,
+    crop.sx, crop.sy, crop.sw, crop.sh,
+    px, 0, CFG.cardSize + 1, CFG.cardSize
+  );
 }
 
-// ============================================================
-//  CORS プロキシ経由で URL を取得
-// ============================================================
-async function fetchViaProxy(url) {
-  // キャッシュバスター：プロキシ側キャッシュを回避
-  const buster = '_t=' + Date.now() + Math.random().toString(36).slice(2, 6);
-  const busted = url + (url.includes('?') ? '&' : '?') + buster;
-
-  for (const wrap of PROXIES) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 10000);
-    try {
-      const res = await fetch(wrap(busted), {
-        cache: 'no-store',
-        signal: ctrl.signal,
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-      });
-      clearTimeout(timer);
-      if (!res.ok) continue;
-      const text = await res.text();
-      if (text && text.length > 100) return text;
-    } catch (e) {
-      clearTimeout(timer);
-    }
-  }
-  throw new Error('全プロキシ失敗');
-}
-
-// ============================================================
-//  HTML から数値を抽出
-// ============================================================
-function parseValues(html) {
-  // タグを除いてテキストだけに
-  const text = html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ');
-
-  const grab = (labelRe, unitRe) => {
-    const re = new RegExp(labelRe.source + '[\\s\\S]{0,200}?(\\d+(?:\\.\\d+)?)\\s*' + unitRe.source);
-    const m = text.match(re);
-    return m ? m[1] : null;
-  };
-  return {
-    tmp: grab(/温度/,           /℃/),
-    r1m: grab(/雨量\s*\(1分\)/,  /mm/),
-    r1h: grab(/雨量\s*\(1時間\)/,/mm/),
-    wnd: grab(/瞬間風速/,        /m\/sec/),
-    sun: grab(/日照/,            /lx/),
-    hum: grab(/湿度/,            /%/),
-  };
-}
-
-// ============================================================
-//  起動 + ポーリング
-// ============================================================
-const badge = document.getElementById('badge');
-function setBadge(text, cls = '') {
-  badge.textContent = text;
-  badge.className = 'badge ' + cls;
-}
-
-let tickRunning = false;
-async function tick() {
-  if (tickRunning) return;
-  tickRunning = true;
-  try {
-    setBadge('取得中…');
-    const html = await fetchViaProxy(SRC_URL);
-    const v = parseValues(html);
-    console.log('[tick]', new Date().toLocaleTimeString('ja-JP'), v);
-    updateAll(v);
-    const lastTime = new Date().toLocaleTimeString('ja-JP', { hour12: false });
-    const got = Object.entries(v).filter(([,x]) => x != null).map(([k,x]) => `${k}:${x}`).join(' ');
-    setBadge('LIVE ' + lastTime + ' | ' + got, 'live');
-  } catch (e) {
-    console.error('[tick error]', e);
-    setBadge('取得失敗：' + e.message, 'err');
-  } finally {
-    tickRunning = false;
+function drawStrip(startX) {
+  const allCards = [
+    ...TOP_CROPS.map((c) => ({ image: topImg, crop: c })),
+    ...BOTTOM_CROPS.map((c) => ({ image: bottomImg, crop: c })),
+  ];
+  for (let i = 0; i < allCards.length; i++) {
+    const x = startX + i * CFG.cardSize;
+    if (x + CFG.cardSize < 0 || x > CFG.viewportW) continue;
+    drawCard(allCards[i].image, allCards[i].crop, x);
   }
 }
 
-tick();
-setInterval(tick, REFRESH_MS);
+function frame(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min(0.05, (ts - lastTs) / 1000);
+  lastTs = ts;
 
-// タブ復帰時に即取得（裏に長時間隠れていた場合の追従）
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) tick();
-});
+  const stripW = 6 * CFG.cardSize; // 6 * 128 = 768
+  scrollX += CFG.speedPxPerSec * dt;
+  if (scrollX >= stripW) scrollX -= stripW;
 
-// アニメーションが裏で止まらないように rAF で生存確認
-let lastVisible = performance.now();
-requestAnimationFrame(function watch(t) {
-  if (!document.hidden) lastVisible = t;
-  requestAnimationFrame(watch);
-});
+  ctx.fillStyle = "#f3faff";
+  ctx.fillRect(0, 0, CFG.viewportW, CFG.viewportH);
+
+  // 継ぎ目なくループ表示
+  drawStrip(-scrollX);
+  drawStrip(-scrollX + stripW);
+
+  requestAnimationFrame(frame);
+}
+
+function onReady() {
+  readyCount += 1;
+  if (readyCount === 2) requestAnimationFrame(frame);
+}
+function onError(path) {
+  ctx.fillStyle = "#1f2d3d";
+  ctx.font = "16px sans-serif";
+  ctx.fillText("画像を読み込めません: " + path, 12, 68);
+}
+
+topImg.onload = onReady;
+bottomImg.onload = onReady;
+topImg.onerror = () => onError(CFG.topImagePath);
+bottomImg.onerror = () => onError(CFG.bottomImagePath);
+topImg.src = CFG.topImagePath;
+bottomImg.src = CFG.bottomImagePath;
 </script>
 </body>
 </html>
