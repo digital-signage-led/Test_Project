@@ -1,514 +1,60 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>安全パトロール（360度ループ）</title>
+<title>ソーキ サイネージ表示</title>
 <style>
-body {
-  margin: 0;
-  background: #000;
-  overflow: hidden;
-}
-canvas {
-  width: 100vw;
-  max-width: 1280px;
-  height: auto;
-  display: block;
-  image-rendering: pixelated;
-}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 512px;
+    height: 128px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #crop-window {
+    width: 512px;
+    height: 128px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  iframe {
+    position: absolute;
+    border: none;
+    /* ===== 調整パラメータ ===== */
+    /* ページ内の切り抜き開始位置（左上） */
+    left: -200px;   /* ← 左右調整: マイナスで右へ移動 */
+    top:  -100px;   /* ← 上下調整: マイナスで下へ移動 */
+
+    /* iframeの元サイズ（拡大縮小前） */
+    width:  1400px;
+    height: 800px;
+
+    /* 縮小率: 128px高さに合わせて調整 */
+    transform: scale(0.43);
+    transform-origin: top left;
+    /* =========================== */
+  }
 </style>
 </head>
 <body>
-<canvas id="signage" width="640" height="128"></canvas>
+<div id="crop-window">
+  <iframe
+    src="https://sooki-cloud.jp/signages/26?pwd=eyJfcmFpbHMiOnsiZGF0YSI6WzI2XSwicHVyIjoiU2lnbmFnZVxuc2hhcmVkX3VybF90b2tlblxuIn19--652d40231e39d461230d3656254f07145f2ad759"
+    scrolling="no"
+    id="sooki-frame">
+  </iframe>
+</div>
 
 <script>
-const canvas = document.getElementById("signage");
-const ctx = canvas.getContext("2d");
-ctx.imageSmoothingEnabled = false;
-
-const C = {
-  sky: "#06090c",
-  groundA: "#8f5a22",
-  groundB: "#6d4317",
-  groundC: "#53300f",
-  helmet: "#f7c308",
-  helmetDark: "#ce9f00",
-  cone: "#ff3600",
-  white: "#fff9eb",
-  shadow: "#00000066"
-};
-
-const phrases = [
-  "ご安全に",
-  "安全第一",
-  "災害ゼロ",
-  "もう一度確認しよう",
-  "足元注意",
-  "きけん",
-  "安全運転"
-];
-
-const animals = [
-  { kind: "dog", x: 36, y: 98, speed: 20, dir: 1, phase: 0, phrase: 0, phraseAt: 0 },
-  { kind: "cat", x: 188, y: 98, speed: 24, dir: 1, phase: 20, phrase: 1, phraseAt: 0 },
-  { kind: "rabbit", x: 322, y: 98, speed: 17, dir: 1, phase: 40, phrase: 2, phraseAt: 0 },
-  { kind: "bear", x: 456, y: 98, speed: 14, dir: 1, phase: 55, phrase: 3, phraseAt: 0 }
-];
-
-let frame = 0;
-let worldShift = 0;
-let lastTs = performance.now();
-let nextPhraseTs = performance.now() + 1400;
-let timeSync = {
-  baseUtcMs: Date.now(),
-  perfAtSync: performance.now()
-};
-
-function wrap360(x, width) {
-  while (x < 0) x += width;
-  while (x >= width) x -= width;
-  return x;
-}
-
-function drawLooped(drawFn) {
-  drawFn(0);
-  drawFn(-512);
-  drawFn(512);
-}
-
-function hexToRgb(hex) {
-  const s = hex.replace("#", "");
-  return {
-    r: parseInt(s.slice(0, 2), 16),
-    g: parseInt(s.slice(2, 4), 16),
-    b: parseInt(s.slice(4, 6), 16)
+  // iframeが読み込まれたらスクロールを止める
+  document.getElementById('sooki-frame').onload = function() {
+    try {
+      this.contentWindow.scrollTo(0, 0);
+    } catch(e) {}
   };
-}
-
-function mixColor(a, b, t) {
-  const ca = hexToRgb(a);
-  const cb = hexToRgb(b);
-  const r = Math.round(ca.r + (cb.r - ca.r) * t);
-  const g = Math.round(ca.g + (cb.g - ca.g) * t);
-  const bl = Math.round(ca.b + (cb.b - ca.b) * t);
-  return `rgb(${r}, ${g}, ${bl})`;
-}
-
-function getCurrentTokyoHourFloat() {
-  const nowUtcMs = timeSync.baseUtcMs + (performance.now() - timeSync.perfAtSync);
-  const tokyoMs = nowUtcMs + 9 * 60 * 60 * 1000;
-  const d = new Date(tokyoMs);
-  return d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
-}
-
-function getTimePalette() {
-  const h = getCurrentTokyoHourFloat();
-  let idx = 3;
-  let t = 0;
-  if (h >= 5 && h < 10) {
-    idx = 0;
-    t = (h - 5) / 5;
-  } else if (h >= 10 && h < 16) {
-    idx = 1;
-    t = (h - 10) / 6;
-  } else if (h >= 16 && h < 19) {
-    idx = 2;
-    t = (h - 16) / 3;
-  } else {
-    idx = 3;
-    const hh = h < 5 ? h + 24 : h;
-    t = (hh - 19) / 10;
-  }
-
-  const phases = [
-    { skyTop: "#ffb36d", skyBottom: "#ffe2b8", groundMul: 1.06, lightX: 70, lightY: 20, light: "#ffd15a", isNight: false },  // 朝
-    { skyTop: "#58b7ff", skyBottom: "#bfe9ff", groundMul: 1.16, lightX: 250, lightY: 14, light: "#fff079", isNight: false }, // 昼
-    { skyTop: "#f28a6a", skyBottom: "#ffc58a", groundMul: 0.95, lightX: 420, lightY: 22, light: "#ff9a53", isNight: false }, // 夕
-    { skyTop: "#091225", skyBottom: "#1a2b4d", groundMul: 0.72, lightX: 380, lightY: 20, light: "#d8e6ff", isNight: true }   // 夜
-  ];
-
-  const a = phases[idx];
-  const b = phases[(idx + 1) % phases.length];
-  const phaseName = ["朝", "昼", "夕方", "夜"][idx];
-  return {
-    skyTop: mixColor(a.skyTop, b.skyTop, t),
-    skyBottom: mixColor(a.skyBottom, b.skyBottom, t),
-    lightX: a.lightX + (b.lightX - a.lightX) * t,
-    lightY: a.lightY + (b.lightY - a.lightY) * t,
-    light: mixColor(a.light, b.light, t),
-    groundMul: a.groundMul + (b.groundMul - a.groundMul) * t,
-    nightBlend: (a.isNight ? 1 : 0) + ((b.isNight ? 1 : 0) - (a.isNight ? 1 : 0)) * t,
-    phaseName
-  };
-}
-
-function drawCone(x, y) {
-  ctx.fillStyle = C.cone;
-  ctx.beginPath();
-  ctx.moveTo(x, y - 22);
-  ctx.lineTo(x - 9, y);
-  ctx.lineTo(x + 9, y);
-  ctx.fill();
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.moveTo(x - 2, y - 16);
-  ctx.lineTo(x - 5, y - 8);
-  ctx.lineTo(x + 5, y - 8);
-  ctx.lineTo(x + 2, y - 16);
-  ctx.fill();
-  ctx.fillStyle = "#222";
-  ctx.fillRect(x - 11, y, 22, 2);
-}
-
-function drawBackground(offset, ts) {
-  const pal = getTimePalette();
-  const grad = ctx.createLinearGradient(0, 0, 0, 98);
-  grad.addColorStop(0, pal.skyTop);
-  grad.addColorStop(1, pal.skyBottom);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 512, 98);
-
-  if (pal.nightBlend > 0.05) {
-    ctx.fillStyle = `rgba(255,255,255,${0.35 * pal.nightBlend})`;
-    for (let i = 0; i < 22; i++) {
-      const sx = (i * 23 + Math.floor(worldShift * 0.35)) % 512;
-      const sy = 8 + ((i * 17) % 40);
-      ctx.fillRect(sx, sy, 1, 1);
-    }
-  }
-  // 丸い太陽/月ではなく角張った光源
-  ctx.fillStyle = pal.light;
-  ctx.fillRect(Math.floor(pal.lightX) - 6, Math.floor(pal.lightY) - 6, 12, 12);
-  ctx.fillStyle = "#ffffff33";
-  ctx.fillRect(Math.floor(pal.lightX) - 2, Math.floor(pal.lightY) - 2, 4, 4);
-
-  drawLooped((base) => {
-    const x = base + offset;
-
-    ctx.fillStyle = "#111";
-    ctx.fillRect(x + 128, 0, 1, 128);
-    ctx.fillRect(x + 256, 0, 1, 128);
-    ctx.fillRect(x + 384, 0, 1, 128);
-
-    ctx.strokeStyle = "#49505a";
-    for (let i = 8; i < 118; i += 8) {
-      ctx.beginPath();
-      ctx.moveTo(x + i, 62);
-      ctx.lineTo(x + i + 8, 98);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x + i + 8, 62);
-      ctx.lineTo(x + i, 98);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = "#f6b81a";
-    ctx.fillRect(x + 138, 20, 86, 12);
-    ctx.fillRect(x + 205, 32, 8, 66);
-    ctx.fillRect(x + 215, 32, 4, 66);
-
-    ctx.fillStyle = "#6f8191";
-    ctx.fillRect(x + 270, 77, 40, 21);
-    ctx.fillStyle = "#3f4d59";
-    ctx.fillRect(x + 270, 91, 40, 7);
-
-    // 水たまりも角張った表現へ
-    ctx.fillStyle = "#4ba8d7";
-    ctx.fillRect(x + 316, 100, 48, 3);
-    ctx.fillStyle = "#74c7ee";
-    ctx.fillRect(x + 326, 100, 11, 1);
-    ctx.fillRect(x + 348, 101, 7, 1);
-
-    drawCone(x + 418, 98);
-    drawCone(x + 458, 98);
-  });
-
-  const gA = mixColor("#6b4015", C.groundA, Math.max(0, Math.min(1, pal.groundMul - 0.2)));
-  const gB = mixColor("#4f2f10", C.groundB, Math.max(0, Math.min(1, pal.groundMul - 0.2)));
-  const gC = mixColor("#392109", C.groundC, Math.max(0, Math.min(1, pal.groundMul - 0.2)));
-  ctx.fillStyle = gA;
-  ctx.fillRect(0, 98, 512, 4);
-  ctx.fillStyle = gB;
-  ctx.fillRect(0, 102, 512, 6);
-  ctx.fillStyle = gC;
-  ctx.fillRect(0, 108, 512, 20);
-
-  ctx.fillStyle = "#9b744f";
-  for (let i = 0; i < 210; i++) {
-    const gx = (i * 17 + Math.floor(worldShift)) % 512;
-    const gy = 99 + ((i * 11) % 27);
-    ctx.fillRect(gx, gy, 1, 1);
-  }
-}
-
-function drawTopViewPanel(ts) {
-  const pal = getTimePalette();
-  const mapX = 516;
-  const mapY = 20;
-  const mapW = 120;
-  const mapH = 104;
-  const laneY = mapY + 52;
-
-  ctx.fillStyle = "#0f1620";
-  ctx.fillRect(512, 0, 128, 128);
-  ctx.fillStyle = "#1a2533";
-  ctx.fillRect(mapX, mapY, mapW, mapH);
-
-  // 4面（0-127,128-255,256-383,384-511）を上から見た区画として表示
-  ctx.strokeStyle = "#33485e";
-  ctx.strokeRect(mapX, mapY, mapW, mapH);
-  for (let i = 1; i < 4; i++) {
-    const px = mapX + i * 30;
-    ctx.fillStyle = "#2c3f53";
-    ctx.fillRect(px, mapY, 1, mapH);
-  }
-
-  // 時間帯ラベル（角張り）
-  const phaseColor = { "朝": "#ffd77a", "昼": "#a8ddff", "夕方": "#ffb183", "夜": "#9aa8c4" }[pal.phaseName];
-  ctx.fillStyle = phaseColor;
-  ctx.fillRect(518, 4, 28, 10);
-  ctx.fillStyle = "#111";
-  ctx.font = "bold 8px sans-serif";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText(pal.phaseName, 521, 9);
-
-  // 上空道路（4面をまたぐ一本の経路）
-  ctx.fillStyle = "#4a647f";
-  ctx.fillRect(mapX + 2, laneY, mapW - 4, 6);
-  ctx.fillStyle = "#6f8aa3";
-  ctx.fillRect(mapX + 2, laneY + 2, mapW - 4, 1);
-
-  // 4面の静的オブジェクトを真上表示
-  // パネル1: フェンス
-  ctx.fillStyle = "#59606a";
-  for (let i = 0; i < 6; i++) {
-    ctx.fillRect(mapX + 4 + i * 4, mapY + 34, 2, 20);
-  }
-  // パネル2: クレーン
-  ctx.fillStyle = "#e0ad1a";
-  ctx.fillRect(mapX + 36, mapY + 28, 16, 6);
-  ctx.fillRect(mapX + 49, mapY + 34, 2, 16);
-  // パネル3: 機材と水たまり
-  ctx.fillStyle = "#6f8191";
-  ctx.fillRect(mapX + 67, mapY + 38, 10, 8);
-  ctx.fillStyle = "#4ba8d7";
-  ctx.fillRect(mapX + 80, mapY + 60, 12, 3);
-  // パネル4: コーン
-  ctx.fillStyle = "#ff4f1f";
-  ctx.fillRect(mapX + 99, mapY + 52, 2, 4);
-  ctx.fillRect(mapX + 106, mapY + 54, 2, 4);
-
-  // 登場人物と連動（x位置を4面マップへ線形投影、向きも反映）
-  for (const a of animals) {
-    const px = mapX + 2 + (a.x / 512) * (mapW - 4);
-    const py = laneY + (a.kind === "bear" ? 1 : -1);
-    const body = (a.kind === "rabbit") ? "#fff6eb" : (a.kind === "cat" ? "#ffe510" : (a.kind === "bear" ? "#b67a4a" : "#f1a13a"));
-
-    ctx.fillStyle = "#0d1116";
-    ctx.fillRect(px - 3, py - 2, 6, 4);
-    ctx.fillStyle = body;
-    ctx.fillRect(px - 2, py - 1, 4, 2);
-    ctx.fillStyle = "#f7c308";
-    ctx.fillRect(px - 2, py - 3, 4, 1);
-
-    // 進行方向インジケータ
-    ctx.fillStyle = "#dbe7f3";
-    if (a.dir > 0) {
-      ctx.fillRect(px + 3, py - 1, 1, 2);
-      ctx.fillRect(px + 4, py, 1, 1);
-    } else {
-      ctx.fillRect(px - 4, py - 1, 1, 2);
-      ctx.fillRect(px - 5, py, 1, 1);
-    }
-  }
-
-  ctx.fillStyle = "#233242";
-  ctx.fillRect(512, 0, 1, 128);
-  ctx.fillRect(639, 0, 1, 128);
-  ctx.fillRect(512, 0, 128, 1);
-  ctx.fillRect(512, 127, 128, 1);
-}
-
-function drawHelmet() {
-  ctx.fillStyle = C.helmetDark;
-  ctx.fillRect(-9, -23, 18, 6);
-  ctx.fillStyle = C.helmet;
-  ctx.fillRect(-8, -24, 16, 5);
-  ctx.fillRect(-10, -19, 20, 2);
-  ctx.fillStyle = "#44b74a";
-  ctx.fillRect(-1, -22, 2, 4);
-  ctx.fillRect(-3, -20, 6, 2);
-}
-
-function drawAnimalSprite(kind, x, y, dir, phase) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(dir, 1);
-  const bounce = Math.sin((frame + phase) * 0.18) > 0 ? 1 : 0;
-
-  if (kind === "dog") {
-    ctx.fillStyle = "#f1a13a";
-    ctx.fillRect(-12, -15 + bounce, 24, 10);
-    ctx.fillRect(8, -22 + bounce, 13, 10);
-    ctx.fillStyle = C.white;
-    ctx.fillRect(-6, -10 + bounce, 12, 5);
-    ctx.fillRect(14, -14 + bounce, 8, 5);
-    ctx.fillStyle = "#111";
-    ctx.fillRect(13, -19 + bounce, 2, 2);
-    ctx.fillRect(21, -14 + bounce, 2, 2);
-    ctx.fillStyle = "#ffcb84";
-    ctx.fillRect(-18, -18 + bounce, 7, 4);
-    ctx.fillStyle = C.white;
-    ctx.fillRect(-20, -17 + bounce, 2, 2);
-  } else if (kind === "cat") {
-    ctx.fillStyle = "#ffe510";
-    ctx.fillRect(-11, -16 + bounce, 22, 11);
-    ctx.fillRect(6, -24 + bounce, 14, 12);
-    ctx.fillRect(8, -28 + bounce, 3, 4);
-    ctx.fillRect(14, -28 + bounce, 3, 4);
-    ctx.fillStyle = "#111";
-    ctx.fillRect(11, -20 + bounce, 2, 2);
-    ctx.fillRect(18, -15 + bounce, 2, 2);
-    ctx.fillStyle = "#ffcd4a";
-    ctx.fillRect(-16, -19 + bounce, 6, 3);
-    ctx.fillRect(-18, -21 + bounce, 4, 3);
-  } else if (kind === "rabbit") {
-    ctx.fillStyle = "#fff6eb";
-    ctx.fillRect(-10, -15 + bounce, 20, 10);
-    ctx.fillRect(7, -23 + bounce, 12, 11);
-    ctx.fillRect(10, -33 + bounce, 2, 10);
-    ctx.fillRect(14, -33 + bounce, 2, 10);
-    ctx.fillStyle = "#ffc6da";
-    ctx.fillRect(11, -32 + bounce, 1, 7);
-    ctx.fillRect(15, -32 + bounce, 1, 7);
-    ctx.fillStyle = "#111";
-    ctx.fillRect(10, -19 + bounce, 2, 2);
-    ctx.fillRect(18, -15 + bounce, 2, 2);
-  } else {
-    ctx.fillStyle = "#b67a4a";
-    ctx.fillRect(-12, -16 + bounce, 25, 11);
-    ctx.fillRect(7, -23 + bounce, 12, 10);
-    ctx.fillStyle = "#7f5435";
-    ctx.fillRect(7, -28 + bounce, 3, 5);
-    ctx.fillRect(14, -28 + bounce, 3, 5);
-    ctx.fillStyle = "#111";
-    ctx.fillRect(10, -19 + bounce, 2, 2);
-    ctx.fillRect(18, -15 + bounce, 2, 2);
-    ctx.fillStyle = "#d6a376";
-    ctx.fillRect(-17, -18 + bounce, 5, 3);
-  }
-
-  drawHelmet();
-
-  const legA = Math.sin((frame + phase) * 0.35) > 0 ? 1 : -1;
-  ctx.fillStyle = "#f1c07f";
-  ctx.fillRect(-8 + legA, -4, 3, 4);
-  ctx.fillRect(-2 - legA, -4, 3, 4);
-  ctx.fillRect(7 + legA, -4, 3, 4);
-  ctx.fillRect(12 - legA, -4, 3, 4);
-
-  ctx.fillStyle = C.shadow;
-  ctx.fillRect(-12, 1, 24, 2);
-  ctx.restore();
-}
-
-function drawBubble(text, x, y) {
-  ctx.font = "bold 10px sans-serif";
-  const textW = ctx.measureText(text).width;
-  const w = textW + 12;
-  const h = 18;
-  let bx = x - w / 2;
-  if (bx < 2) bx = 2;
-  if (bx + w > 510) bx = 510 - w;
-  const by = y - 52;
-
-  ctx.fillStyle = "#00000066";
-  ctx.fillRect(bx + 1, by + 1, w, h);
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(bx, by, w, h);
-  ctx.fillRect(x - 1, by + h, 2, 4);
-  ctx.fillStyle = text === "きけん" ? "#d60000" : "#111";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, bx + w / 2, by + h / 2 + 1);
-}
-
-function updateActors(dt) {
-  for (const a of animals) {
-    a.x += a.speed * dt * a.dir;
-    a.x = wrap360(a.x, 512);
-    a.phase += 1;
-  }
-}
-
-function updatePhrases(ts) {
-  if (ts < nextPhraseTs) return;
-  nextPhraseTs = ts + 1700;
-  for (const a of animals) {
-    a.phrase = (a.phrase + 1) % phrases.length;
-    a.phraseAt = ts;
-  }
-}
-
-function drawActors(ts) {
-  const sorted = [...animals].sort((a, b) => a.y - b.y);
-  for (const a of sorted) {
-    drawAnimalSprite(a.kind, a.x, a.y, a.dir, a.phase);
-    if (ts - a.phraseAt < 1500) {
-      drawBubble(phrases[a.phrase], a.x, a.y);
-    }
-    if (a.x < 22) {
-      drawAnimalSprite(a.kind, a.x + 512, a.y, a.dir, a.phase);
-      if (ts - a.phraseAt < 1500) drawBubble(phrases[a.phrase], a.x + 512, a.y);
-    } else if (a.x > 490) {
-      drawAnimalSprite(a.kind, a.x - 512, a.y, a.dir, a.phase);
-      if (ts - a.phraseAt < 1500) drawBubble(phrases[a.phrase], a.x - 512, a.y);
-    }
-  }
-}
-
-function tick(ts) {
-  const dt = Math.min(0.05, (ts - lastTs) / 1000);
-  lastTs = ts;
-  frame += 1;
-  worldShift = wrap360(worldShift + 18 * dt, 512);
-
-  drawBackground(-worldShift, ts);
-  updateActors(dt);
-  updatePhrases(ts);
-  drawActors(ts);
-  drawTopViewPanel(ts);
-
-  requestAnimationFrame(tick);
-}
-
-async function syncTokyoTime() {
-  try {
-    // 無料かつ利用規約のある公開API（WorldTimeAPI）
-    const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Tokyo", { cache: "no-store" });
-    if (!res.ok) throw new Error("time api error");
-    const json = await res.json();
-    const utcMs = Date.parse(json.utc_datetime);
-    if (Number.isFinite(utcMs)) {
-      timeSync.baseUtcMs = utcMs;
-      timeSync.perfAtSync = performance.now();
-    }
-  } catch (_) {
-    // 失敗時はローカル時刻を継続使用
-    timeSync.baseUtcMs = Date.now();
-    timeSync.perfAtSync = performance.now();
-  }
-}
-
-for (const a of animals) {
-  a.phraseAt = performance.now() - Math.random() * 1200;
-}
-
-syncTokyoTime();
-setInterval(syncTokyoTime, 10 * 60 * 1000);
-requestAnimationFrame(tick);
 </script>
 </body>
 </html>
