@@ -7,15 +7,38 @@
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    width: 768px; height: 128px;
+    width: 512px; height: 128px;
     overflow: hidden; background: #000;
     font-family: 'Noto Sans JP', sans-serif; color: #fff;
   }
-  #grid {
+
+  /* スクロール外枠 */
+  #ticker {
+    width: 512px; height: 128px;
+    overflow: hidden; position: relative;
+  }
+
+  /* スクロールトラック：コンテンツ×2枚でシームレスループ */
+  #track {
+    display: flex;
+    width: calc(768px * 2);
+    height: 128px;
+    animation: scroll 12s linear infinite;
+  }
+
+  @keyframes scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-768px); }
+  }
+
+  /* 1セット分のグリッド */
+  .grid {
     display: grid;
     grid-template-columns: repeat(6, 128px);
     width: 768px; height: 128px;
+    flex-shrink: 0;
   }
+
   .cell {
     width: 128px; height: 128px;
     display: flex; flex-direction: column;
@@ -31,50 +54,83 @@
   .lv-warn   { color: #ffca28; }
   .lv-strict { color: #ff7043; }
   .lv-danger { color: #ef5350; }
-  .lv-caution { color: #4db8f0; }
-  .lv-safe    { color: #66bb6a; }
 </style>
 </head>
 <body>
-<div id="grid">
+<div id="ticker">
+  <div id="track">
 
-  <div class="cell">
-    <div class="lbl">温度</div>
-    <img class="ico" src="温度.png" alt="">
-    <div class="val"><span id="v-tmp">32.4</span><span class="unt">℃</span></div>
+    <!-- 1枚目 -->
+    <div class="grid" id="grid1">
+      <div class="cell">
+        <div class="lbl">温度</div>
+        <img class="ico" src="温度.png" alt="">
+        <div class="val"><span class="v-tmp">32.4</span><span class="unt">℃</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">湿度</div>
+        <img class="ico" src="高濃度.png" alt="">
+        <div class="val"><span class="v-hum">68</span><span class="unt">%</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">風向</div>
+        <img class="ico" src="風向.png" alt="">
+        <div class="val" style="font-size:20px"><span class="v-wdir">南南西</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">風速</div>
+        <img class="ico" src="風速.png" alt="">
+        <div class="val"><span class="v-wspd">3.2</span><span class="unt">m/s</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">雨量</div>
+        <img class="ico" src="雨量.png" alt="">
+        <div class="val"><span class="v-rain">0.0</span><span class="unt">mm</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">WBGT</div>
+        <img class="ico" src="WBGT.png" alt="">
+        <div class="val"><span class="v-wbgt">29.1</span><span class="unt">℃</span></div>
+        <div class="sub lv-strict v-wlv">厳重警戒</div>
+      </div>
+    </div>
+
+    <!-- 2枚目（ループ用コピー） -->
+    <div class="grid" id="grid2">
+      <div class="cell">
+        <div class="lbl">温度</div>
+        <img class="ico" src="温度.png" alt="">
+        <div class="val"><span class="v-tmp">32.4</span><span class="unt">℃</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">湿度</div>
+        <img class="ico" src="高濃度.png" alt="">
+        <div class="val"><span class="v-hum">68</span><span class="unt">%</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">風向</div>
+        <img class="ico" src="風向.png" alt="">
+        <div class="val" style="font-size:20px"><span class="v-wdir">南南西</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">風速</div>
+        <img class="ico" src="風速.png" alt="">
+        <div class="val"><span class="v-wspd">3.2</span><span class="unt">m/s</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">雨量</div>
+        <img class="ico" src="雨量.png" alt="">
+        <div class="val"><span class="v-rain">0.0</span><span class="unt">mm</span></div>
+      </div>
+      <div class="cell">
+        <div class="lbl">WBGT</div>
+        <img class="ico" src="WBGT.png" alt="">
+        <div class="val"><span class="v-wbgt">29.1</span><span class="unt">℃</span></div>
+        <div class="sub lv-strict v-wlv">厳重警戒</div>
+      </div>
+    </div>
+
   </div>
-
-  <div class="cell">
-    <div class="lbl">湿度</div>
-    <img class="ico" src="高濃度.png" alt="">
-    <div class="val"><span id="v-hum">68</span><span class="unt">%</span></div>
-  </div>
-
-  <div class="cell">
-    <div class="lbl">風向</div>
-    <img class="ico" src="風向.png" alt="">
-    <div class="val" style="font-size:20px"><span id="v-wdir">南南西</span></div>
-  </div>
-
-  <div class="cell">
-    <div class="lbl">風速</div>
-    <img class="ico" src="風速.png" alt="">
-    <div class="val"><span id="v-wspd">3.2</span><span class="unt">m/s</span></div>
-  </div>
-
-  <div class="cell">
-    <div class="lbl">雨量</div>
-    <img class="ico" src="雨量.png" alt="">
-    <div class="val"><span id="v-rain">0.0</span><span class="unt">mm</span></div>
-  </div>
-
-  <div class="cell">
-    <div class="lbl">WBGT</div>
-    <img class="ico" src="WBGT.png" alt="">
-    <div class="val"><span id="v-wbgt">29.1</span><span class="unt">℃</span></div>
-    <div class="sub lv-strict" id="v-wlv">厳重警戒</div>
-  </div>
-
 </div>
 </body>
 </html>
