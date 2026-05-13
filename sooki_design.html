@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ソーキ 気象データ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 768px; height: 128px;
+    overflow: hidden; background: #000;
+    font-family: 'Noto Sans JP', sans-serif; color: #fff;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(6, 128px);
+    width: 768px; height: 128px;
+  }
+  .cell {
+    width: 128px; height: 128px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    border-right: 1px solid #222; gap: 3px;
+  }
+  .cell:last-child { border-right: none; }
+  .lbl { font-size: 11px; color: #888; }
+  .ico { width: 32px; height: 32px; object-fit: contain; }
+  .val { font-size: 28px; font-weight: 700; line-height: 1; }
+  .unt { font-size: 11px; color: #666; margin-left: 2px; }
+  .sub { font-size: 11px; font-weight: 700; }
+  .lv-warn   { color: #ffca28; }
+  .lv-strict { color: #ff7043; }
+  .lv-danger { color: #ef5350; }
+  .lv-caution { color: #4db8f0; }
+  .lv-safe    { color: #66bb6a; }
+</style>
+</head>
+<body>
+<div id="grid">
+
+  <div class="cell">
+    <div class="lbl">温度</div>
+    <img class="ico" src="温度.png" alt="">
+    <div class="val"><span id="v-tmp">32.4</span><span class="unt">℃</span></div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">湿度</div>
+    <img class="ico" src="高濃度.png" alt="">
+    <div class="val"><span id="v-hum">68</span><span class="unt">%</span></div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">風向</div>
+    <img class="ico" src="風向.png" alt="">
+    <div class="val" style="font-size:20px"><span id="v-wdir">南南西</span></div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">風速</div>
+    <img class="ico" src="風速.png" alt="">
+    <div class="val"><span id="v-wspd">3.2</span><span class="unt">m/s</span></div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">雨量</div>
+    <img class="ico" src="雨量.png" alt="">
+    <div class="val"><span id="v-rain">0.0</span><span class="unt">mm</span></div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">WBGT</div>
+    <img class="ico" src="WBGT.png" alt="">
+    <div class="val"><span id="v-wbgt">29.1</span><span class="unt">℃</span></div>
+    <div class="sub lv-strict" id="v-wlv">厳重警戒</div>
+  </div>
+
+</div>
+</body>
+</html>
