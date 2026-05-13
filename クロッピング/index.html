@@ -1,109 +1,124 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>Cropped Card Scroll 512x128</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    width: 512px;
-    height: 128px;
-    overflow: hidden;
-    background: #f3faff;
-  }
-  canvas { display: block; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LED Crop 512x128</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* 必須 */
+      background: #000; /* 余白を黒に */
+    }
+    #stage {
+      width: 512px;
+      height: 128px;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+    }
+    .crop {
+      position: absolute;
+      overflow: hidden; /* 必須 */
+      background: #000;
+      transform: translate(-50%, -50%) scale(1);
+      transform-origin: center center;
+      left: 50%;
+      top: 50%;
+    }
+    .crop iframe {
+      position: absolute;
+      width: 1920px;
+      height: 1080px;
+      border: 0;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
-<canvas id="screen" width="512" height="128"></canvas>
-<script>
-const CFG = {
-  viewportW: 512,
-  viewportH: 128,
-  cardSize: 128,
-  speedPxPerSec: 24,
-  topImagePath: "./clip-top.png",
-  bottomImagePath: "./clip-bottom.png",
-};
+  <div id="stage">
+    <!-- src は指定URLをそのまま（クエリ改変なし）。SETTINGS.sourceUrl と同一文字列にしてください。 -->
+    <div class="crop" id="crop">
+      <iframe
+        id="srcFrame"
+        title="サイネージプレビュー"
+        loading="eager"
+        referrerpolicy="strict-origin-when-cross-origin"
+        src="https://sooki-cloud.jp/signages/26?pwd=eyJfcmFpbHMiOnsiZGF0YSI6WzI2XSwicHVyIjoiU2lnbmFnZVxuc2hhcmVkX3VybF90b2tlblxuIn19--652d40231e39d461230d3656254f07145f2ad759"
+      ></iframe>
+    </div>
+  </div>
 
-// それぞれカード枠のみを切り出し（隙間を含めない）
-const TOP_CROPS = [
-  { sx: 30,  sy: 17, sw: 225, sh: 286 }, // WBGT
-  { sx: 272, sy: 17, sw: 225, sh: 286 }, // 温度
-  { sx: 514, sy: 17, sw: 225, sh: 286 }, // 湿度
-  { sx: 757, sy: 17, sw: 225, sh: 286 }, // 風速
-];
-const BOTTOM_CROPS = [
-  { sx: 25,  sy: 16, sw: 353, sh: 436 }, // 日照
-  { sx: 405, sy: 16, sw: 353, sh: 436 }, // 湿度
-];
+  <script>
+    // ===== ここを調整する箇所 =====
+    // 数値は PNG ではなく iframe 内の実ページが表示するため、ローカル／GitHub Pages どちらでもサイト側の更新に追随します。
+    // 埋め込み拒否（X-Frame-Options 等）の場合は真っ白になります。そのときは別ホストのプロキシが必要です。
+    const SETTINGS = {
+      /** 切り抜き元URL（クエリ付きのまま・変更禁止の運用ならここだけ差し替え） */
+      sourceUrl:
+        "https://sooki-cloud.jp/signages/26?pwd=eyJfcmFpbHMiOnsiZGF0YSI6WzI2XSwicHVyIjoiU2lnbmFnZVxuc2hhcmVkX3VybF90b2tlblxuIn19--652d40231e39d461230d3656254f07145f2ad759",
 
-const canvas = document.getElementById("screen");
-const ctx = canvas.getContext("2d");
-ctx.imageSmoothingEnabled = true;
+      ledWidth: 512,
+      ledHeight: 128,
 
-const topImg = new Image();
-const bottomImg = new Image();
-let scrollX = 0;
-let lastTs = 0;
-let readyCount = 0;
+      // この画角（上段4カード）向け初期値 — DevTools で実測して微調整
+      cropWidth: 970,
+      cropHeight: 240,
+      iframeLeft: -30,
+      iframeTop: -82,
 
-function drawCard(image, crop, dx) {
-  const px = Math.round(dx);
-  ctx.drawImage(
-    image,
-    crop.sx, crop.sy, crop.sw, crop.sh,
-    px, 0, CFG.cardSize + 1, CFG.cardSize
-  );
-}
+      centerAlign: true, // 中央配置: true / 左上配置: false
+      keepAspect: false, // 比率維持(Math.min): true / 全面埋め(Math.max): false
 
-function drawStrip(startX) {
-  const allCards = [
-    ...TOP_CROPS.map((c) => ({ image: topImg, crop: c })),
-    ...BOTTOM_CROPS.map((c) => ({ image: bottomImg, crop: c })),
-  ];
-  for (let i = 0; i < allCards.length; i++) {
-    const x = startX + i * CFG.cardSize;
-    if (x + CFG.cardSize < 0 || x > CFG.viewportW) continue;
-    drawCard(allCards[i].image, allCards[i].crop, x);
-  }
-}
+      /** 0 以外: 指定msごとに iframe を再読込（サイトが自動更新しない場合の保険） */
+      iframeReloadMs: 0,
+    };
 
-function frame(ts) {
-  if (!lastTs) lastTs = ts;
-  const dt = Math.min(0.05, (ts - lastTs) / 1000);
-  lastTs = ts;
+    const stage = document.getElementById("stage");
+    const crop = document.getElementById("crop");
+    const frame = document.getElementById("srcFrame");
 
-  const stripW = 6 * CFG.cardSize; // 6 * 128 = 768
-  scrollX += CFG.speedPxPerSec * dt;
-  if (scrollX >= stripW) scrollX -= stripW;
+    function applyLayout() {
+      stage.style.width = `${SETTINGS.ledWidth}px`;
+      stage.style.height = `${SETTINGS.ledHeight}px`;
 
-  ctx.fillStyle = "#f3faff";
-  ctx.fillRect(0, 0, CFG.viewportW, CFG.viewportH);
+      crop.style.width = `${SETTINGS.cropWidth}px`;
+      crop.style.height = `${SETTINGS.cropHeight}px`;
 
-  // 継ぎ目なくループ表示
-  drawStrip(-scrollX);
-  drawStrip(-scrollX + stripW);
+      frame.style.left = `${SETTINGS.iframeLeft}px`;
+      frame.style.top = `${SETTINGS.iframeTop}px`;
 
-  requestAnimationFrame(frame);
-}
+      const sx = SETTINGS.ledWidth / SETTINGS.cropWidth;
+      const sy = SETTINGS.ledHeight / SETTINGS.cropHeight;
+      const scale = SETTINGS.keepAspect ? Math.min(sx, sy) : Math.max(sx, sy);
 
-function onReady() {
-  readyCount += 1;
-  if (readyCount === 2) requestAnimationFrame(frame);
-}
-function onError(path) {
-  ctx.fillStyle = "#1f2d3d";
-  ctx.font = "16px sans-serif";
-  ctx.fillText("画像を読み込めません: " + path, 12, 68);
-}
+      if (SETTINGS.centerAlign) {
+        crop.style.left = "50%";
+        crop.style.top = "50%";
+        crop.style.transformOrigin = "center center";
+        crop.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      } else {
+        crop.style.left = "0px";
+        crop.style.top = "0px";
+        crop.style.transformOrigin = "0 0";
+        crop.style.transform = `scale(${scale})`;
+      }
+    }
 
-topImg.onload = onReady;
-bottomImg.onload = onReady;
-topImg.onerror = () => onError(CFG.topImagePath);
-bottomImg.onerror = () => onError(CFG.bottomImagePath);
-topImg.src = CFG.topImagePath;
-bottomImg.src = CFG.bottomImagePath;
-</script>
+    frame.src = SETTINGS.sourceUrl;
+
+    window.addEventListener("resize", applyLayout);
+    applyLayout();
+
+    if (SETTINGS.iframeReloadMs > 0) {
+      const url = SETTINGS.sourceUrl;
+      setInterval(() => {
+        frame.src = url;
+      }, SETTINGS.iframeReloadMs);
+    }
+  </script>
 </body>
 </html>
