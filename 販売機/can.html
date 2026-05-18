@@ -9,10 +9,16 @@ margin:0;
 background:#000;
 overflow:hidden;
 font-family:Arial;
+
+transform:scale(0.4);
+transform-origin:top left;
+
+width:1600px;
+height:480px;
 }
 
 
-/* ===== 调试开关 ===== */
+/* ===== テスト开关 ===== */
 .debug{
 position:absolute;
 top:10px;
@@ -29,7 +35,7 @@ width:1600px;
 height:480px;
 }
 
-/* ===== 视频 ===== */
+/* ===== 映像 ===== */
 video{
 position:absolute;
 width:100%;
@@ -40,7 +46,7 @@ transition:.5s;
 }
 .active{opacity:1;}
 
-/* ===== 中间960 ===== */
+/* ===== 中間エリア960 ===== */
 .centerBox{
 position:absolute;
 left:320px;
@@ -237,7 +243,7 @@ document.querySelectorAll("video").forEach(v=>v.classList.remove("active"));
 document.getElementById("v_"+key).classList.add("active");
 }
 
-/* 天气 */
+/* 天気 */
 async function getW(){
 let r=await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Osaka&appid=${apiKey}&units=metric`);
 let d=await r.json();
@@ -277,7 +283,7 @@ ctx.clearRect(0,0,c.width,c.height);
 ctx.fillStyle="rgba(0,0,0,0.25)";
 ctx.fillRect(0,0,c.width,c.height);
 
-// 曲线
+// 図表
 for(let i=1;i<history.length;i++){
 
 let v1=history[i-1];
@@ -299,7 +305,7 @@ ctx.stroke();
 }
 
 }
-// ===== 时间 =====
+// ===== 時間 =====
 function updateTime(){
 
 let now = new Date();
@@ -342,7 +348,7 @@ sunset:"18:42"
 
 }else{
 
-// ✅ 正常 → 用真实天气
+// ✅ 正常 → 用live天気情報
 w = await getW();
 
 }
@@ -396,7 +402,7 @@ updateTime();
 setInterval(updateTime,1000);
 updateModeUI();
 
-// ===== 切换测试模式（按 T）=====
+// ===== 切换テストモード（按 T）=====
 document.addEventListener("keydown", e=>{
 if(e.key==="t" || e.key==="T"){
 TEST_MODE = !TEST_MODE;
@@ -405,7 +411,7 @@ console.log("TEST_MODE:", TEST_MODE);
 }
 });
 
-let editMode = false;
+let editMode = true;
 let current = null;
 let offsetX = 0;
 let offsetY = 0;
@@ -431,7 +437,7 @@ function savePosition(id,x,y){
 localStorage.setItem("pos_"+id, JSON.stringify({x,y}));
 }
 
-// ===== 编辑模式切换 =====
+// ===== 位置変更モード切换 =====
 document.addEventListener("keydown", e=>{
 if(e.key==="e" || e.key==="E"){
 
@@ -449,7 +455,7 @@ el.style.outline = "none";
 }
 });
 
-// ===== 拖拽开始 =====
+// ===== 変更開始 =====
 document.addEventListener("mousedown", e=>{
 if(!editMode) return;
 
