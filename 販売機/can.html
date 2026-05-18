@@ -18,7 +18,7 @@ height:480px;
 }
 
 
-/* ===== テスト开关 ===== */
+/* ===== テストモード开关 ===== */
 .debug{
 position:absolute;
 top:10px;
@@ -90,6 +90,12 @@ font-weight:bold;
 
 .wbgt{
 font-size:40px;
+color:#00ffff;
+
+text-shadow:
+0 0 5px #00ffff,
+0 0 10px #00ffff,
+0 0 20px #00ffff;
 }
 
 /* 第二行 */
@@ -105,6 +111,8 @@ border-bottom:2px solid rgba(255,255,255,0.3);
 padding:10px 0;
 text-align:center;
 border-right:1px solid rgba(255,255,255,0.2);
+
+color:#8cffb0;
 }
 
 .row2 div:last-child{
@@ -188,7 +196,7 @@ height="120">
 
 <script>
 
-let TEST_MODE = true;
+let TEST_MODE = false;
 const apiKey="25dfd71750eff566cb115e3dc1c9db1a";
 
 
@@ -202,9 +210,10 @@ return 0.7*t + 0.3*(h/5);
 
 function color(w){
 if(w<21)return "#00aaff";
-if(w<25)return "#00cc66";
-if(w<28)return "#ffff00";
+if(w<25)return "#ffff00";
+if(w<28)return "#f8b500";
 if(w<31)return "#ff9900";
+if(w>31)return "#ff2222"; 
 return "#ff0000";
 }
 
@@ -213,8 +222,8 @@ if(w<21)return "ほぼ安全";
 if(w<25)return "注意";
 if(w<28)return "警戒";
 if(w<31)return "厳重警戒";
-if(w>31)return "運動は原則中止";
-return "危险";
+if(w>31)return "危険";
+return "作業中止";
 }
 
 function getAdvice(w){
@@ -223,10 +232,11 @@ if(w < 21)return "通常作業";
 
 if(w < 25)return "水分補給";
 
-if(w < 28)return "塩分補給";
+if(w < 28)return "作業短縮";
 
 if(w < 31)return "休憩推奨";
-if(w>31)return "運動は原則中止";
+
+if(w>31)return "作業中止";
 
 return "作業中止";
 }
@@ -305,7 +315,7 @@ ctx.stroke();
 }
 
 }
-// ===== 時間 =====
+// ===== 時間=====
 function updateTime(){
 
 let now = new Date();
@@ -348,7 +358,7 @@ sunset:"18:42"
 
 }else{
 
-// ✅ 正常 → 用live天気情報
+// ✅ 正常 → リアルタイム
 w = await getW();
 
 }
@@ -402,7 +412,7 @@ updateTime();
 setInterval(updateTime,1000);
 updateModeUI();
 
-// ===== 切换テストモード（按 T）=====
+// ===== テストモードを切り替える（按 T）=====
 document.addEventListener("keydown", e=>{
 if(e.key==="t" || e.key==="T"){
 TEST_MODE = !TEST_MODE;
@@ -411,7 +421,7 @@ console.log("TEST_MODE:", TEST_MODE);
 }
 });
 
-let editMode = true;
+let editMode = false;
 let current = null;
 let offsetX = 0;
 let offsetY = 0;
@@ -437,7 +447,7 @@ function savePosition(id,x,y){
 localStorage.setItem("pos_"+id, JSON.stringify({x,y}));
 }
 
-// ===== 位置変更モード切换 =====
+// ===== 変更モード切り替える =====
 document.addEventListener("keydown", e=>{
 if(e.key==="e" || e.key==="E"){
 
@@ -455,7 +465,7 @@ el.style.outline = "none";
 }
 });
 
-// ===== 変更開始 =====
+// ===== 拖拽开始 =====
 document.addEventListener("mousedown", e=>{
 if(!editMode) return;
 
