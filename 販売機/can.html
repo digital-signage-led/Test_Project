@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+
+<style>
+body{
+margin:0;
+background:#000;
+overflow:hidden;
+font-family:Arial;
+}
+
+
+/* ===== 调试开关 ===== */
+.debug{
+position:absolute;
+top:10px;
+left:10px;
+color:red;
+z-index:9999;
+font-size:20px;
+}
+
+/* ===== 画布 ===== */
+.wrap{
+position:relative;
+width:1600px;
+height:480px;
+}
+
+/* ===== 视频 ===== */
+video{
+position:absolute;
+width:100%;
+height:100%;
+object-fit:cover;
+opacity:0;
+transition:.5s;
+}
+.active{opacity:1;}
+
+/* ===== 中间960 ===== */
+.centerBox{
+position:absolute;
+left:320px;
+top:0;
+width:960px;
+height:480px;
+
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+/* ===== 面板 ===== */
+.panel{
+width:820px;
+height:360px;
+
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+
+color:#fff;
+
+text-shadow:
+0 0 3px #000,
+0 0 8px #000,
+0 0 15px rgba(0,0,0,0.9);
+}
+
+/* 第一行 */
+.row1{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.temp{
+font-size:110px;
+font-weight:bold;
+}
+
+.wbgt{
+font-size:40px;
+}
+
+/* 第二行 */
+.row2{
+display:grid;
+grid-template-columns: repeat(5, 1fr);
+grid-template-rows: repeat(2, 1fr);
+border-top:2px solid rgba(255,255,255,0.3);
+border-bottom:2px solid rgba(255,255,255,0.3);
+}
+
+.row2 div{
+padding:10px 0;
+text-align:center;
+border-right:1px solid rgba(255,255,255,0.2);
+}
+
+.row2 div:last-child{
+border-right:none;
+}
+
+/* 第三行 */
+.row3{
+height:120px;
+}
+
+canvas{
+display:block;
+width:820px;
+height:120px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ✅ テストマーク（消す可能） -->
+<div id="debug" class="debug">TEST VERSION</div>
+<div id="mode" class="debug" style="top:40px;">TEST MODE</div>
+
+<div class="wrap">
+
+<!-- 映像 -->
+<video id="v_safe" class="active" autoplay muted loop src="video/safe_fix.mp4"></video>
+<video id="v_caution" autoplay muted loop src="video/caution_fix.mp4"></video>
+<video id="v_warning" autoplay muted loop src="video/warning_fix.mp4"></video>
+<video id="v_danger" autoplay muted loop src="video/danger_fix.mp4"></video>
+<video id="v_extreme" autoplay muted loop src="video/extreme_fix.mp4"></video>
+
+<div class="centerBox">
+
+<div class="panel">
+
+<div class="row1">
+
+<div id="temp" class="temp">--℃</div>
+
+<div id="time"
+style="
+position:absolute;
+left:40px;
+top:150px;
+font-size:30px;
+color:white;
+">
+--:--:--
+</div>
+
+<div id="wbgt" class="wbgt">WBGT --</div>
+
+</div>
+
+<div
+id="info"
+class="row2"
+style="
+position:absolute;
+left:70px;
+top:180px;
+width:820px;
+">
+</div>
+
+<div class="row3">
+<canvas
+id="chart"
+width="820"
+height="120">
+</canvas>
+</div>
+
+</div>
+</div>
+</div>
+
+<script>
+
+let TEST_MODE = true;
+const apiKey="25dfd71750eff566cb115e3dc1c9db1a";
+
+
+/* 初始WBGT数据 */
+let history=[24,25,26,27,28,29,30,31,32];
+
+/* WBGT */
+function calc(t,h){
+return 0.7*t + 0.3*(h/5);
+}
+
+function color(w){
+if(w<21)return "#00aaff";
+if(w<25)return "#00cc66";
+if(w<28)return "#ffff00";
+if(w<31)return "#ff9900";
+return "#ff0000";
+}
+
+function level(w){
+if(w<21)return "ほぼ安全";
+if(w<25)return "注意";
+if(w<28)return "警戒";
+if(w<31)return "厳重警戒";
+if(w>31)return "運動は原則中止";
+return "危险";
+}
+
+function getAdvice(w){
+
+if(w < 21)return "通常作業";
+
+if(w < 25)return "水分補給";
+
+if(w < 28)return "塩分補給";
+
+if(w < 31)return "休憩推奨";
+if(w>31)return "運動は原則中止";
+
+return "作業中止";
+}
+
+/* 動画切り替える */
+function switchV(w){
+let key="safe";
+if(w>=21)key="caution";
+if(w>=25)key="warning";
+if(w>=28)key="danger";
+if(w>=31)key="extreme";
+
+document.querySelectorAll("video").forEach(v=>v.classList.remove("active"));
+document.getElementById("v_"+key).classList.add("active");
+}
+
+/* 天气 */
+async function getW(){
+let r=await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Osaka&appid=${apiKey}&units=metric`);
+let d=await r.json();
+
+return {
+
+temp:Math.round(d.main.temp),
+hum:d.main.humidity,
+wind:d.wind.speed,
+icon:d.weather[0].icon,
+
+feels:Math.round(d.main.feels_like),
+pressure:d.main.pressure,
+
+sunrise:new Date(d.sys.sunrise*1000)
+.toLocaleTimeString("ja-JP",{hour:'2-digit',minute:'2-digit'}),
+
+sunset:new Date(d.sys.sunset*1000)
+.toLocaleTimeString("ja-JP",{hour:'2-digit',minute:'2-digit'})
+
+};
+
+}
+
+/* WBGT図表 */
+function drawChart(){
+
+let c=document.getElementById("chart");
+let ctx=c.getContext("2d");
+
+c.width=820;
+c.height=120;
+
+ctx.clearRect(0,0,c.width,c.height);
+
+// 背景
+ctx.fillStyle="rgba(0,0,0,0.25)";
+ctx.fillRect(0,0,c.width,c.height);
+
+// 曲线
+for(let i=1;i<history.length;i++){
+
+let v1=history[i-1];
+let v2=history[i];
+
+let x1=(i-1)*(c.width/history.length);
+let x2=i*(c.width/history.length);
+
+let y1=c.height-(v1/40*c.height);
+let y2=c.height-(v2/40*c.height);
+
+ctx.strokeStyle=color(v2);
+ctx.lineWidth=4;
+
+ctx.beginPath();
+ctx.moveTo(x1,y1);
+ctx.lineTo(x2,y2);
+ctx.stroke();
+}
+
+}
+// ===== 时间 =====
+function updateTime(){
+
+let now = new Date();
+
+let h = String(now.getHours()).padStart(2,"0");
+let m = String(now.getMinutes()).padStart(2,"0");
+let s = String(now.getSeconds()).padStart(2,"0");
+
+let date = now.getFullYear() + "-" +
+String(now.getMonth()+1).padStart(2,"0") + "-" +
+String(now.getDate()).padStart(2,"0");
+
+document.getElementById("time").innerHTML =
+h + ":" + m + ":" + s + "<br><small>" + date + "</small>";
+}
+
+/* 主逻辑 */
+async function run(){
+
+let w;
+
+// ✅ 如果开启测试模式 → 用滑块
+if(TEST_MODE){
+
+w = {
+
+temp: control.temp,
+hum: control.hum,
+wind: control.wind,
+
+icon:"01d",
+
+feels: control.temp + 2,
+pressure: 1012,
+
+sunrise:"05:01",
+sunset:"18:42"
+
+};
+
+}else{
+
+// ✅ 正常 → 用真实天气
+w = await getW();
+
+}
+
+let W=calc(w.temp,w.hum);
+
+/* 存WBGT */
+history.push(W);
+if(history.length>20)history.shift();
+
+switchV(W);
+
+/* UI */
+document.getElementById("temp").innerHTML=w.temp+"℃";
+
+let wb=document.getElementById("wbgt");
+wb.innerHTML="WBGT "+W.toFixed(1)+" "+level(W);
+wb.style.color=color(W);
+
+document.getElementById("info").innerHTML=`
+
+<div><small>湿度</small><br><b>${w.hum}%</b></div>
+
+<div><small>風速</small><br><b>${w.wind} m/s</b></div>
+
+<div><small>体感</small><br><b>${w.feels}℃</b></div>
+
+<div><small>気圧</small><br><b>${w.pressure}</b></div>
+
+<div><img src="https://openweathermap.org/img/wn/${w.icon}.png"></div>
+
+<div><small>降水確率</small><br><b>10%</b></div>
+
+<div><small>紫外線</small><br><b>5</b></div>
+
+<div><small>日落</small><br><b>${w.sunset}</b></div>
+
+<div><small>作業指示</small><br><b>${getAdvice(W)}</b></div>
+
+<div><small>予報時間</small><br><b>${w.time}</b></div>
+
+`;
+
+drawChart();
+}
+
+run();
+setInterval(run,10000);
+
+updateTime();
+setInterval(updateTime,1000);
+updateModeUI();
+
+// ===== 切换测试模式（按 T）=====
+document.addEventListener("keydown", e=>{
+if(e.key==="t" || e.key==="T"){
+TEST_MODE = !TEST_MODE;
+updateModeUI();   // 👈 加这一行
+console.log("TEST_MODE:", TEST_MODE);
+}
+});
+
+let editMode = false;
+let current = null;
+let offsetX = 0;
+let offsetY = 0;
+
+const targets = ["temp","wbgt","time","info","chart"];
+
+// ===== 读取保存的位置 =====
+function loadLayout(){
+targets.forEach(id=>{
+let saved = localStorage.getItem("pos_"+id);
+if(saved){
+let p = JSON.parse(saved);
+let el = document.getElementById(id);
+el.style.position = "absolute";
+el.style.left = p.x + "px";
+el.style.top = p.y + "px";
+}
+});
+}
+
+// ===== 保存位置 =====
+function savePosition(id,x,y){
+localStorage.setItem("pos_"+id, JSON.stringify({x,y}));
+}
+
+// ===== 编辑模式切换 =====
+document.addEventListener("keydown", e=>{
+if(e.key==="e" || e.key==="E"){
+
+editMode = !editMode;
+
+targets.forEach(id=>{
+let el = document.getElementById(id);
+
+if(editMode){
+el.style.outline = "2px dashed yellow";
+}else{
+el.style.outline = "none";
+}
+});
+}
+});
+
+// ===== 拖拽开始 =====
+document.addEventListener("mousedown", e=>{
+if(!editMode) return;
+
+let el = e.target.closest("[id]");
+
+if(el && targets.includes(el.id)){
+current = el;
+
+let rect = el.getBoundingClientRect();
+offsetX = e.clientX - rect.left;
+offsetY = e.clientY - rect.top;
+}
+});
+
+// ===== 拖拽移动 =====
+document.addEventListener("mousemove", e=>{
+if(!editMode || !current) return;
+
+let parent = current.offsetParent;
+let rect = parent.getBoundingClientRect();
+
+let x = e.clientX - rect.left - offsetX;
+let y = e.clientY - rect.top - offsetY;
+
+current.style.position = "absolute";
+current.style.left = x + "px";
+current.style.top = y + "px";
+});
+
+// ===== 拖拽结束 =====
+document.addEventListener("mouseup", ()=>{
+if(current){
+
+let x = parseInt(current.style.left);
+let y = parseInt(current.style.top);
+
+savePosition(current.id, x, y);
+}
+
+current = null;
+});
+
+// ===== 重置布局（按 R）=====
+document.addEventListener("keydown", e=>{
+if(e.key==="r" || e.key==="R"){
+targets.forEach(id=>{
+localStorage.removeItem("pos_"+id);
+});
+location.reload();
+}
+});
+
+// 初始化
+loadLayout();
+
+
+
+// ===== 控制数据 =====
+let control = {
+temp: 33,
+hum: 65,
+wind: 3
+};
+
+// ===== 创建面板 =====
+const panel = document.createElement("div");
+
+panel.style.position = "fixed";
+panel.style.top = "10px";
+panel.style.right = "10px";
+panel.style.background = "rgba(0,0,0,0.8)";
+panel.style.color = "#fff";
+panel.style.padding = "15px";
+panel.style.borderRadius = "10px";
+panel.style.fontSize = "14px";
+panel.style.zIndex = 9999;
+panel.style.display = TEST_MODE ? "block" : "none";
+
+panel.innerHTML = `
+<div style="margin-bottom:10px;">偽設定画面</div>
+
+気温 <span id="tVal">${control.temp}</span>℃
+<br>
+<input type="range" id="tRange" min="0" max="45" value="${control.temp}">
+
+<br><br>
+
+湿度 <span id="hVal">${control.hum}</span>%
+<br>
+<input type="range" id="hRange" min="0" max="100" value="${control.hum}">
+
+<br><br>
+
+風速 <span id="wVal">${control.wind}</span> m/s
+<br>
+<input type="range" id="wRange" min="0" max="10" step="0.1" value="${control.wind}">
+
+<br><br>
+
+<button onclick="togglePanel()">隠す</button>
+`;
+
+document.body.appendChild(panel);
+
+// ===== 绑定事件 =====
+document.getElementById("tRange").oninput = e=>{
+control.temp = +e.target.value;
+document.getElementById("tVal").innerText = control.temp;
+};
+
+document.getElementById("hRange").oninput = e=>{
+control.hum = +e.target.value;
+document.getElementById("hVal").innerText = control.hum;
+};
+
+document.getElementById("wRange").oninput = e=>{
+control.wind = +e.target.value;
+document.getElementById("wVal").innerText = control.wind;
+};
+
+// ===== 开关 =====
+function togglePanel(){
+panel.style.display = "none";
+}
+
+// ===== 快捷键 O 打开 =====
+document.addEventListener("keydown", e=>{
+if(e.key==="o" || e.key==="O"){
+panel.style.display = panel.style.display==="none" ? "block" : "none";
+}
+});
+
+function updateModeUI(){
+let el = document.getElementById("mode");
+el.innerText = TEST_MODE ? "TEST MODE" : "LIVE MODE";
+}
+
+</script>   ✅ 放在这里（最后一行JS结束）
+
+</body>
+</html>
