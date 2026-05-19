@@ -190,7 +190,7 @@
     // 環境省WBGT（GAS proxy経由・観測点：姫路 63383）
     // ★ gas/gas_wbgt_himeji_v1.gs を GAS に貼り付け → 再デプロイ → exec URL を下に設定
     // 応答 source: "estimated" | "forecast"（環境省CSV）が正常
-    const DEFAULT_MOE_GAS_URL = '';  // ← 姫路用GASをデプロイしてURLを貼り付け
+    const DEFAULT_MOE_GAS_URL = 'https://script.google.com/macros/s/AKfycbwReBQX_vHc_2uCKvO9VM2X96ZcVJ0jrmLdjgghWYRiSL-xbWbdv06VZGopP-52EbAOLw/exec';
     const MOE_WBGT_API_URL = query.get('moeApi') || DEFAULT_MOE_GAS_URL;
     const MOE_WBGT_BACKUP_URL = query.get('moeBackup') || '';
     // 姫路市中心部の緯度経度（気温・湿度・天気アイコン等のOpen-Meteo用）
@@ -849,4 +849,4 @@
     };
 </script>
 </body>
-</html>18:02 2026/05/19 
+</html>
