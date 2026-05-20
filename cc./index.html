@@ -67,16 +67,21 @@
         .fc-bg-3 { background-color: #FE7D03; }
         .fc-bg-4 { background-color: #D31715; }
         .fc-bg-unknown { background-color: #2a2a2a; }
-        /* 注意・警戒（黄〜橙黄背景）: WBGT表記・数値・ラベルを黒で視認性向上 */
-        .fc-bg-1::before,
-        .fc-bg-2::before,
-        .fc-bg-1 .fc-header,
-        .fc-bg-2 .fc-header,
-        .fc-bg-1 .fc-wbgt,
-        .fc-bg-2 .fc-wbgt,
-        .fc-bg-1 .fc-label,
-        .fc-bg-2 .fc-label {
+
+        /* 注意・警戒（黄系背景）は白文字が見づらいため黒文字 */
+        .fc-panel.fc-bg-1::before,
+        .fc-panel.fc-bg-1 .fc-header,
+        .fc-panel.fc-bg-1 .fc-wbgt,
+        .fc-panel.fc-bg-1 .fc-label,
+        .fc-panel.fc-bg-2::before,
+        .fc-panel.fc-bg-2 .fc-header,
+        .fc-panel.fc-bg-2 .fc-wbgt,
+        .fc-panel.fc-bg-2 .fc-label {
             color: #000;
+        }
+        .fc-panel.fc-bg-1.fc-now,
+        .fc-panel.fc-bg-2.fc-now {
+            border-color: rgba(0, 0, 0, 0.35);
         }
 
         .ticker-scene { background-color: #000; display: none; position: relative; overflow: hidden; }
@@ -190,7 +195,7 @@
     // 環境省WBGT（GAS proxy経由・観測点：姫路 63383）
     // ★ gas/gas_wbgt_himeji_v1.gs を GAS に貼り付け → 再デプロイ → exec URL を下に設定
     // 応答 source: "estimated" | "forecast"（環境省CSV）が正常
-    const DEFAULT_MOE_GAS_URL = '';
+    const DEFAULT_MOE_GAS_URL = 'https://script.google.com/macros/s/AKfycbwReBQX_vHc_2uCKvO9VM2X96ZcVJ0jrmLdjgghWYRiSL-xbWbdv06VZGopP-52EbAOLw/exec';
     const MOE_WBGT_API_URL = query.get('moeApi') || DEFAULT_MOE_GAS_URL;
     const MOE_WBGT_BACKUP_URL = query.get('moeBackup') || '';
     // 姫路市中心部の緯度経度（気温・湿度・天気アイコン等のOpen-Meteo用）
