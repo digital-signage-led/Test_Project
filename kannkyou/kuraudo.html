@@ -3,38 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=512, height=128">
-<title>WBGT 512×128（128×128 × 4面 / #slid 全面）</title>
+<title>WBGT 512×128（キューブ4面 / #slid）</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:512px; height:128px; overflow:hidden; background:#000; }
-  #row { display:flex; width:512px; height:128px; }
-  .cell { position:relative; flex:0 0 128px; width:128px; height:128px; overflow:hidden; }
+  /* 128×128 の面を4つ横並び（=512×128） */
+  .cell { position:absolute; top:0; width:128px; height:128px; overflow:hidden; }
+  .cell:nth-child(1){ left:0;     }
+  .cell:nth-child(2){ left:128px; }
+  .cell:nth-child(3){ left:256px; }
+  .cell:nth-child(4){ left:384px; }
   .crop {
     position:absolute; top:0; left:0;
-    width:342px; height:401px;        /* #slid の領域 */
+    width:342px; height:401px;        /* #slid ぴったり（削りなし）*/
     overflow:hidden; transform-origin:0 0;
-    /* 隙間の黒い線を消すため、トリミング（削り）を0にします */
-    clip-path: inset(0);
   }
   .crop iframe {
-    border:0; position:absolute; width:1920px; height:1500px;
-    left:-870px; top:-356px;
+    border:none; position:absolute; width:1920px; height:1500px;
+    left:-870px; top:-358px;
   }
 </style>
 </head>
 <body>
-  <div id="row">
-    <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
-    <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
-    <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
-    <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
-  </div>
+  <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
+  <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
+  <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
+  <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
   <script>
-    var SQ = 128;   // 1面のサイズ
+    var SQ = 128;
     document.querySelectorAll('.crop').forEach(function(c){
       var w = parseInt(getComputedStyle(c).width);   // 342
       var h = parseInt(getComputedStyle(c).height);  // 401
-      // 各面を全面に拡張（黒帯なし）。縦長を正方形に合わせるので横に少し伸びます
+      // 削らずに 128×128 ぴったりへ全面フィル（横に約18%伸びる）
       c.style.transform = 'scale(' + (SQ / w) + ',' + (SQ / h) + ')';
     });
   </script>
