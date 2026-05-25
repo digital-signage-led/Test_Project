@@ -13,11 +13,14 @@
   }
   .crop {                       /* 確定した切り出し範囲 */
     position:absolute; top:0; left:0;
-    width:793px; height:643px; overflow:hidden; transform-origin:0 0;
+    width:591px; height:585px;
+    overflow:hidden; transform-origin:0 0;
+    /* 縁を切り落とす（上 右 下 左 / 元のpx）。筋が残る→該当の値を増やす */
+    clip-path: inset(3px 3px 3px 12px);
   }
   .crop iframe {
     border:0; position:absolute; width:1920px; height:1500px;
-    left:-690px; top:-205px;    /* 確定 */
+    left:-690px; top:-205px;
   }
 </style>
 </head>
@@ -29,11 +32,11 @@
     <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
   </div>
   <script>
-    var SQ = 128;   // 1面のサイズ
+    var SQ = 128;
     document.querySelectorAll('.crop').forEach(function(c){
-      var w = parseInt(getComputedStyle(c).width);   // 793
-      var h = parseInt(getComputedStyle(c).height);  // 643
-      var s = Math.min(SQ / w, SQ / h);              // 歪ませず収める
+      var w = parseInt(getComputedStyle(c).width);   // 591
+      var h = parseInt(getComputedStyle(c).height);  // 585
+      var s = Math.min(SQ / w, SQ / h);
       var tx = (SQ - w * s) / 2;
       var ty = (SQ - h * s) / 2;
       c.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + s + ')';
