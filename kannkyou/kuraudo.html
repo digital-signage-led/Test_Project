@@ -20,7 +20,7 @@
   }
   .crop iframe {
     border:none; position:absolute; width:1920px; height:1500px;
-    left:-872px; top:-360px;
+    left:-872px; top:-359px;
   }
 </style>
 </head>
@@ -31,11 +31,13 @@
   <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
   <script>
     var SQ = 128;
+    var TOPCUT = 1;   // 上端だけ削る量(px)。上の線が残るなら 2 に。下・左右は不変
     document.querySelectorAll('.crop').forEach(function(c){
-      var w = parseInt(getComputedStyle(c).width);   // 342
-      var h = parseInt(getComputedStyle(c).height);  // 401
-      // 削らずに 128×128 ぴったりへ全面フィル（横に約18%伸びる）
-      c.style.transform = 'scale(' + (SQ / w) + ',' + (SQ / h) + ')';
+      var w = parseInt(getComputedStyle(c).width);   // 337
+      var h = parseInt(getComputedStyle(c).height);  // 398
+      // 横幅は128ぴったり / 縦は上にTOPCUTだけはみ出させ、その分を上端で切る
+      c.style.transform =
+        'translate(0px,' + (-TOPCUT) + 'px) scale(' + (SQ / w) + ',' + ((SQ + TOPCUT) / h) + ')';
     });
   </script>
 </body>
