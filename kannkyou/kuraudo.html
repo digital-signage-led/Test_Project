@@ -2,17 +2,23 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=512, height=128">
-<title>WBGT 512×128（キューブ4面 / #slid）</title>
+<meta name="viewport" content="width=640, height=128">
+<title>WBGT 640×128（キューブ4面+ロゴ / #slid）</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:512px; height:128px; overflow:hidden; background:#000; }
-  /* 128×128 の面を4つ横並び（=512×128） */
+  html, body { width:640px; height:128px; overflow:hidden; background:#000; }
+  /* 128×128 の面を5つ横並び（=640×128） */
   .cell { position:absolute; top:0; width:128px; height:128px; overflow:hidden; }
   .cell:nth-child(1){ left:0;     }
   .cell:nth-child(2){ left:128px; }
   .cell:nth-child(3){ left:256px; }
   .cell:nth-child(4){ left:384px; }
+  .cell-logo { left:512px; }  /* 513px目〜640px目（128×128） */
+  .cell-logo img {
+    display:block;
+    width:128px;
+    height:128px;
+  }
   .crop {
     position:absolute; top:0; left:0;
     width:337px; height:398px;        /* 位置合わせ確定値 */
@@ -29,6 +35,7 @@
   <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
   <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
   <div class="cell"><div class="crop"><iframe src="https://www2.edam.ne.jp/Public/00574/Sokutei/WBGT?LoID=2452" scrolling="no"></iframe></div></div>
+  <div class="cell cell-logo"><img src="assets/sankyu_logo.png" alt=""></div>
   <script>
     var SQ = 128;
     var TOPCUT = 1;   // 上端だけ削る量(px)。上の線が残るなら 2 に。下・左右は不変
