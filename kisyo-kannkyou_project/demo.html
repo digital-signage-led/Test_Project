@@ -4,10 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=640, height=128, initial-scale=1">
     <title>デモ — 640×128 本番同様</title>
+    <!-- signage-config.js が無くても転送できるよう meta も併用 -->
+    <meta http-equiv="refresh" content="0;url=index.html?demo=1&amp;native640=1&amp;embed=1">
+    <style>html, body { margin: 0; background: #000; }</style>
     <script src="signage-config.js"></script>
     <script>
-        /* iframe ラッパーなし — index を直接 640×128 原点(0,0) で表示（signage-config.js 共通） */
-        location.replace(SIGNAGE_CONFIG.buildDemoUrl());
+        var url = (typeof SIGNAGE_CONFIG !== 'undefined' && SIGNAGE_CONFIG.buildDemoUrl)
+            ? SIGNAGE_CONFIG.buildDemoUrl()
+            : 'index.html?demo=1&native640=1&embed=1';
+        location.replace(url);
     </script>
 </head>
 <body></body>
