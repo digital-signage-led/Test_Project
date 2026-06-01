@@ -1753,6 +1753,40 @@
         return null;
     })();
     const DEMO_SIGNAGE_ACTIVE = DEMO_SIGNAGE || !!DEMO_ONLY;
+    /* フルデモ警報: 色付き3段（L1〜L5）→ 白ベース3段（L2〜L5）を順に流す */
+    const DEMO_RAIN_PASS_ORDER = ['hero', 'white'];
+    let demoRainPassIdx_ = 0;
+    function isDemoFullRainLoop_() {
+        return DEMO_SIGNAGE && !DEMO_ONLY && !DEMO_RAINWARN_ONLY && !NO_JMA_WARN;
+    }
+    function demoRainPassKind_() {
+        return isDemoFullRainLoop_() ? DEMO_RAIN_PASS_ORDER[demoRainPassIdx_] : null;
+    }
+    function prepDemoRainPass_() {
+        if (!isDemoFullRainLoop_()) return;
+        const pass = demoRainPassKind_();
+        if (pass === 'hero') {
+            rainWarnActive = RAIN_WARN_ORDER.slice();
+            rainWarnKindActive = JMA_L3_KINDS.slice();
+        } else if (pass === 'white') {
+            rainWarnActive = RAIN_WHITE_LEVEL_ORDER.slice();
+        }
+    }
+    function finishDemoRainWarnCycle_() {
+        if (!isDemoFullRainLoop_()) {
+            finishMainLoopToS1_();
+            return;
+        }
+        if (demoRainPassIdx_ < DEMO_RAIN_PASS_ORDER.length - 1) {
+            demoRainPassIdx_ += 1;
+            prepDemoRainPass_();
+            prepRainWarn_(0);
+            playSceneRainWarn(0);
+            return;
+        }
+        demoRainPassIdx_ = 0;
+        advanceDemoLevel();
+    }
     /* フルデモも本番と同じスクロール＋シーン切替（静止5秒順送りは廃止） */
     const DEMO_STEP_MS = 5000;
     let demoStepTimerId = null;
@@ -2280,6 +2314,7 @@
         return (query.get('rainwarn') || '').toLowerCase() === 'all';
     }
     function isRainWarnGenericOnly_(levelKey) {
+        if (isDemoFullRainLoop_() && demoRainPassKind_() === 'hero') return levelKey !== 'warning';
         return isRainWarnAllLevels_() && levelKey !== 'warning';
     }
     function rainWarnGenericText_(levelKey) {
@@ -2821,6 +2856,7 @@
     }
     function whiteModeForced_() {
         if (NO_JMA_WARN) return false;
+        if (isDemoFullRainLoop_() && demoRainPassKind_() === 'white') return true;
         return parseRainWarnParam_().length > 0 || warnKindForced;
     }
     function parseRainWarnParam_() {
@@ -2835,7 +2871,8 @@
     }
     let rainWarnActive = NO_JMA_WARN ? [] : parseRainWarnParam_();
     if (!NO_JMA_WARN && DEMO_SIGNAGE && !DEMO_ONLY && !parseRainWarnParam_().length) {
-        rainWarnActive = ['warning', 'danger', 'special'];
+        rainWarnActive = isDemoFullRainLoop_() ? RAIN_WARN_ORDER.slice() : ['warning', 'danger', 'special'];
+        if (isDemoFullRainLoop_()) rainWarnKindActive = JMA_L3_KINDS.slice();
     }
     let rainWarnKindActive = parseWarnKindParam_();
     const rainWarnForced = !NO_JMA_WARN && (parseRainWarnParam_().length > 0 || DEMO_SIGNAGE || DEMO_RAINWARN_ONLY);
@@ -2844,7 +2881,7 @@
         const q = [];
         const forced = parseRainWarnParam_().filter(function (l) { return l !== 'early'; });
         const levels = forced.length ? forced : RAIN_WHITE_LEVEL_ORDER.slice();
-        if (isRainWarnAllLevels_()) {
+        if (isRainWarnAllLevels_() || (isDemoFullRainLoop_() && demoRainPassKind_() === 'white')) {
             levels.forEach(function (levelKey) {
                 if (levelKey === 'early') return;
                 if (levelKey === 'warning') {
@@ -2950,10 +2987,12 @@
     }
     function shouldUseHeroLayout_(levelKey) {
         if (RAIN_HERO_OFF || RAIN_WHITE_DESIGN) return false;
+        if (isDemoFullRainLoop_() && demoRainPassKind_() === 'white') return false;
+        if (isDemoFullRainLoop_() && demoRainPassKind_() === 'hero') return true;
         return RAIN_HERO_DESIGN;
     }
     function shouldUseWhiteLayout_() {
-        return RAIN_WHITE_DESIGN;
+        return RAIN_WHITE_DESIGN || (isDemoFullRainLoop_() && demoRainPassKind_() === 'white');
     }
     function rainWarnWhiteDisplayText_(levelKey, kindKey, fullName) {
         return {
@@ -2982,7 +3021,7 @@
         if (isRainWarnGenericOnly_(levelKey)) {
             return order.length ? [order[0]] : ['early'];
         }
-        if (isRainWarnAllLevels_() && levelKey === 'warning') {
+        if ((isRainWarnAllLevels_() || (isDemoFullRainLoop_() && demoRainPassKind_() === 'hero')) && levelKey === 'warning') {
             return JMA_LEVEL_KIND_ORDER.warning.slice();
         }
         if (RAIN_WHITE_DESIGN) {
@@ -3090,7 +3129,7 @@
             return;
         }
         if (whiteModeForced_()) return;
-        if (rainWarnForced && !RAIN_WHITE_DESIGN) return;
+        if (rainWarnForced && !RAIN_WHITE_DESIGN && !(isDemoFullRainLoop_() && demoRainPassKind_() === 'white')) return;
         const base = appendMoePointToUrl(MOE_WBGT_API_URL);
         if (!base) { await updateRainWarnFromJmaDirect_(); return; }
         const sep = base.indexOf('?') >= 0 ? '&' : '?';
@@ -3391,6 +3430,10 @@
         transitionToScene(s1, playScene1);
     }
     function gotoAfterRainWarnOrScene1_() {
+        if (isDemoFullRainLoop_()) {
+            demoRainPassIdx_ = 0;
+            prepDemoRainPass_();
+        }
         const hasRain = wbgtNormalDisplay_() && (shouldUseWhiteLayout_() ? rainWhiteHasActive_() : rainWarnActive.length);
         if (hasRain && sceneRainWarn) {
             prepRainWarn_(0);
@@ -3482,8 +3525,22 @@
                     if (DEMO_RAINWARN_ONLY) {
                         raFlow_.midLaps = 0;
                     } else if (DEMO_SIGNAGE && !DEMO_ONLY) {
-                        raAnimId = null; raFlow_ = null;
-                        advanceDemoLevel();
+                        raFlow_.midLaps = 0;
+                        if (raFlow_.whiteBundle) {
+                            raAnimId = null; raFlow_ = null;
+                            finishDemoRainWarnCycle_();
+                            return;
+                        }
+                        raFlow_.warnIdx += 1;
+                        if (raFlow_.warnIdx >= rainWarnActive.length) {
+                            raAnimId = null; raFlow_ = null;
+                            finishDemoRainWarnCycle_();
+                            return;
+                        }
+                        setRainWarn_(raFlow_.warnIdx, 0);
+                        raFlow_.midBandX = 0;
+                        if (raFlow_.heroBundle) applyRaHeroMidX_(0);
+                        raAnimId = requestAnimationFrame(step);
                         return;
                     } else {
                         raAnimId = null; raFlow_ = null;
@@ -3522,7 +3579,7 @@
                             raFlow_.warnIdx = 0;
                         } else if (DEMO_SIGNAGE && !DEMO_ONLY) {
                             raAnimId = null; raFlow_ = null;
-                            advanceDemoLevel();
+                            finishDemoRainWarnCycle_();
                             return;
                         } else {
                             raAnimId = null; raFlow_ = null;
