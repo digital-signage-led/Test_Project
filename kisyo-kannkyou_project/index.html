@@ -25,21 +25,26 @@
         :root { --led-foot-bar-bg: #fff9f0; }
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: "Inter", "Noto Sans JP", sans-serif; }
         .demo-badge {
-            position: fixed; top: 8px; left: 8px; z-index: 9999;
+            position: fixed; top: 0; left: 0; z-index: 9999;
             padding: 4px 10px; background: rgba(0,0,0,0.75); color: #fff;
             font-size: 12px; font-weight: 700; font-family: "Noto Sans JP", sans-serif;
             border: 1px solid #fff; pointer-events: none;
         }
+        body.native-640 .demo-badge { display: none !important; }
         .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; transform-origin: top left; }
         @media screen and (min-width: 641px) {
             .canvas { transform: scale(calc(100vw / 640)); }
         }
-        /* ?native640=1 / ?embed=1 — 640×128 ネイティブ（拡大なし） */
+        /* ?native640=1 / ?embed=1 — 640×128 ネイティブ（拡大なし・原点0,0） */
         body.native-640 {
-            display: flex; justify-content: center; align-items: flex-start;
-            min-height: 100vh; background: #000;
+            display: block;
+            min-height: 128px; height: 128px; background: #000;
+            overflow: hidden;
         }
-        body.native-640 .canvas { transform: none !important; }
+        body.native-640 .canvas {
+            transform: none !important;
+            position: absolute; top: 0; left: 0;
+        }
         /* 右端 128×128（x≥512）: 上バー色で塗りつぶし・ロゴ中央 */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
