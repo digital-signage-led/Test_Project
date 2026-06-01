@@ -3,21 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=640, height=128, initial-scale=1">
-    <title>デモ — 640×128 順送り</title>
-    <style>
-        * { box-sizing: border-box; }
-        html, body {
-            margin: 0; padding: 0; width: 640px; height: 128px;
-            background: #000; overflow: hidden;
-        }
-        iframe {
-            position: absolute; top: 0; left: 0;
-            width: 640px; height: 128px;
-            border: 0; display: block;
-        }
-    </style>
+    <title>デモ — 640×128 本番同様</title>
+    <script src="signage-config.js"></script>
+    <script>
+        /* iframe ラッパーなし — index を直接 640×128 原点(0,0) で表示（signage-config.js 共通） */
+        location.replace(SIGNAGE_CONFIG.buildDemoUrl());
+    </script>
 </head>
-<body>
-    <iframe src="index.html?demo=1&amp;native640=1&amp;embed=1" title="WBGTサイネージ デモ"></iframe>
-</body>
+<body></body>
 </html>
