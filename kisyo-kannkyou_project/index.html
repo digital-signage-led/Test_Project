@@ -6,12 +6,11 @@
 <!--   - 雨雲接近: 降水ナウキャスト5分ごと / アメダス10分ごと（別スケジュール） -->
 <!--   - LED サイネージ（640×128 論理、画面幅に合わせて拡大）          -->
 <!-- 入口: demo.html · 確認: review-board.html · 本番: このファイル      -->
-<!-- デモ: demo.html（640×128 · 5秒順送り） / 本番: このファイル -->
+<!-- 共通設定: signage-config.js（ロゴ・確認ボード行定義 — ここを更新）   -->
 <!-- 3段デザイン案: 既定ON（?rainhero=0 で従来） / 白ベース: ?rainwhite=1 -->
 <!-- API: gas/Code.gs を GAS にデプロイ → DEFAULT_MOE_GAS_URL           -->
 <!-- ================================================================== -->
 <!-- wbgt-cube-osaka / 大阪市 WBGT サイネージ -->
-<!-- 同階層: nikken_log.png -->
 <!-- 大阪市（環境省 WBGT 地点 62078 ＝ 気象庁アメダス 62078） -->
 <html lang="ja">
 <head>
@@ -20,6 +19,17 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>WBGT Signage - 大阪市</title>
+    <script>
+    (function () {
+        var q = new URLSearchParams(location.search);
+        var demo = q.get('demo') === '1';
+        var embed = q.get('embed') === '1';
+        var only = (q.get('only') || '').toLowerCase();
+        var native = q.get('native640') === '1' || embed
+            || (demo && !only && q.get('native640') !== '0');
+        if (native) document.documentElement.classList.add('native-640');
+    })();
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
         :root { --led-foot-bar-bg: #fff9f0; }
@@ -30,25 +40,34 @@
             font-size: 12px; font-weight: 700; font-family: "Noto Sans JP", sans-serif;
             border: 1px solid #fff; pointer-events: none;
         }
+        html.native-640 .demo-badge,
         body.native-640 .demo-badge { display: none !important; }
-        .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; transform-origin: top left; }
-        @media screen and (min-width: 641px) {
-            .canvas { transform: scale(calc(100vw / 640)); }
+        html.native-640, body.native-640 {
+            width: 640px !important; height: 128px !important;
+            min-width: 640px; min-height: 128px;
+            max-width: 640px; max-height: 128px;
+            margin: 0 !important; padding: 0 !important;
+            overflow: hidden !important;
         }
         /* ?native640=1 / ?embed=1 — 640×128 ネイティブ（拡大なし・原点0,0） */
         body.native-640 {
             display: block;
-            min-height: 128px; height: 128px; background: #000;
-            overflow: hidden;
+            background: #000;
         }
         body.native-640 .canvas {
             transform: none !important;
             position: absolute; top: 0; left: 0;
+            margin: 0; padding: 0;
         }
+        .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; transform-origin: top left; }
+        @media screen and (min-width: 641px) {
+            .canvas { transform: scale(calc(100vw / 640)); }
+        }
+        body.native-640 .canvas { transform: none !important; }
         /* 右端 128×128（x≥512）: 上バー色で塗りつぶし・ロゴ中央 */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; background: #3a3a3a; order: 2; overflow: hidden; position: relative;
+            flex-shrink: 0; background: #000000; order: 2; overflow: hidden; position: relative;
         }
         .logo-rotator {
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
@@ -1159,7 +1178,7 @@
 <div class="canvas">
     <div class="logo-panel">
         <div class="logo-rotator" id="logo-rotator">
-            <img class="logo-img" src="./nikken_log.png" alt="logo">
+            <img class="logo-img" id="signage-logo" src="./digital-signage-logo.png" alt="Digital Signage">
         </div>
     </div>
     <div class="content-area">
@@ -1359,6 +1378,7 @@
     </div>
     </div>
 </div>
+<script src="signage-config.js"></script>
 <script>
 /**
  * 512×128 サイネージ列背景（加古川 signage-bg.js 互換）
@@ -1568,11 +1588,18 @@
         applySceneStripBg(content, levelIdx, displayMode);
     }
 
-    /** 右端 128×128 ロゴ列: 上バー色（barColor）で塗りつぶし */
+    /** 右端 128×128 ロゴ列: Digital Signage ロゴ（黒背景・全シーン共通） */
+    function initSignageLogo_() {
+        const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
+        const cfg = global.SIGNAGE_CONFIG;
+        if (!img || !cfg) return;
+        img.src = cfg.logoSrc;
+        img.alt = cfg.logoAlt;
+    }
     function refreshLogoPanel(levelIdx, displayMode) {
         const panel = document.querySelector('.logo-panel');
         if (!panel) return;
-        panel.style.backgroundColor = colorsForDisplay(levelIdx, displayMode).barColor;
+        panel.style.backgroundColor = (global.SIGNAGE_CONFIG && SIGNAGE_CONFIG.logoPanelBg) || '#000000';
     }
 
     function refreshAll(currentLevelIdx, displayMode) {
@@ -1595,6 +1622,7 @@
 
     function initHosts() {
         stripPanelBgLayers();
+        initSignageLogo_();
         refreshContentAreaBg(-1);
         refreshLogoPanel(-1);
     }
@@ -1608,6 +1636,7 @@
         colorsForDisplay,
         isDarkTextLevel,
         initHosts,
+        initSignageLogo_,
         refreshAll,
         refreshLogoPanel,
         refreshScene1,
@@ -1660,7 +1689,13 @@
     /* 640×128 ネイティブ: embed / native640=1 / フルデモ順送り */
     const NATIVE_640 = query.get('native640') === '1' || DEMO_EMBED
         || (DEMO_SIGNAGE && !DEMO_ONLY && query.get('native640') !== '0');
-    if (NATIVE_640) document.body.classList.add('native-640');
+    if (NATIVE_640) {
+        document.documentElement.classList.add('native-640');
+        document.body.classList.add('native-640');
+    }
+    function shouldShowDemoBadge_() {
+        return !DEMO_EMBED && !NATIVE_640;
+    }
     const DEMO_T3_LANG_IDX = (function () {
         const v = (query.get('t3lang') || '').toLowerCase();
         if (v === 'jp' || v === '0') return 0;
@@ -1678,11 +1713,11 @@
         return null;
     })();
     const DEMO_SIGNAGE_ACTIVE = DEMO_SIGNAGE || !!DEMO_ONLY;
-    /* フルデモ: 各コンテンツを5秒表示して順送り */
+    /* フルデモも本番と同じスクロール＋シーン切替（静止5秒順送りは廃止） */
     const DEMO_STEP_MS = 5000;
     let demoStepTimerId = null;
     function isFullDemoStep_() {
-        return DEMO_SIGNAGE && !DEMO_ONLY;
+        return false;
     }
     function clearDemoStepTimer_() {
         if (demoStepTimerId) { clearTimeout(demoStepTimerId); demoStepTimerId = null; }
@@ -1695,7 +1730,7 @@
             fn();
         }, DEMO_STEP_MS);
     }
-    /* スクロール速度・待ち時間: フルデモ(demo=1)のみ短縮。確認ボード(only=)は本番速度 */
+    /* スクロール速度・待ち時間: デモも本番と同じ（確認ボード only= も同様） */
     /* 確認ボード用: ?rain=raining|approaching|watch|soon|1|0  ?wbgtOff=1  ?wbgtUnknown=1 */
     const DEMO_WBGT_OFF = query.get('wbgtOff') === '1' || query.get('offseason') === '1';
     const DEMO_WBGT_UNKNOWN = query.get('wbgtUnknown') === '1';
@@ -1846,6 +1881,15 @@
         if (wbgtUnavailable) return 'unavailable';
         return 'normal';
     }
+    /** WBGT非依存コンテンツなし — 取得不可・提供期間外は警報・アラートを出さない */
+    function wbgtNormalDisplay_() {
+        return !wbgtOffSeason && !wbgtUnavailable;
+    }
+    function syncWbgtDependentAlerts_() {
+        if (wbgtNormalDisplay_()) return;
+        if (!heatAlertForced) applyHeatAlertLevel_('none');
+        if (!rainWarnForced && !whiteModeForced_()) applyRainWarnLevel_('none', null);
+    }
     function getNowMs() {
         const ms = getSyncedUtcMs();
         return ms != null ? ms : Date.now();
@@ -1971,6 +2015,13 @@
     const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
 
+    /** 全シーン共通: Digital Signage ロゴパネル（signage-config.js） */
+    function applySignageLogoPanel_() {
+        if (typeof SignageBg !== 'undefined' && SignageBg.refreshLogoPanel) {
+            SignageBg.refreshLogoPanel(-1);
+        }
+    }
+
     /* ===== 熱中症アラート（警戒=WBGT33予測 / 特別警戒=WBGT35予測 で発表） ===== */
     const HEAT_ALERTS = {
         warning: { cls: 'ha-warning', name: '熱中症警戒アラート',     line2: 'が発表されました' },
@@ -1999,6 +2050,7 @@
     /* 環境省 熱中症警戒アラートを GAS 経由で取得し level を更新 */
     async function updateHeatAlertFromGas_() {
         if (WBGT_ONLY) return;
+        if (!wbgtNormalDisplay_() && !heatAlertForced) return;
         if (heatAlertForced) return;
         const base = appendMoePointToUrl(MOE_WBGT_API_URL);
         if (!base) return;
@@ -2022,6 +2074,11 @@
             json && json.today ? json.today.label : '', json && json.tomorrow ? json.tomorrow.label : '');
     }
     function applyHeatAlertLevel_(level) {
+        if (!wbgtNormalDisplay_() && !heatAlertForced) {
+            heatAlertActive = [];
+            queueDisplayRefresh_();
+            return;
+        }
         if (level === 'special') heatAlertActive = ['special'];
         else if (level === 'warning') heatAlertActive = ['warning'];
         else heatAlertActive = [];
@@ -2029,7 +2086,6 @@
         if (s3 && s3.classList.contains('active')) refreshT3LevelBar_();
     }
     /* ===== 大雨警報（気象庁・5段階）＋ L3 警報4種 ===== */
-    const JMA_L3_CODE_TO_KIND = { '02': 'wind', '03': 'rain', '04': 'flood', '09': 'surge' };
     /** 気象庁情報一覧（種別順送り用 warntype=lXall）— 気象庁カテゴリ対応表準拠 */
     const JMA_LEVEL_KINDS = {
         early: {
@@ -2060,10 +2116,10 @@
             flood:    { name: '洪水警報', jmaCode: '04' },
             surge:    { name: '高潮警報', jmaCode: '09' },
             wind:     { name: '暴風警報', jmaCode: '02' },
-            blizzard: { name: '暴風雪警報' },
-            snow:     { name: '大雪警報' },
-            wave:     { name: '波浪警報' },
-            tsunami:  { name: '津波警報' },
+            blizzard: { name: '暴風雪警報', jmaCode: '05' },
+            snow:     { name: '大雪警報', jmaCode: '06' },
+            wave:     { name: '波浪警報', jmaCode: '07' },
+            tsunami:  { name: '津波警報', jmaCode: '11' },
             eew:      { name: '緊急地震速報' },
             volcano:  { name: '噴火警報' }
         },
@@ -2112,22 +2168,27 @@
     const RAIN_WARN_ORDER = ['early', 'advisory', 'warning', 'danger', 'special'];
     /** 白ベース: 特別→危険→警報→注意（早期注意情報は運用外） */
     const RAIN_WHITE_LEVEL_ORDER = ['special', 'danger', 'warning', 'advisory'];
-    /** 気象庁 reportcode → 段階＋種別（EqCare/JMA 報種別コード表準拠） */
+    /** 気象庁 reportcode → 段階＋種別（運用コード一覧準拠） */
     const JMA_WARN_CODE_MAP = {
+        /* L5 特別警報 */
         '32': { level: 'special', kind: 'blizzard' },
         '33': { level: 'special', kind: 'rain' },
+        '34': { level: 'special', kind: 'megatsunami' },
         '35': { level: 'special', kind: 'wind' },
         '36': { level: 'special', kind: 'snow' },
         '37': { level: 'special', kind: 'wave' },
         '38': { level: 'special', kind: 'surge' },
-        '02': { level: 'warning', kind: 'blizzard' },
+        /* L3 警報 */
+        '02': { level: 'warning', kind: 'wind' },
         '03': { level: 'warning', kind: 'rain' },
         '04': { level: 'warning', kind: 'flood' },
-        '05': { level: 'warning', kind: 'wind' },
+        '05': { level: 'warning', kind: 'blizzard' },
         '06': { level: 'warning', kind: 'snow' },
         '07': { level: 'warning', kind: 'wave' },
         '08': { level: 'warning', kind: 'surge' },
         '09': { level: 'warning', kind: 'surge' },
+        '11': { level: 'warning', kind: 'tsunami' },
+        /* L2 注意報 */
         '10': { level: 'advisory', kind: 'heavyrain' },
         '12': { level: 'advisory', kind: 'snow' },
         '13': { level: 'advisory', kind: 'snowdrift' },
@@ -2143,8 +2204,15 @@
         '23': { level: 'advisory', kind: 'lowtemp' },
         '24': { level: 'advisory', kind: 'frost' },
         '25': { level: 'advisory', kind: 'ice' },
-        '26': { level: 'advisory', kind: 'snowacc' }
+        '26': { level: 'advisory', kind: 'snowacc' },
+        '29': { level: 'advisory', kind: 'tsunami' }
     };
+    function jmaLevelFromWarnCode_(code, dangerHeadline) {
+        const c = String(code || '');
+        if (c === '03' && dangerHeadline) return 'danger';
+        const entry = JMA_WARN_CODE_MAP[c];
+        return entry ? entry.level : null;
+    }
     let rainWhiteQueue = [];
     const RAIN_WARN_LEVEL_NUM = { early: 1, advisory: 2, warning: 3, danger: 4, special: 5 };
     const RAIN_WARN_HERO_BOTTOM = {
@@ -2166,6 +2234,20 @@
         return RAIN_WARN_HERO_TITLE[levelKey]
             || (RAIN_WARN_LEVELS[levelKey] && RAIN_WARN_LEVELS[levelKey].name)
             || '';
+    }
+    /** ?rainwarn=all — L1/L2/L4/L5は段階名のみ。L3警報は種別名（大雨・洪水・高潮等）を順送り */
+    function isRainWarnAllLevels_() {
+        return (query.get('rainwarn') || '').toLowerCase() === 'all';
+    }
+    function isRainWarnGenericOnly_(levelKey) {
+        return isRainWarnAllLevels_() && levelKey !== 'warning';
+    }
+    function rainWarnGenericText_(levelKey) {
+        const def = RAIN_WARN_LEVELS[levelKey];
+        return {
+            name: rainWarnHeroTitle_(levelKey),
+            line2: def ? def.line2 : ''
+        };
     }
     const JMA_WARN_AREA = query.get('warnArea') || '270000';   /* 大阪府 */
     const JMA_WARN_CITY = query.get('warnCity') || '2710000';  /* 大阪市 */
@@ -2286,6 +2368,10 @@
         });
     }
     function buildHeroMidEntries_(levelKey) {
+        if (isRainWarnGenericOnly_(levelKey)) {
+            const kind0 = (JMA_LEVEL_KIND_ORDER[levelKey] || ['early'])[0];
+            return [{ level: levelKey, kind: kind0, name: rainWarnHeroTitle_(levelKey) }];
+        }
         return kindsForLevel_(levelKey).map(function (kindKey) {
             return {
                 level: levelKey,
@@ -2643,6 +2729,7 @@
     function parseWarnKindParam_() {
         const v = (query.get('warntype') || query.get('warnkind') || '').toLowerCase();
         const rw = (query.get('rainwarn') || '').toLowerCase();
+        if (isRainWarnAllLevels_()) return [];
         const levelKey = { '1': 'early', early: 'early', '2': 'advisory', advisory: 'advisory',
             '3': 'warning', warning: 'warning', '4': 'danger', danger: 'danger',
             '5': 'special', special: 'special' }[rw] || '';
@@ -2658,7 +2745,7 @@
         if (v === 'rain' || v === 'heavyrain') return ['rain'];
         if (levelKey && JMA_LEVEL_KINDS[levelKey] && JMA_LEVEL_KINDS[levelKey][v]) return [v];
         if (JMA_L3_KIND_ORDER.indexOf(v) >= 0) return [v];
-        if (rw === 'warning' || rw === '3' || rw === 'all') return JMA_L3_KIND_ORDER.slice();
+        if (rw === 'warning' || rw === '3') return JMA_L3_KIND_ORDER.slice();
         if (DEMO_RAINWARN_ONLY) return JMA_L3_KIND_ORDER.slice();
         return ['rain'];
     }
@@ -2706,7 +2793,7 @@
         return [];
     }
     let rainWarnActive = parseRainWarnParam_();
-    if (isFullDemoStep_() && !parseRainWarnParam_().length) {
+    if (DEMO_SIGNAGE && !DEMO_ONLY && !parseRainWarnParam_().length) {
         rainWarnActive = ['warning', 'danger', 'special'];
     }
     let rainWarnKindActive = parseWarnKindParam_();
@@ -2716,6 +2803,20 @@
         const q = [];
         const forced = parseRainWarnParam_().filter(function (l) { return l !== 'early'; });
         const levels = forced.length ? forced : RAIN_WHITE_LEVEL_ORDER.slice();
+        if (isRainWarnAllLevels_()) {
+            levels.forEach(function (levelKey) {
+                if (levelKey === 'early') return;
+                if (levelKey === 'warning') {
+                    kindsForLevel_(levelKey).forEach(function (kindKey) {
+                        q.push({ level: levelKey, kind: kindKey, name: jmaKindName_(levelKey, kindKey) });
+                    });
+                    return;
+                }
+                const kind0 = (JMA_LEVEL_KIND_ORDER[levelKey] || ['early'])[0];
+                q.push({ level: levelKey, kind: kind0, name: rainWarnHeroTitle_(levelKey) });
+            });
+            return q;
+        }
         levels.forEach(function (levelKey) {
             if (levelKey === 'early') return;
             kindsForLevel_(levelKey).forEach(function (kindKey) {
@@ -2837,6 +2938,12 @@
     function kindsForLevel_(levelKey) {
         const order = (JMA_LEVEL_KIND_ORDER[levelKey] || ['early']).slice();
         const map = JMA_LEVEL_KINDS[levelKey] || {};
+        if (isRainWarnGenericOnly_(levelKey)) {
+            return order.length ? [order[0]] : ['early'];
+        }
+        if (isRainWarnAllLevels_() && levelKey === 'warning') {
+            return JMA_LEVEL_KIND_ORDER.warning.slice();
+        }
         if (RAIN_WHITE_DESIGN) {
             const levelKinds = order.filter(function (k) { return whiteKindMatchesLevel_(levelKey, k); });
             if (warnKindForced) {
@@ -2927,17 +3034,20 @@
                     (area.warnings || []).forEach(function (w) {
                         const st = String(w.status || '');
                         if (!st || st.indexOf('解除') >= 0) return;
-                        const kind = JMA_L3_CODE_TO_KIND[String(w.code || '')];
-                        if (kind) found[kind] = true;
+                        const entry = JMA_WARN_CODE_MAP[String(w.code || '')];
+                        if (entry && entry.level === 'warning') found[entry.kind] = true;
                     });
                 });
             });
         }
-        const list = JMA_L3_KIND_ORDER.filter(function (k) { return found[k]; });
-        return list;
+        return JMA_LEVEL_KIND_ORDER.warning.filter(function (k) { return found[k]; });
     }
     async function updateRainWarnFromGas_() {
         if (WBGT_ONLY) return;
+        if (!wbgtNormalDisplay_() && !rainWarnForced && !whiteModeForced_()) {
+            applyRainWarnLevel_('none', null);
+            return;
+        }
         if (whiteModeForced_()) return;
         if (rainWarnForced && !RAIN_WHITE_DESIGN) return;
         const base = appendMoePointToUrl(MOE_WBGT_API_URL);
@@ -2996,11 +3106,8 @@
                     (area.warnings || []).forEach(function (w) {
                         const st = String(w.status || '');
                         if (!st || st.indexOf('解除') >= 0) return;
-                        const c = String(w.code || '');
-                        if (c === '33') consider(c, 'special');
-                        else if (c === '03') consider(c, dangerHeadline ? 'danger' : 'warning');
-                        else if (c === '02' || c === '04' || c === '09') consider(c, 'warning');
-                        else if (c === '10') consider(c, 'advisory');
+                        const levelKey = jmaLevelFromWarnCode_(w.code, dangerHeadline);
+                        if (levelKey) consider(w.code, levelKey);
                     });
                 });
             });
@@ -3091,8 +3198,7 @@
         initRainWarnWhiteMidBand_(q);
         updateRainWarnWhiteFootChip_(topLevel);
         updateRainWarnWhiteChrome_();
-        const logoPanel = document.querySelector('.logo-panel');
-        if (logoPanel) logoPanel.style.background = '#FFF9F0';
+        applySignageLogoPanel_();
         return true;
     }
     function setRainWarnHeroBundle_(levelKey, entries) {
@@ -3107,8 +3213,7 @@
         initRainWarnHeroMidBand_(q);
         updateRainWarnHeroChrome_(levelKey);
         sizeRainWarnHeroText_();
-        const logoPanel = document.querySelector('.logo-panel');
-        if (logoPanel) logoPanel.style.background = def.logoBg;
+        applySignageLogoPanel_();
         return true;
     }
     function sizeRainWarnHeroText_() {
@@ -3182,7 +3287,7 @@
         const ki = kindIdx != null ? kindIdx : 0;
         const kinds = kindsForLevel_(key);
         const kind = kinds[ki] || kinds[0] || (JMA_LEVEL_KIND_ORDER[key] || ['rain'])[0];
-        const txt = rainWarnDisplayText_(key, kind);
+        const txt = isRainWarnGenericOnly_(key) ? rainWarnGenericText_(key) : rainWarnDisplayText_(key, kind);
         pair.classList.remove('ra-early', 'ra-advisory', 'ra-warning', 'ra-hero-mode', 'ra-white-mode', 'ra-white-bundle', 'ra-hero-bundle', 'ra-danger', 'ra-special', 'ra-line-announce', 'ra-line-announce-done');
         pair.classList.add(def.cls);
         if (shouldUseWhiteLayout_()) pair.classList.add('ra-white-mode');
@@ -3212,10 +3317,7 @@
             updateRainWarnHeroChrome_(key);
         }
         sizeRainWarnText_();
-        const logoPanel = document.querySelector('.logo-panel');
-        if (logoPanel) {
-            logoPanel.style.background = shouldUseWhiteLayout_() ? '#FFF9F0' : def.logoBg;
-        }
+        applySignageLogoPanel_();
         if (!pair.classList.contains('ra-hero-mode') && !pair.classList.contains('ra-white-mode')) {
             triggerRaLineAnnounceBlink_(txt.line2);
         }
@@ -3248,7 +3350,7 @@
         transitionToScene(s1, playScene1);
     }
     function gotoAfterRainWarnOrScene1_() {
-        const hasRain = shouldUseWhiteLayout_() ? rainWhiteHasActive_() : rainWarnActive.length;
+        const hasRain = wbgtNormalDisplay_() && (shouldUseWhiteLayout_() ? rainWhiteHasActive_() : rainWarnActive.length);
         if (hasRain && sceneRainWarn) {
             prepRainWarn_(0);
             transitionToScene(sceneRainWarn, function () { playSceneRainWarn(0); });
@@ -3432,13 +3534,13 @@
         const liveLabel = RAIN_WHITE_DESIGN && !whiteModeForced_()
             ? ('確認 · ' + (rainWarnMeta.cityName || '大阪市') + ' 発表中 ' + rainWhiteQueue.length + '件')
             : '確認 · 大雨警報';
-        if (badge && !DEMO_EMBED) { badge.hidden = false; badge.textContent = liveLabel; }
+        if (badge && shouldShowDemoBadge_()) { badge.hidden = false; badge.textContent = liveLabel; }
         else if (badge) { badge.hidden = true; }
         if (!DEMO_EMBED) document.title = RAIN_WHITE_DESIGN && !whiteModeForced_() ? '気象警報 実データ' : '大雨警報 デモ';
         playSceneRainWarn(0);
     }
     let logoRotDeg = 0;
-    const LOGO_ROT_STEP_MS = DEMO_SIGNAGE ? 360 : 420;
+    const LOGO_ROT_STEP_MS = 420;
 
     function stopLogoSpinInterval() {
         // 連続回転は使わない（静止 / 90°回転のみ）
@@ -3469,17 +3571,17 @@
     const SCENE1_WBGT_LAP_PX = FOOT_BAR_LAP_PX;
     const SCENE1_WBGT_LAPS = 2;
     const SCENE1_WBGT_SETS = 3;
-    const SCENE1_WBGT_HOLD_MS = DEMO_SIGNAGE ? 2000 : 6000;
-    const SCENE1_WBGT_SPEED_PX = DEMO_SIGNAGE ? 1.2 : 0.6;
+    const SCENE1_WBGT_HOLD_MS = 6000;
+    const SCENE1_WBGT_SPEED_PX = 0.6;
     let scene1AnimId = null;
     let scene1HoldTimerId = null;
     let scene1EndHoldTimerId = null;
     const SCENE2_PANEL_COUNT = 9;
     const SCENE2_LAPS = 2;
-    const SCENE2_SCROLL_PX = DEMO_SIGNAGE ? 2.5 : 0.8;
+    const SCENE2_SCROLL_PX = 0.8;
     const SCENE2_META_LAP_PX = FOOT_BAR_LAP_PX;
     const SCENE2_META_SETS = 3;
-    const SCENE2_META_SPEED_PX = DEMO_SIGNAGE ? 1.2 : 0.6;
+    const SCENE2_META_SPEED_PX = 0.6;
     let scene2SetWidth = SCENE2_PANEL_COUNT * 128;
     let scene2MetaX = 0;
     let scene2MetaLapPx = FOOT_BAR_LAP_PX;
@@ -3487,7 +3589,7 @@
     const JMA_FORECAST_URL = `https://www.jma.go.jp/bosai/forecast/data/forecast/${JMA_FORECAST_AREA_CODE}.json`;
     const SCENE4_PANEL_COUNT = 4;
     const SCENE4_LAPS = 2;
-    const SCENE4_SCROLL_PX = DEMO_SIGNAGE ? 2.5 : 0.8;
+    const SCENE4_SCROLL_PX = 0.8;
     const SCENE4_LV_LAP_PX = FOOT_BAR_LAP_PX;
     let scene4SetWidth = SCENE4_PANEL_COUNT * 128;
     let scene4AnimId = null;
@@ -3495,17 +3597,17 @@
     let scene4FcLvLapPx = SCENE4_LV_LAP_PX;
     const SCENE4_LV_LAPS = 2;
     const SCENE4_LV_SETS = 3;
-    const SCENE4_LV_SPEED_PX = DEMO_SIGNAGE ? 1.2 : 0.6;
+    const SCENE4_LV_SPEED_PX = 0.6;
     const SCENE5_PANEL_COUNT = 4;
     const SCENE5_LAPS = 2;
-    const SCENE5_SCROLL_PX = DEMO_SIGNAGE ? 2.5 : 0.8;
+    const SCENE5_SCROLL_PX = 0.8;
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
     let scene5AnimId = null;
     const T3_UNIT_W = 256;
     const T3_L1_MAX = 42;       /* 72px表示域：256×128内で可能な限り大きく（幅超え時は自動縮小） */
     const T3_L2_RATIO = 0.58;
     const T3_LINE_H = 1.04;
-    const T3_SCROLL_PX = DEMO_SIGNAGE ? 1.2 : 0.8;
+    const T3_SCROLL_PX = 0.8;
     const T3_TOP_HA_W = 256;
     const T3_TOP_HA_FONT_MAX = 15;
     const T3_LAPS_BEFORE_SWITCH = 4;
@@ -3786,6 +3888,7 @@
     function applyWbgtSlotsToDom(wbgtSlots) {
         if (!wbgtSlots || !hasFull4Slots(wbgtSlots)) {
             wbgtUnavailable = true;
+            syncWbgtDependentAlerts_();
             const nullSlot = { wbgt: null, hour: '取得不可' };
             const nullSlots = [nullSlot, nullSlot, nullSlot, nullSlot];
             if (Array.isArray(wbgtSlots)) {
@@ -3810,6 +3913,7 @@
         wbgtUnavailable = false;
         currentWbgtLevel = -1;
         lastWbgtSlots = null;
+        syncWbgtDependentAlerts_();
         document.querySelectorAll('#scene4 .fc-scroll-wrap, #scene4 .fc-lv-bar').forEach(function (el) {
             el.style.display = 'none';
         });
@@ -4339,14 +4443,12 @@
         if (currentWbgtLevel < 0) return unknownMsg.jp;
         return multi[currentWbgtLevel].jp;
     }
-    /* 下帯: 雨アラート優先（WBGTと連結しない）。シーン5下帯は getFcLvText */
+    /* 下帯: WBGT取得不可時は「取得不可」のみ（雨タグ等の非依存表示なし） */
     function getS1WbgtMessageJp() {
+        if (wbgtOffSeason) return '';
+        if (wbgtUnavailable || currentWbgtLevel < 0) return unknownMsg.jp;
         const rain = getRainAlertMessageJp();
-        let wbgt = '';
-        if (wbgtOffSeason) wbgt = '';
-        else if (wbgtUnavailable) wbgt = unknownMsg.jp;
-        else if (currentWbgtLevel < 0) wbgt = unknownMsg.jp;
-        else wbgt = multi[currentWbgtLevel].jp;
+        const wbgt = multi[currentWbgtLevel].jp;
         if (rain && wbgt) return rain + '　' + wbgt;
         return rain || wbgt;
     }
@@ -4495,7 +4597,7 @@
     /* シーン3の後 → シーン5(WBGT予報) → アラート → 警報 → シーン1 */
     function gotoAfterScene3Tail_() {
         if (WBGT_ONLY) { finishMainLoopToS1_(); return; }
-        if (heatAlertActive.length && sceneAlert) {
+        if (wbgtNormalDisplay_() && heatAlertActive.length && sceneAlert) {
             prepHeatAlert_(0);
             transitionToScene(sceneAlert, () => playSceneAlert(0));
             return;
@@ -4539,8 +4641,7 @@
         document.querySelectorAll('#sceneAlert .ha-l1').forEach(function (n) { n.textContent = def.name; });
         document.querySelectorAll('#sceneAlert .ha-l2').forEach(function (n) { n.textContent = def.line2; });
         sizeHeatAlertText_();
-        const logoPanel = document.querySelector('.logo-panel');
-        if (logoPanel) logoPanel.style.background = def.cls === 'ha-warning' ? '#70006A' : '#000000';
+        applySignageLogoPanel_();
         return true;
     }
     /* 1周=256px固定（スロット幅＝モジュール幅）→ 中央で止めたとき次目が見えない */
@@ -4626,7 +4727,7 @@
             sceneAlert.style.transform = 'translateX(0px)';
         }
         const badge = document.getElementById('demo-badge');
-        if (badge && !DEMO_EMBED) { badge.hidden = false; badge.textContent = '確認 · 熱中症アラート'; }
+        if (badge && shouldShowDemoBadge_()) { badge.hidden = false; badge.textContent = '確認 · 熱中症アラート'; }
         else if (badge) { badge.hidden = true; }
         if (!DEMO_EMBED) document.title = '熱中症アラート デモ';
         playSceneAlert(0);
@@ -5122,6 +5223,7 @@
             wbgtUnavailable = true;
             wbgtOffSeason = false;
             currentWbgtLevel = -1;
+            syncWbgtDependentAlerts_();
             const nullSlots = [{ wbgt: null, hour: '取得不可' }];
             lastWbgtSlots = nullSlots;
             updateForecastSlots(nullSlots);
@@ -5148,10 +5250,14 @@
         refreshSignageBg();
         const badge = document.getElementById('demo-badge');
         if (badge) {
-            badge.hidden = false;
-            badge.textContent = DEMO_SIGNAGE
-                ? 'デモ · 5秒順送り · ' + levelNames[levelIdx]
-                : 'デモ: ' + levelNames[levelIdx];
+            if (shouldShowDemoBadge_()) {
+                badge.hidden = false;
+                badge.textContent = DEMO_SIGNAGE
+                    ? 'デモ · 本番同様 · ' + levelNames[levelIdx]
+                    : 'デモ: ' + levelNames[levelIdx];
+            } else {
+                badge.hidden = true;
+            }
         }
         if (DEMO_SIGNAGE) {
             document.title = 'WBGTサイネージ フルデモ - ' + levelNames[levelIdx];
@@ -5183,7 +5289,7 @@
         applyReviewEnv_();
         const badge = document.getElementById('demo-badge');
         const onlyLabels = SCENE_LABEL_BY_KEY;
-        if (badge && !DEMO_EMBED) {
+        if (badge && shouldShowDemoBadge_()) {
             badge.hidden = false;
             badge.textContent = '確認 · ' + (onlyLabels[DEMO_ONLY] || DEMO_ONLY);
         } else if (badge) {
@@ -5210,7 +5316,7 @@
             const s1WbgtBar = document.querySelector('#scene1 .s1-wbgt-bar');
             if (s1WbgtBar) s1WbgtBar.style.display = hasS1WbgtFootMessage_() ? 'block' : 'none';
             if (s1) { s1.style.display = 'flex'; s1.classList.add('active'); }
-            if (badge) { badge.hidden = false; badge.textContent = 'プレビュー · シーン1 · ' + rainTag; }
+            if (badge && shouldShowDemoBadge_()) { badge.hidden = false; badge.textContent = 'プレビュー · シーン1 · ' + rainTag; }
             document.title = 'プレビュー シーン1（' + rainTag + '）';
             return;
         }
@@ -5220,7 +5326,7 @@
             prepT3_(0);
             applyT3TrackX_(tracks, 0);
             if (s3) { s3.style.display = 'flex'; s3.classList.add('active'); }
-            if (badge) { badge.hidden = false; badge.textContent = 'プレビュー · ' + SCENE_LABEL_BY_KEY.s3 + ' · ' + rainTag; }
+            if (badge && shouldShowDemoBadge_()) { badge.hidden = false; badge.textContent = 'プレビュー · ' + SCENE_LABEL_BY_KEY.s3 + ' · ' + rainTag; }
             document.title = 'プレビュー ' + SCENE_LABEL_BY_KEY.s3 + '（' + rainTag + '）';
         }
     }
