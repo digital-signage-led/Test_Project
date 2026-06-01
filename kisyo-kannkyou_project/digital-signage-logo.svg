@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-label="Digital Signage logo">
+  <defs>
+    <radialGradient id="gBase" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="75%" stop-color="#f3f6ff"/>
+      <stop offset="100%" stop-color="#d8deea"/>
+    </radialGradient>
+    <linearGradient id="gDots" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#85d546"/>
+      <stop offset="30%" stop-color="#37c3dd"/>
+      <stop offset="55%" stop-color="#3a82e2"/>
+      <stop offset="78%" stop-color="#7a45cf"/>
+      <stop offset="100%" stop-color="#d7439a"/>
+    </linearGradient>
+    <clipPath id="sphereClip">
+      <circle cx="110" cy="88" r="62"/>
+    </clipPath>
+  </defs>
+
+  <circle cx="110" cy="88" r="62" fill="url(#gBase)"/>
+  <g clip-path="url(#sphereClip)" fill="url(#gDots)" opacity="0.95">
+    <circle cx="62" cy="44" r="4.2"/><circle cx="78" cy="42" r="4.3"/><circle cx="94" cy="40" r="4.4"/><circle cx="110" cy="39" r="4.5"/><circle cx="126" cy="40" r="4.4"/><circle cx="142" cy="42" r="4.3"/><circle cx="158" cy="44" r="4.2"/>
+    <circle cx="55" cy="58" r="5"/><circle cx="72" cy="55" r="5.2"/><circle cx="90" cy="53" r="5.4"/><circle cx="110" cy="52" r="5.6"/><circle cx="130" cy="53" r="5.4"/><circle cx="148" cy="55" r="5.2"/><circle cx="165" cy="58" r="5"/>
+    <circle cx="49" cy="74" r="5.7"/><circle cx="68" cy="70" r="6"/><circle cx="88" cy="67" r="6.3"/><circle cx="110" cy="66" r="6.6"/><circle cx="132" cy="67" r="6.3"/><circle cx="152" cy="70" r="6"/><circle cx="171" cy="74" r="5.7"/>
+    <circle cx="46" cy="92" r="6.2"/><circle cx="66" cy="88" r="6.6"/><circle cx="88" cy="84" r="7"/><circle cx="110" cy="83" r="7.5"/><circle cx="132" cy="84" r="7"/><circle cx="154" cy="88" r="6.6"/><circle cx="174" cy="92" r="6.2"/>
+    <circle cx="49" cy="110" r="5.7"/><circle cx="68" cy="106" r="6"/><circle cx="88" cy="103" r="6.3"/><circle cx="110" cy="102" r="6.6"/><circle cx="132" cy="103" r="6.3"/><circle cx="152" cy="106" r="6"/><circle cx="171" cy="110" r="5.7"/>
+    <circle cx="55" cy="126" r="5"/><circle cx="72" cy="123" r="5.2"/><circle cx="90" cy="121" r="5.4"/><circle cx="110" cy="120" r="5.6"/><circle cx="130" cy="121" r="5.4"/><circle cx="148" cy="123" r="5.2"/><circle cx="165" cy="126" r="5"/>
+    <circle cx="62" cy="140" r="4.2"/><circle cx="78" cy="138" r="4.3"/><circle cx="94" cy="136" r="4.4"/><circle cx="110" cy="135" r="4.5"/><circle cx="126" cy="136" r="4.4"/><circle cx="142" cy="138" r="4.3"/><circle cx="158" cy="140" r="4.2"/>
+  </g>
+  <ellipse cx="110" cy="147" rx="46" ry="9" fill="#000000" opacity="0.14"/>
+
+  <g fill="#ffffff" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-weight="700" text-anchor="middle">
+    <text x="110" y="186" font-size="23">Digital</text>
+    <text x="110" y="209" font-size="23">Signage</text>
+  </g>
+</svg>
