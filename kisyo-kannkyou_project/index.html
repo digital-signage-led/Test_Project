@@ -67,7 +67,8 @@
         /* 右端 128×128（x≥512）: 上バー色で塗りつぶし・ロゴ中央 */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; background: #000000; order: 2; overflow: hidden; position: relative;
+            flex-shrink: 0; background: #3a3a3a; order: 2; overflow: hidden; position: relative;
+            transition: background-color 0.6s ease;
         }
         .logo-rotator {
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
@@ -632,6 +633,17 @@
             box-sizing: border-box;
             border: none;
             box-shadow: none;
+            position: relative;
+            background: transparent !important;
+            opacity: 1 !important;
+            animation: none !important;
+        }
+        /* 帯だけ点滅（文字は opacity の影響を受けない） */
+        .ra-pair.ra-hero-mode .ra-mid-band-unit::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 0;
             animation: raMidBandPulse 1.5s ease-in-out infinite;
         }
         @keyframes raMidBandPulse {
@@ -673,11 +685,12 @@
             justify-content: center;
             box-sizing: border-box;
             padding: 0 6px;
-            z-index: 3;
+            z-index: 5;
             background: transparent !important;
             box-shadow: none !important;
             animation: none !important;
             border: none !important;
+            opacity: 1 !important;
         }
         .ra-hero-chrome-top, .ra-hero-chrome-bot { display: none; }
         .ra-pair.ra-hero-mode .ra-hero-chrome-top {
@@ -779,7 +792,12 @@
             display: flex; align-items: center; justify-content: center;
             padding: 0 6px 2px; box-sizing: border-box; z-index: 2;
         }
-        .ra-hero-txt { max-height: 48px; overflow: hidden; z-index: 1; position: relative; }
+        .ra-hero-txt {
+            max-height: 48px; overflow: hidden;
+            z-index: 2; position: relative;
+            opacity: 1 !important;
+            animation: none !important;
+        }
         .ra-top-level, .ra-hero-txt, .ra-bot-txt {
             font-weight: 900; letter-spacing: 0.5px;
             text-align: center; line-height: 1.06;
@@ -796,7 +814,7 @@
         .ra-pair.ra-early.ra-hero-mode::after { background: #156082; }
         .ra-pair.ra-early.ra-hero-mode .ra-zone-top,
         .ra-pair.ra-early.ra-hero-mode .ra-zone-bot { background: transparent; }
-        .ra-pair.ra-early.ra-hero-mode .ra-mid-band-unit { background: #0E4A66; }
+        .ra-pair.ra-early.ra-hero-mode .ra-mid-band-unit::before { background: #0E4A66; }
         .ra-pair.ra-early.ra-hero-mode .ra-hero-txt,
         .ra-pair.ra-early.ra-hero-mode .ra-top-level,
         .ra-pair.ra-early.ra-hero-mode .ra-bot-txt { color: #FFFFFF; }
@@ -805,7 +823,7 @@
         .ra-pair.ra-advisory.ra-hero-mode::after { background: #F2E700; }
         .ra-pair.ra-advisory.ra-hero-mode .ra-zone-top,
         .ra-pair.ra-advisory.ra-hero-mode .ra-zone-bot { background: transparent; }
-        .ra-pair.ra-advisory.ra-hero-mode .ra-mid-band-unit { background: #CDB800; }
+        .ra-pair.ra-advisory.ra-hero-mode .ra-mid-band-unit::before { background: #CDB800; }
         .ra-pair.ra-advisory.ra-hero-mode .ra-hero-txt,
         .ra-pair.ra-advisory.ra-hero-mode .ra-top-level,
         .ra-pair.ra-advisory.ra-hero-mode .ra-bot-txt { color: #1a1a1a; }
@@ -814,7 +832,7 @@
         .ra-pair.ra-warning.ra-hero-mode::after { background: #FA2900; }
         .ra-pair.ra-warning.ra-hero-mode .ra-zone-top,
         .ra-pair.ra-warning.ra-hero-mode .ra-zone-bot { background: transparent; }
-        .ra-pair.ra-warning.ra-hero-mode .ra-mid-band-unit { background: #C82400; }
+        .ra-pair.ra-warning.ra-hero-mode .ra-mid-band-unit::before { background: #C82400; }
         .ra-pair.ra-warning.ra-hero-mode .ra-hero-txt,
         .ra-pair.ra-warning.ra-hero-mode .ra-top-level,
         .ra-pair.ra-warning.ra-hero-mode .ra-bot-txt { color: #FFFFFF; }
@@ -823,7 +841,7 @@
         .ra-pair.ra-danger.ra-hero-mode::after { background: #AB00AA; }
         .ra-pair.ra-danger.ra-hero-mode .ra-zone-top,
         .ra-pair.ra-danger.ra-hero-mode .ra-zone-bot { background: transparent; }
-        .ra-pair.ra-danger.ra-hero-mode .ra-mid-band-unit { background: #7A0078; }
+        .ra-pair.ra-danger.ra-hero-mode .ra-mid-band-unit::before { background: #7A0078; }
         .ra-pair.ra-danger.ra-hero-mode .ra-hero-txt,
         .ra-pair.ra-danger.ra-hero-mode .ra-top-level,
         .ra-pair.ra-danger.ra-hero-mode .ra-bot-txt { color: #FFFFFF; }
@@ -832,7 +850,7 @@
         .ra-pair.ra-special.ra-hero-mode::after { background: #000000; }
         .ra-pair.ra-special.ra-hero-mode .ra-zone-top,
         .ra-pair.ra-special.ra-hero-mode .ra-zone-bot { background: transparent; }
-        .ra-pair.ra-special.ra-hero-mode .ra-mid-band-unit { background: #333333; }
+        .ra-pair.ra-special.ra-hero-mode .ra-mid-band-unit::before { background: #333333; }
         .ra-pair.ra-special.ra-hero-mode .ra-hero-txt,
         .ra-pair.ra-special.ra-hero-mode .ra-top-level,
         .ra-pair.ra-special.ra-hero-mode .ra-bot-txt { color: #FFFFFF; }
@@ -850,13 +868,30 @@
             pointer-events: none;
             box-sizing: border-box;
             background: transparent;
+            isolation: isolate;
         }
+        .ra-pair.ra-hero-mode.ra-hero-bundle .ra-hero-mid-wrap::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            width: 512px; height: 48px;
+            z-index: 0;
+            animation: raMidBandPulse 1.5s ease-in-out infinite;
+        }
+        .ra-pair.ra-early.ra-hero-mode.ra-hero-bundle .ra-hero-mid-wrap::before { background: #0E4A66; }
+        .ra-pair.ra-advisory.ra-hero-mode.ra-hero-bundle .ra-hero-mid-wrap::before { background: #CDB800; }
+        .ra-pair.ra-warning.ra-hero-mode.ra-hero-bundle .ra-hero-mid-wrap::before { background: #C82400; }
+        .ra-pair.ra-danger.ra-hero-mode.ra-hero-bundle .ra-hero-mid-wrap::before { background: #7A0078; }
+        .ra-pair.ra-special.ra-hero-mode.ra-hero-bundle .ra-hero-mid-wrap::before { background: #333333; }
+        .ra-pair.ra-hero-mode.ra-hero-bundle .ra-mid-band-wrap { display: none !important; }
         .ra-pair.ra-hero-mode.ra-hero-bundle .ra-zone-mid .ra-hero-txt { display: none; }
         .ra-hero-mid-track {
             display: flex;
             flex-direction: row;
             align-items: center;
             height: 100%;
+            position: relative;
+            z-index: 1;
             will-change: transform;
             backface-visibility: hidden;
         }
@@ -880,6 +915,9 @@
             box-sizing: border-box;
             letter-spacing: 0.3px;
             font-size: 24px;
+            position: relative;
+            z-index: 2;
+            background: transparent !important;
             animation: none !important;
             opacity: 1 !important;
         }
@@ -1588,7 +1626,7 @@
         applySceneStripBg(content, levelIdx, displayMode);
     }
 
-    /** 右端 128×128 ロゴ列: Digital Signage ロゴ（黒背景・全シーン共通） */
+    /** 右端 128×128 ロゴ列: WBGT段階の上バー色（barColor）で塗りつぶし */
     function initSignageLogo_() {
         const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
         const cfg = global.SIGNAGE_CONFIG;
@@ -1599,7 +1637,7 @@
     function refreshLogoPanel(levelIdx, displayMode) {
         const panel = document.querySelector('.logo-panel');
         if (!panel) return;
-        panel.style.backgroundColor = (global.SIGNAGE_CONFIG && SIGNAGE_CONFIG.logoPanelBg) || '#000000';
+        panel.style.backgroundColor = colorsForDisplay(levelIdx, displayMode).barColor;
     }
 
     function refreshAll(currentLevelIdx, displayMode) {
@@ -1663,6 +1701,8 @@
     const DEMO_ALERT_ONLY = demoParam === 'alert' || query.get('only') === 'alert';  /* アラートのみ流すデモ */
     const DEMO_RAINWARN_ONLY = demoParam === 'rainwarn' || query.get('only') === 'rainwarn';
     const WBGT_ONLY = query.get('wbgtOnly') === '1';
+    /** 気象庁の警報・注意報（専用シーン・白ベース等）を出さない — no-warn.html 用。熱中症アラートは従来どおり */
+    const NO_JMA_WARN = query.get('norainwarn') === '1' || query.get('jmaWarn') === '0';
     const RAIN_HERO_OFF = query.get('rainhero') === '0';
     const RAIN_WHITE_DESIGN = query.get('rainwhite') === '1';
     /* 3段デザイン案は確認ボードと同じく既定ON（?rainhero=0 で従来レイアウト） */
@@ -2015,10 +2055,10 @@
     const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
 
-    /** 全シーン共通: Digital Signage ロゴパネル（signage-config.js） */
+    /** ロゴパネル: 現在の WBGT 段階色に同期 */
     function applySignageLogoPanel_() {
         if (typeof SignageBg !== 'undefined' && SignageBg.refreshLogoPanel) {
-            SignageBg.refreshLogoPanel(-1);
+            SignageBg.refreshLogoPanel(currentWbgtLevel, getSignageDisplayMode_());
         }
     }
 
@@ -2780,6 +2820,7 @@
         return false;
     }
     function whiteModeForced_() {
+        if (NO_JMA_WARN) return false;
         return parseRainWarnParam_().length > 0 || warnKindForced;
     }
     function parseRainWarnParam_() {
@@ -2792,12 +2833,12 @@
         if (v === 'all') return RAIN_WARN_ORDER.slice();
         return [];
     }
-    let rainWarnActive = parseRainWarnParam_();
-    if (DEMO_SIGNAGE && !DEMO_ONLY && !parseRainWarnParam_().length) {
+    let rainWarnActive = NO_JMA_WARN ? [] : parseRainWarnParam_();
+    if (!NO_JMA_WARN && DEMO_SIGNAGE && !DEMO_ONLY && !parseRainWarnParam_().length) {
         rainWarnActive = ['warning', 'danger', 'special'];
     }
     let rainWarnKindActive = parseWarnKindParam_();
-    const rainWarnForced = parseRainWarnParam_().length > 0 || DEMO_SIGNAGE || DEMO_RAINWARN_ONLY;
+    const rainWarnForced = !NO_JMA_WARN && (parseRainWarnParam_().length > 0 || DEMO_SIGNAGE || DEMO_RAINWARN_ONLY);
     const warnKindForced = !!(query.get('warntype') || query.get('warnkind'));
     function buildRainWhiteDemoQueue_() {
         const q = [];
@@ -2904,7 +2945,7 @@
     }
     if (RAIN_WHITE_DESIGN) {
         syncRainWarnActiveForWhite_();
-    } else if (!rainWarnActive.length && DEMO_RAINWARN_ONLY) {
+    } else if (!NO_JMA_WARN && !rainWarnActive.length && DEMO_RAINWARN_ONLY) {
         rainWarnActive = RAIN_WARN_ORDER.slice();
     }
     function shouldUseHeroLayout_(levelKey) {
@@ -3002,7 +3043,7 @@
         return i >= 0 ? i + 1 : 0;
     }
     function applyRainWarnLevel_(level, kinds, warnJson) {
-        if (WBGT_ONLY) {
+        if (WBGT_ONLY || NO_JMA_WARN) {
             rainWarnActive = [];
             rainWarnKindActive = ['rain'];
             queueDisplayRefresh_();
@@ -3043,7 +3084,7 @@
         return JMA_LEVEL_KIND_ORDER.warning.filter(function (k) { return found[k]; });
     }
     async function updateRainWarnFromGas_() {
-        if (WBGT_ONLY) return;
+        if (WBGT_ONLY || NO_JMA_WARN) return;
         if (!wbgtNormalDisplay_() && !rainWarnForced && !whiteModeForced_()) {
             applyRainWarnLevel_('none', null);
             return;
@@ -3135,7 +3176,7 @@
         return best;
     }
     async function updateRainWarnFromJmaDirect_() {
-        if (WBGT_ONLY) return;
+        if (WBGT_ONLY || NO_JMA_WARN) return;
         try {
             const [wRes, pRes] = await Promise.all([
                 fetch('https://www.jma.go.jp/bosai/warning/data/warning/' + JMA_WARN_AREA + '.json', { cache: 'no-store' }),
