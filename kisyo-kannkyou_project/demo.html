@@ -7,40 +7,17 @@
     <style>
         * { box-sizing: border-box; }
         html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%;
+            margin: 0; padding: 0; width: 640px; height: 128px;
             background: #000; overflow: hidden;
         }
-        .stage {
-            width: 100vw; height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .frame {
-            width: 640px; height: 128px;
-            flex-shrink: 0; overflow: hidden;
-        }
-        .frame iframe {
+        iframe {
+            position: absolute; top: 0; left: 0;
             width: 640px; height: 128px;
             border: 0; display: block;
         }
-        .foot {
-            position: fixed; bottom: 10px; left: 0; right: 0;
-            text-align: center;
-            font: 11px/1.5 "Segoe UI", "Noto Sans JP", sans-serif;
-            color: #555;
-        }
-        .foot a { color: #666; margin: 0 8px; }
     </style>
 </head>
 <body>
-    <div class="stage">
-        <div class="frame">
-            <iframe src="index.html?demo=1&amp;native640=1" title="WBGTサイネージ デモ"></iframe>
-        </div>
-    </div>
-    <p class="foot">
-        640×128 · 全コンテンツ5秒間隔で順送り
-        · <a href="review-board.html">確認ボード</a>
-        · <a href="index.html?native640=1">本番</a>
-    </p>
+    <iframe src="index.html?demo=1&amp;native640=1&amp;embed=1" title="WBGTサイネージ デモ"></iframe>
 </body>
 </html>
