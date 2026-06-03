@@ -111,7 +111,7 @@ body.prod #gear,body.prod #demo{display:none!important;}
       <button onclick="setRain(3)">3</button><button onclick="setRain(4)">4</button><button onclick="setRain(5)">5</button>
     </div>
   </div>
-  <div class="note">⚠ 本番: gas/api.gs を1回デプロイ → CONFIG.GAS_URL に設定 / DEMO_MODE:false</div>
+  <div class="note">⚠ 本番: gas/api.gs を貼り付け→「新しいデプロイ」必須。古いGASのままだと取得不可になります。</div>
 </div>
 
 <!-- ===== WBGT BOARD ===== -->
@@ -177,9 +177,9 @@ body.prod #gear,body.prod #demo{display:none!important;}
 const CONFIG = {
   DEMO_MODE:    false,       // true=デモ（⚙表示） / false=本番（⚙非表示）★本番はfalse
   DEFAULT_MODE: 'wbgt',      // 起動画面: 'wbgt' | 'rain'
-  GAS_URL:        'https://script.google.com/macros/s/AKfycbwG9sWN2IrfDXPJlTXW0AkZI1e_P1boL9GoT7HrR-7h6_tJU09c5RK2-nT1tDz6aE35/exec',
-  WBGT_POINT:     '505610',  // 環境省 石廊崎（API内部は50561）
-  RAIN_AREA:      '220020',  // 気象庁 静岡県伊豆（一次細分区域）
+  GAS_URL:        'https://script.google.com/macros/s/AKfycbypX8gmSDsx449D61PUHEkud6863ENczcivJ4axfVxZhLNDtcjx1we7fYTPeTw0kmBx/exec',
+  WBGT_POINT:     '453710',  // 環境省 勝浦（いすみ市最寄り・APIは45371）
+  RAIN_AREA:      '1223800', // 気象庁 千葉県いすみ市
   FETCH_MIN:      15,        // データ取得間隔（分）
   SHOW_CREDIT:    true,      // データ提供元表示（法令上必須）
 };
