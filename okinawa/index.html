@@ -1369,7 +1369,7 @@
  *
  * moe.point … 環境省 WBGT 5桁地点コード（必須）
  * moe.pointName … 任意（省略時は GAS が CSV ヘッダーから取得）
- * moe.alertArea … 熱中症アラート用の府県名（本番で alert 利用時）
+ * moe.alertArea … 熱中症アラート用の府県予報区名（例: 八重山地方）
  *
  * jma.amedasPoint … 気象庁 AMeDAS（4面・5面共通）
  * jma.forecastArea … 気象庁予報区域（4面・5面共通）
@@ -1386,13 +1386,13 @@
     moe: {
       /* 環境省 WBGT（大原） */
       gasUrl:
-        'https://script.google.com/macros/s/AKfycbydDnPzuNH2zhhuLaww9TXi1_zJhpeVGJCrRSEoJFvOX-iQInBEqwzKYgPBqx-gmzp6/exec',
+        'https://script.google.com/macros/s/AKfycby9KjyTCvmS41XQUEAcW8Zchbp_yZ8i1zM40gKyl4PS5ELS5c8tHQp1hKtSjT7GyFw/exec',
       /* 環境省 WBGT 94101（大原） */
       point: '94101',
       /* 表示と実データを一致させるため、欠測時フォールバックは使わない */
       fallbackPoint: '',
       pointName: '大原',
-      alertArea: '沖縄県',
+      alertArea: '八重山地方',
       /* 環境省グラフURL用（沖縄 region=11 / prefecture=9194） */
       region: '11',
       prefecture: '9194'
@@ -1566,14 +1566,14 @@
     <div class="scene" id="scene4">
         <div class="fc-scroll-wrap">
             <div class="fc-track" id="fc-conveyor">
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
             </div>
         </div>
         <div class="fc-lv-bar"><div class="fc-lv-track" id="fc-lv-track"></div></div>
@@ -1946,7 +1946,7 @@
     /*
      * 流れる順の表示番号（順序は変えずラベルのみ）
      *  1 時刻＋WBGT下帯 (s1) → 2 アメダス (s2) → 3 4日予報 (s5)
-     *  → 4 多言語WBGT (s3) → 5 WBGT予報 (s4) → 熱中症アラート (alert) → 大雨警報 (rainwarn) → 1へ
+     *  → 4 多言語WBGT (s3) → 5 WBGT実況値 (s4) → 熱中症アラート (alert) → 大雨警報 (rainwarn) → 1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
      */
     function normalizeOnlyParam_(raw) {
@@ -1958,7 +1958,7 @@
         return map[v] || null;
     }
     const SCENE_LABEL_BY_KEY = {
-        s1: 'シーン1', s2: 'シーン2', s5: 'シーン3', s3: 'シーン4', s4: 'シーン5', alert: '熱中症アラート', rainwarn: '大雨警報'
+        s1: 'シーン1', s2: 'シーン2', s5: 'シーン3', s3: 'シーン4', s4: 'WBGT実況値', alert: '熱中症アラート', rainwarn: '大雨警報'
     };
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
@@ -2080,7 +2080,9 @@
     const DEMO_WBGT_BY_LEVEL = [19.0, 22.0, 26.0, 29.0, 32.0];
     let demoLevelPointer = 0;
     const MOE_WBGT_POINT = query.get('moePoint') || (SITE_CFG.moe && SITE_CFG.moe.point) || '94101';
-    const MOE_ALERT_AREA = query.get('alertArea') || (SITE_CFG.moe && SITE_CFG.moe.alertArea) || '沖縄県';
+    const MOE_ALERT_AREA = query.get('alertArea') || (SITE_CFG.moe && SITE_CFG.moe.alertArea) || '八重山地方';
+    const MOE_ALERT_FORECAST_CODE = query.get('forecastArea')
+        || (SITE_CFG.jma && SITE_CFG.jma.forecastArea) || '474000';
     const MOE_POINT_CFG = {
         prefKey: 'okinawa',
         pointName: (SITE_CFG.site && SITE_CFG.site.label) || '大原'
@@ -2178,10 +2180,10 @@
         { jp:"【危険】作業を直ちに中止", en:"Danger: Stop work immediately", vn:"Nguy hiểm: Dừng công việc ngay", tl:"【Panganib】Itigil agad ang trabaho" }
     ];
     const SCENE4_FOOT_ATTR = '出典：気象庁・環境省データ';
-    const FC_BAR_LABELS = ['暑さ指数', 'WBGT'];
+    const FC_BAR_LABEL = 'WBGT実況値';
 
-    function fcBarLabelForPanel_(index) {
-        return FC_BAR_LABELS[index % 2];
+    function fcBarLabelForPanel_() {
+        return FC_BAR_LABEL;
     }
     const unknownMsg = { jp:"WBGTデータ取得不可", en:"WBGT data unavailable", vn:"Không có dữ liệu WBGT", tl:"Hindi makuha ang datos ng WBGT" };
     const levelNames = ['ほぼ安全', '注意', '警戒', '厳重警戒', '危険'];
@@ -2408,9 +2410,6 @@
     function heatAlertPreviewBypassTier_() {
         return parseHeatAlertParam_().length > 0 || DEMO_ALERT_ONLY;
     }
-    function isWbgtTierDanger_() {
-        return currentWbgtLevel >= 4;
-    }
     function levelFromMoeAlert_(level) {
         if (level === 'special') return ['special'];
         if (level === 'warning') return ['warning'];
@@ -2430,7 +2429,7 @@
                 : (DEMO_ALERT_ONLY ? ['warning', 'special'] : []);
             return;
         }
-        if (!isWbgtTierDanger_()) {
+        if (!wbgtNormalDisplay_()) {
             heatAlertActive = [];
             return;
         }
@@ -2445,6 +2444,60 @@
     const HA_LAPS_BEFORE_SWITCH = 4; /* 256px×4周で次アラートへ */
     let haAnimId = null;
     let haFlow_ = null;
+    function moeAlertLevelFromFlags_(td1, td2) {
+        const a = String(td1 == null ? '0' : td1).trim();
+        const b = String(td2 == null ? '0' : td2).trim();
+        if (a === '3' || b === '3' || a === '2' || b === '2') return 'special';
+        if (a === '1' || b === '1') return 'warning';
+        return 'none';
+    }
+    function parseMoeAlertLevelFromCsvText_(text, forecastCode, alertArea) {
+        const t = String(text || '').replace(/^\uFEFF/, '');
+        if (forecastCode) {
+            const reCode = new RegExp(
+                '(?:^|\\r?\\n)([^,\\r\\n]+),\\d+,\\d+,' + forecastCode + ',[^,\\r\\n]+,\\d+,([0-9]),([0-9]),'
+            );
+            const mCode = t.match(reCode);
+            if (mCode) {
+                return { level: moeAlertLevelFromFlags_(mCode[2], mCode[3]), area: mCode[1] };
+            }
+        }
+        if (alertArea) {
+            const esc = String(alertArea).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const reArea = new RegExp(
+                '(?:^|\\r?\\n)(' + esc + '),\\d+,\\d+,\\d+,[^,\\r\\n]+,\\d+,([0-9]),([0-9]),'
+            );
+            const mArea = t.match(reArea);
+            if (mArea) {
+                return { level: moeAlertLevelFromFlags_(mArea[2], mArea[3]), area: mArea[1] };
+            }
+        }
+        return { level: 'none', area: '' };
+    }
+    async function fetchMoeAlertCsvRawFromGas_() {
+        const base = appendMoePointToUrl(MOE_WBGT_API_URL);
+        if (!base) return '';
+        const sep = base.indexOf('?') >= 0 ? '&' : '?';
+        const url = base + sep + 'type=alertraw&_=' + Date.now();
+        try {
+            const json = await fetchMoeJsonFromGasUrl_(url);
+            return json && json.csvText ? json.csvText : '';
+        } catch (e) {
+            return '';
+        }
+    }
+    async function resolveHeatAlertLevelFromGas_(alertJson) {
+        const direct = alertJson && alertJson.level;
+        if (direct && direct !== 'none') return direct;
+        const raw = await fetchMoeAlertCsvRawFromGas_();
+        if (!raw) return direct || 'none';
+        const parsed = parseMoeAlertLevelFromCsvText_(raw, MOE_ALERT_FORECAST_CODE, MOE_ALERT_AREA);
+        if (parsed.level !== 'none') {
+            console.log('[アラート] CSV直接解析', parsed.area || MOE_ALERT_AREA, parsed.level);
+            return parsed.level;
+        }
+        return direct || 'none';
+    }
     /* 環境省 熱中症警戒アラートを GAS 経由で取得し level を更新 */
     async function updateHeatAlertFromGas_() {
         if (WBGT_ONLY) return;
@@ -2453,7 +2506,7 @@
         const base = appendMoeAlertToUrl(MOE_WBGT_API_URL);
         if (!base) return;
         const sep = base.indexOf('?') >= 0 ? '&' : '?';
-        const url = base + sep + 'type=alert';
+        const url = base + sep + 'type=alert&_=' + Date.now();
         let json = null;
         try {
             const res = await fetch(url, { cache: 'no-store', redirect: 'follow', mode: 'cors' });
@@ -2467,8 +2520,9 @@
                 return;
             }
         }
-        applyHeatAlertLevel_(json && json.level);
-        console.log('[アラート] 環境省', (json && json.area) || '', (json && json.level) || 'none',
+        const level = await resolveHeatAlertLevelFromGas_(json);
+        applyHeatAlertLevel_(level);
+        console.log('[アラート] 環境省', (json && json.area) || MOE_ALERT_AREA, level,
             json && json.today ? json.today.label : '', json && json.tomorrow ? json.tomorrow.label : '');
     }
     function applyHeatAlertLevel_(level) {
@@ -4267,13 +4321,13 @@
     }
     function updateForecastSlots(slots) {
         const arr = (slots && slots.length) ? slots : [{ wbgt: null, levelIdx: 0, hour: '現在' }];
+        const liveSlot = arr[0] || { wbgt: null, levelIdx: 0, hour: '現在' };
         document.querySelectorAll('#scene4 .fc-track .fc-panel').forEach(function (panel, i) {
             const slotIdx = i % SCENE4_PANEL_COUNT;
-            const slot = arr[slotIdx] || arr[0];
-            const isUnknown = slot.wbgt == null;
-            const wbgtHtml = isUnknown ? '--' : formatFcWbgtHtml(slot.wbgt);
+            const isUnknown = liveSlot.wbgt == null;
+            const wbgtHtml = isUnknown ? '--' : formatFcWbgtHtml(liveSlot.wbgt);
             panel.className = 'fc-panel fc-slot-' + (slotIdx % 2);
-            panel.querySelectorAll('.fc-bar-label').forEach(function (el) { el.innerText = fcBarLabelForPanel_(slotIdx); });
+            panel.querySelectorAll('.fc-bar-label').forEach(function (el) { el.innerText = fcBarLabelForPanel_(); });
             panel.querySelectorAll('.fc-val-live').forEach(function (el) { el.innerHTML = wbgtHtml; });
         });
         queueDisplayRefresh_();
@@ -4530,15 +4584,16 @@
         }
         return json;
     }
-    function applyMoeAlertFromJson_(alertJson) {
+    async function applyMoeAlertFromJson_(alertJson) {
         if (WBGT_ONLY || heatAlertForced) return;
         if (!wbgtNormalDisplay_() && !heatAlertForced) return;
         if (!alertJson || alertJson.source !== 'moe-alert') {
             applyHeatAlertLevel_('none');
             return;
         }
-        applyHeatAlertLevel_(alertJson.level);
-        console.log('[アラート] 環境省', alertJson.area || '', alertJson.level || 'none',
+        const level = await resolveHeatAlertLevelFromGas_(alertJson);
+        applyHeatAlertLevel_(level);
+        console.log('[アラート] 環境省', alertJson.area || MOE_ALERT_AREA, level,
             alertJson.today ? alertJson.today.label : '', alertJson.tomorrow ? alertJson.tomorrow.label : '');
     }
     async function fetchWbgtFromMoeApi() {
@@ -4565,7 +4620,7 @@
                     const unpacked = unpackMoeGasResponse_(raw);
                     if (!unpacked || !unpacked.wbgt) continue;
                     if (unpacked.alert) {
-                        applyMoeAlertFromJson_(unpacked.alert);
+                        await applyMoeAlertFromJson_(unpacked.alert);
                         alertApplied = true;
                     }
                     const wbgt = unpacked.wbgt;
@@ -5287,7 +5342,7 @@
         if (demoOnlyLoop_('s1', playScene1)) return;
         transitionToScene(s2, playScene2);
     }
-    /* シーン3の後 → シーン5(WBGT予報) → 多言語アラート → 専用アラート → 警報 → シーン1 */
+    /* シーン3の後 → WBGT実況値(s4) → 多言語アラート → 専用アラート → 警報 → シーン1 */
     function gotoAfterScene3Tail_() {
         if (WBGT_ONLY) { finishMainLoopToS1_(); return; }
         if (wbgtNormalDisplay_() && heatAlertActive.length) {
