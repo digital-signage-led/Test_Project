@@ -427,23 +427,25 @@
         #scene5 .d5-body .s2-val { flex-shrink: 0; }
         #scene5 .d5-body .s2-num { font-size: 38px; }
         #scene5 .d5-body .s2-unit { font-size: 18px; }
-        /* 今日のみ 128×128 枠で強調 — 四辺とも同じ 2px 線 */
+        /* 今日のみ 128×128 枠で強調 — 実DOM（LEDサイネージで ::after が欠ける対策） */
         #scene5 .d5-panel.d5-today-focus {
             position: relative;
             z-index: 2;
             box-shadow: none;
         }
-        #scene5 .d5-panel.d5-today-focus::after {
-            content: '';
+        #scene5 .d5-today-frame {
             position: absolute;
-            inset: 0;
+            left: 0;
+            top: 0;
+            width: 128px;
+            height: 128px;
             box-sizing: border-box;
             border: 2px solid #1a1a1a;
             pointer-events: none;
-            z-index: 4;
+            z-index: 10;
         }
         /* 今日枠: ほぼ安全・厳重警戒・危険=白 / 注意・警戒=黒 */
-        #scene5 .d5-panel.d5-today-focus.d5-today-frame-white::after {
+        #scene5 .d5-panel.d5-today-focus.d5-today-frame-white .d5-today-frame {
             border-color: #ffffff;
         }
         #scene5 { overflow: hidden; }
@@ -1566,14 +1568,14 @@
     <div class="scene" id="scene4">
         <div class="fc-scroll-wrap">
             <div class="fc-track" id="fc-conveyor">
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT実況値</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
             </div>
         </div>
         <div class="fc-lv-bar"><div class="fc-lv-track" id="fc-lv-track"></div></div>
@@ -1581,11 +1583,11 @@
 
     <div class="scene forecast-scene daily-scene" id="scene5">
         <div class="d5-track" id="d5-conveyor">
-            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div></div>
+            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
             <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div></div>
             <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div></div>
             <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div></div>
-            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div></div>
+            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
             <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div></div>
             <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div></div>
             <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">大原</div></div></div>
@@ -2168,6 +2170,7 @@
     let lastAmedasRainNow = false;
     let lastAmedasObsTime = null;
     let pendingDisplayRefresh = false;
+    let pendingWbgtSlotsVisual_ = null;
     /* 環境省WBGTの提供期間外（冬季など）は true。WBGT表示を全て隠す */
     let wbgtOffSeason = false;
     let wbgtUnavailable = false;
@@ -2180,10 +2183,10 @@
         { jp:"【危険】作業を直ちに中止", en:"Danger: Stop work immediately", vn:"Nguy hiểm: Dừng công việc ngay", tl:"【Panganib】Itigil agad ang trabaho" }
     ];
     const SCENE4_FOOT_ATTR = '出典：気象庁・環境省データ';
-    const FC_BAR_LABEL = 'WBGT実況値';
+    const FC_BAR_LABELS = ['WBGT', '暑さ指数', 'WBGT', '暑さ指数'];
 
-    function fcBarLabelForPanel_() {
-        return FC_BAR_LABEL;
+    function fcBarLabelForPanel_(slotIdx) {
+        return FC_BAR_LABELS[(slotIdx | 0) % FC_BAR_LABELS.length];
     }
     const unknownMsg = { jp:"WBGTデータ取得不可", en:"WBGT data unavailable", vn:"Không có dữ liệu WBGT", tl:"Hindi makuha ang datos ng WBGT" };
     const levelNames = ['ほぼ安全', '注意', '警戒', '厳重警戒', '危険'];
@@ -3804,6 +3807,7 @@
         }
     }
     function finishMainLoopToS1_() {
+        applyDeferredLoopRefresh_(true);
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
         transitionToScene(s1, playScene1);
     }
@@ -4266,18 +4270,21 @@
         return `<span class="fc-wbgt-num">${Number(wbgt).toFixed(1)}</span><span class="fc-wbgt-unit">℃</span>`;
     }
     function fitFcBarLabelFontSize_() {
-        const probe = document.querySelector('#scene4 .fc-bar-label');
-        if (!probe) return;
+        const labels = document.querySelectorAll('#scene4 .fc-bar-label');
+        if (!labels.length) return;
         const maxW = 120;
         const setAll = function (fz) {
-            document.querySelectorAll('#scene4 .fc-bar-label').forEach(function (el) {
-                el.style.fontSize = fz + 'px';
-            });
+            labels.forEach(function (el) { el.style.fontSize = fz + 'px'; });
         };
         let fz = 20;
         setAll(fz);
         let guard = 40;
-        while (guard-- > 0 && probe.scrollWidth > maxW && fz > 13) {
+        while (guard-- > 0 && fz > 13) {
+            let overflow = false;
+            labels.forEach(function (el) {
+                if (el.scrollWidth > maxW) overflow = true;
+            });
+            if (!overflow) break;
             fz -= 1;
             setAll(fz);
         }
@@ -4327,7 +4334,7 @@
             const isUnknown = liveSlot.wbgt == null;
             const wbgtHtml = isUnknown ? '--' : formatFcWbgtHtml(liveSlot.wbgt);
             panel.className = 'fc-panel fc-slot-' + (slotIdx % 2);
-            panel.querySelectorAll('.fc-bar-label').forEach(function (el) { el.innerText = fcBarLabelForPanel_(); });
+            panel.querySelectorAll('.fc-bar-label').forEach(function (el) { el.innerText = fcBarLabelForPanel_(slotIdx); });
             panel.querySelectorAll('.fc-val-live').forEach(function (el) { el.innerHTML = wbgtHtml; });
         });
         queueDisplayRefresh_();
@@ -4462,6 +4469,11 @@
             wbgtUnavailable = false;
         }
         syncWbgtLevelFromSlots(wbgtSlots);
+        if (shouldDeferDisplayRefresh_()) {
+            pendingWbgtSlotsVisual_ = wbgtSlots;
+            queueDisplayRefresh_();
+            return hasFull4Slots(wbgtSlots);
+        }
         refreshSignageBg();
         updateForecastSlots(wbgtSlots);
         queueDisplayRefresh_();
@@ -4481,9 +4493,8 @@
             el.style.display = 'none';
         });
         refreshSignageBg();
-        buildS1WbgtTrack(false);
-        buildFcLvTrack(false);
-        flushDisplayRefresh_();
+        queueDisplayRefresh_();
+        if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(true);
     }
     function applyWbgtInSeason_() {
         wbgtOffSeason = false;
@@ -4491,11 +4502,29 @@
             el.style.display = '';
         });
     }
+    function isMainLoopPlaying_() {
+        if (DEMO_ONLY || DEMO_ALERT_ONLY || DEMO_RAINWARN_ONLY) return false;
+        if (DEMO_PREVIEW === 's1' || DEMO_PREVIEW === 's3') return false;
+        return !!getActiveScene();
+    }
+    function shouldDeferDisplayRefresh_() {
+        return isMainLoopPlaying_();
+    }
+    function applyDeferredLoopRefresh_(force) {
+        if (pendingWbgtSlotsVisual_ != null) {
+            const slots = pendingWbgtSlotsVisual_;
+            pendingWbgtSlotsVisual_ = null;
+            refreshSignageBg();
+            updateForecastSlots(slots);
+        }
+        flushDisplayRefresh_(!!force);
+    }
     function queueDisplayRefresh_() {
         pendingDisplayRefresh = true;
     }
-    function flushDisplayRefresh_() {
-        if (!pendingDisplayRefresh) return;
+    function flushDisplayRefresh_(force) {
+        if (!pendingDisplayRefresh && !force) return;
+        if (!force && shouldDeferDisplayRefresh_()) return;
         pendingDisplayRefresh = false;
         buildTicker();
         buildS1WbgtTrack(false);
@@ -4519,7 +4548,6 @@
                     el.style.display = '';
                 });
                 moeOk = applyWbgtSlotsToDom(wbgtSlots);
-                buildS1WbgtTrack(false);
             }
             await updateHeatAlertFromGas_();
         }
@@ -4794,11 +4822,19 @@
     function isD5TodayFrameWhite_(levelIdx) {
         return levelIdx === 0 || levelIdx === 3 || levelIdx === 4;
     }
+    function ensureD5TodayFrame_(panel) {
+        if (!panel || panel.querySelector('.d5-today-frame')) return;
+        const frame = document.createElement('div');
+        frame.className = 'd5-today-frame';
+        frame.setAttribute('aria-hidden', 'true');
+        panel.appendChild(frame);
+    }
     function applyD5TodayFrame_() {
         const mode = getSignageDisplayMode_();
         const lv = mode === 'normal' ? currentWbgtLevel : -1;
         const white = lv >= 0 && isD5TodayFrameWhite_(lv);
         document.querySelectorAll('#scene5 .d5-panel.d5-today-focus').forEach(function (panel) {
+            ensureD5TodayFrame_(panel);
             panel.classList.toggle('d5-today-frame-white', white);
         });
     }
