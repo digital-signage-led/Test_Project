@@ -1374,6 +1374,7 @@
  * moe.alertArea … 熱中症アラート用の府県予報区名（例: 八重山地方）
  *
  * jma.amedasPoint … 気象庁 AMeDAS（4面・5面共通）
+ * jma.amedasPressureFallback … 気圧欠測時の近傍AMeDAS（例: 94081 石垣島）
  * jma.forecastArea … 気象庁予報区域（4面・5面共通）
  */
 (function (global) {
@@ -1401,8 +1402,10 @@
     },
     jma: {
       /* 気象庁 AMeDAS（大原） */
-      /* 大原（94101） */
+      /* 大原（94101）— 気圧は配信なしのため石垣島で代用 */
       amedasPoint: '94101',
+      amedasPressureFallback: '94081',
+      amedasPressureFallbackLabel: '石垣島',
       forecastArea: '474000'
     },
     geo: { lat: 24.265, lon: 123.8717 },
@@ -2146,6 +2149,14 @@
     }
     const JMA_AMEDAS_POINT =
         query.get('jmaPoint') || (SITE_CFG.jma && SITE_CFG.jma.amedasPoint) || '94101';
+    const JMA_AMEDAS_PRESSURE_FALLBACK =
+        query.get('jmaPresFallback') != null
+            ? String(query.get('jmaPresFallback') || '')
+            : ((SITE_CFG.jma && SITE_CFG.jma.amedasPressureFallback) || '');
+    const JMA_AMEDAS_PRESSURE_FALLBACK_LABEL =
+        query.get('jmaPresFallbackLabel') ||
+        (SITE_CFG.jma && SITE_CFG.jma.amedasPressureFallbackLabel) ||
+        '';
     const JMA_FORECAST_AREA_CODE =
         query.get('jmaArea') || (SITE_CFG.jma && SITE_CFG.jma.forecastArea) || '474000';
     const JMA_FETCH_HEADERS = { cache: 'no-store' };
@@ -2169,11 +2180,16 @@
     let rainNowcastAlert = { level: 'none', messageJp: '', leadMin: null, updatedAt: null };
     let lastAmedasRainNow = false;
     let lastAmedasObsTime = null;
+    let lastAmedasPresFallbackLabel_ = '';
     let pendingDisplayRefresh = false;
-    let pendingWbgtSlotsVisual_ = null;
     /* 環境省WBGTの提供期間外（冬季など）は true。WBGT表示を全て隠す */
     let wbgtOffSeason = false;
     let wbgtUnavailable = false;
+    /** 連続取得失敗がこの時間を超えたときだけ「取得不可」表示（ms） */
+    const WBGT_UNAVAILABLE_GRACE_MS = 60000;
+    let wbgtFailSinceMs_ = null;
+    let lastGoodWbgtSlots_ = null;
+    let wbgtUnavailableTimerId_ = null;
 
     const multi = [
         { jp:"【ほぼ安全】適宜水分補給", en:"Safe: Stay hydrated", vn:"An toàn: Bổ sung nước", tl:"【Halos ligtas】Uminom ng tubig kung kailangan" },
@@ -2319,7 +2335,7 @@
                 if (MOE_ALERT_HOURS.includes(h)) {
                     const atAl = jstMsFromParts(dp.year, dp.month, dp.day, h, MOE_ALERT_MINUTE, 0);
                     if (atAl > fromMs && atAl <= horizonEnd) {
-                        events.push({ at, jma: false, moe: true, nowc: false, forecast: false, label: 'moe-alert' });
+                        events.push({ at: atAl, jma: false, moe: true, nowc: false, forecast: false, label: 'moe-alert' });
                     }
                 }
             }
@@ -4303,20 +4319,23 @@
         let lo = minSz;
         let hi = maxSz;
         let best = minSz;
-        while (lo <= hi) {
-            const mid = Math.floor((lo + hi) / 2);
-            num.style.fontSize = mid + 'px';
-            if (unit) unit.style.fontSize = Math.max(unitMin, Math.round(mid * unitRatio)) + 'px';
-            if (wrap.scrollWidth <= maxW && wrap.scrollHeight <= maxH) {
-                best = mid;
-                lo = mid + 1;
-            } else {
-                hi = mid - 1;
+        try {
+            while (lo <= hi) {
+                const mid = Math.floor((lo + hi) / 2);
+                num.style.fontSize = mid + 'px';
+                if (unit) unit.style.fontSize = Math.max(unitMin, Math.round(mid * unitRatio)) + 'px';
+                if (wrap.scrollWidth <= maxW && wrap.scrollHeight <= maxH) {
+                    best = mid;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
             }
+            num.style.fontSize = best + 'px';
+            if (unit) unit.style.fontSize = Math.max(unitMin, Math.round(best * unitRatio)) + 'px';
+        } finally {
+            wrap.style.visibility = prevVis || '';
         }
-        num.style.fontSize = best + 'px';
-        if (unit) unit.style.fontSize = Math.max(unitMin, Math.round(best * unitRatio)) + 'px';
-        wrap.style.visibility = prevVis;
         return best;
     }
     function fitFcWbgtFontSize() {
@@ -4336,6 +4355,9 @@
             panel.className = 'fc-panel fc-slot-' + (slotIdx % 2);
             panel.querySelectorAll('.fc-bar-label').forEach(function (el) { el.innerText = fcBarLabelForPanel_(slotIdx); });
             panel.querySelectorAll('.fc-val-live').forEach(function (el) { el.innerHTML = wbgtHtml; });
+        });
+        document.querySelectorAll('#scene4 .fc-wbgt').forEach(function (wrap) {
+            wrap.style.visibility = '';
         });
         queueDisplayRefresh_();
         fitFcBarLabelFontSize_();
@@ -4452,37 +4474,77 @@
         }
         return parseMoeJson_(json);
     }
-    function applyWbgtSlotsToDom(wbgtSlots) {
-        if (!wbgtSlots || !hasFull4Slots(wbgtSlots)) {
-            wbgtUnavailable = true;
-            syncWbgtDependentAlerts_();
-            const nullSlot = { wbgt: null, hour: '取得不可' };
-            const nullSlots = [nullSlot, nullSlot, nullSlot, nullSlot];
-            if (Array.isArray(wbgtSlots)) {
-                wbgtSlots = wbgtSlots.slice(0, 4);
-                while (wbgtSlots.length < 4) wbgtSlots.push(nullSlots[wbgtSlots.length]);
-                for (let i = 0; i < 4; i++) if (wbgtSlots[i]?.wbgt == null) wbgtSlots[i] = nullSlots[i];
-            } else {
-                wbgtSlots = nullSlots;
-            }
-        } else {
-            wbgtUnavailable = false;
+    function clearWbgtUnavailableGrace_() {
+        wbgtFailSinceMs_ = null;
+        if (wbgtUnavailableTimerId_ != null) {
+            clearTimeout(wbgtUnavailableTimerId_);
+            wbgtUnavailableTimerId_ = null;
         }
-        syncWbgtLevelFromSlots(wbgtSlots);
-        if (shouldDeferDisplayRefresh_()) {
-            pendingWbgtSlotsVisual_ = wbgtSlots;
-            queueDisplayRefresh_();
-            return hasFull4Slots(wbgtSlots);
-        }
-        refreshSignageBg();
-        updateForecastSlots(wbgtSlots);
+    }
+    function cloneWbgtSlots_(slots) {
+        return slots.map(function (s) { return Object.assign({}, s); });
+    }
+    function wbgtUnavailableGraceElapsed_() {
+        return wbgtFailSinceMs_ != null &&
+            getNowMs() - wbgtFailSinceMs_ >= WBGT_UNAVAILABLE_GRACE_MS;
+    }
+    function scheduleWbgtUnavailableCheck_() {
+        if (wbgtUnavailableTimerId_ != null || wbgtFailSinceMs_ == null) return;
+        const remaining = WBGT_UNAVAILABLE_GRACE_MS - (getNowMs() - wbgtFailSinceMs_);
+        wbgtUnavailableTimerId_ = setTimeout(function () {
+            wbgtUnavailableTimerId_ = null;
+            if (wbgtUnavailableGraceElapsed_()) applyWbgtUnavailableToDom_();
+        }, Math.max(1000, remaining));
+    }
+    function noteWbgtFetchSuccess_(slots) {
+        clearWbgtUnavailableGrace_();
+        lastGoodWbgtSlots_ = cloneWbgtSlots_(slots);
+        wbgtUnavailable = false;
+    }
+    function noteWbgtFetchFailure_() {
+        if (wbgtFailSinceMs_ == null) wbgtFailSinceMs_ = getNowMs();
+        if (wbgtUnavailableGraceElapsed_()) return true;
+        scheduleWbgtUnavailableCheck_();
+        return false;
+    }
+    function applyWbgtUnavailableToDom_() {
+        if (wbgtOffSeason || !wbgtUnavailableGraceElapsed_()) return;
+        wbgtUnavailable = true;
+        syncWbgtDependentAlerts_();
+        const nullSlot = { wbgt: null, hour: '取得不可' };
+        const nullSlots = [nullSlot, nullSlot, nullSlot, nullSlot];
+        syncWbgtLevelFromSlots(nullSlots);
+        updateForecastSlots(nullSlots);
         queueDisplayRefresh_();
-        return hasFull4Slots(wbgtSlots);
+        refreshSignageBg();
+        if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(true);
+        console.warn('[WBGT] 1分以上取得できないため「取得不可」表示');
+    }
+    function applyWbgtSlotsToDom(wbgtSlots) {
+        if (wbgtSlots && hasFull4Slots(wbgtSlots)) {
+            noteWbgtFetchSuccess_(wbgtSlots);
+            syncWbgtLevelFromSlots(wbgtSlots);
+            updateForecastSlots(wbgtSlots);
+            return true;
+        }
+        if (noteWbgtFetchFailure_()) {
+            applyWbgtUnavailableToDom_();
+            return false;
+        }
+        /* 1分以内の失敗: 直前の成功値を維持（取得不可は出さない） */
+        if (lastGoodWbgtSlots_ && hasFull4Slots(lastGoodWbgtSlots_)) {
+            wbgtUnavailable = false;
+            syncWbgtLevelFromSlots(lastGoodWbgtSlots_);
+            updateForecastSlots(lastGoodWbgtSlots_);
+        }
+        return false;
     }
     /* 提供期間外: WBGTレベルを無効化し、WBGT表示を全て隠す（該当シーンはループでスキップ） */
     function applyWbgtOffSeason_() {
         wbgtOffSeason = true;
         wbgtUnavailable = false;
+        clearWbgtUnavailableGrace_();
+        lastGoodWbgtSlots_ = null;
         currentWbgtLevel = -1;
         lastWbgtSlots = null;
         syncWbgtDependentAlerts_();
@@ -4511,12 +4573,6 @@
         return isMainLoopPlaying_();
     }
     function applyDeferredLoopRefresh_(force) {
-        if (pendingWbgtSlotsVisual_ != null) {
-            const slots = pendingWbgtSlotsVisual_;
-            pendingWbgtSlotsVisual_ = null;
-            refreshSignageBg();
-            updateForecastSlots(slots);
-        }
         flushDisplayRefresh_(!!force);
     }
     function queueDisplayRefresh_() {
@@ -4690,6 +4746,73 @@
         if (v === '' || v == null) return null;
         return v;
     }
+    function amedasPressureValue_(obs) {
+        if (!obs) return null;
+        return amedasFieldValue(obs.normalPressure) ?? amedasFieldValue(obs.pressure);
+    }
+    function amedasObsNeedsPressureFallback_(obs) {
+        return amedasPressureValue_(obs) == null;
+    }
+    function mergeAmedasPressureFallback_(base, extra) {
+        if (!base || !extra) return base;
+        if (amedasPressureValue_(base) != null) return base;
+        const out = Object.assign({}, base);
+        if (amedasFieldValue(extra.normalPressure) != null) out.normalPressure = extra.normalPressure;
+        else if (amedasFieldValue(extra.pressure) != null) out.pressure = extra.pressure;
+        return out;
+    }
+    async function fetchJmaAmedasPressureFallback_(ymd, hhmm, exactKey, blockH) {
+        const fbPoint = JMA_AMEDAS_PRESSURE_FALLBACK;
+        if (!fbPoint || fbPoint === JMA_AMEDAS_POINT) return null;
+        try {
+            const mapRes = await fetch(
+                `https://www.jma.go.jp/bosai/amedas/data/map/${ymd}${hhmm}00.json`,
+                JMA_FETCH_HEADERS
+            );
+            if (mapRes.ok) {
+                const mapData = await mapRes.json();
+                const mapObs = mapData[fbPoint];
+                if (mapObs && amedasPressureValue_(mapObs) != null) return mapObs;
+            }
+        } catch (e) { /* map fallback */ }
+        try {
+            const ptRes = await fetch(
+                `https://www.jma.go.jp/bosai/amedas/data/point/${fbPoint}/${ymd}_${blockH}.json`,
+                JMA_FETCH_HEADERS
+            );
+            if (ptRes.ok) {
+                const ptData = await ptRes.json();
+                const ptObs = pickPointBlockObs_(ptData, exactKey);
+                if (amedasPressureValue_(ptObs) != null) return ptObs;
+            }
+        } catch (e) { /* point fallback */ }
+        return null;
+    }
+    async function supplementAmedasPressure_(obs, ymd, hhmm, exactKey, blockH) {
+        if (!amedasObsNeedsPressureFallback_(obs)) {
+            lastAmedasPresFallbackLabel_ = '';
+            return obs;
+        }
+        if (!JMA_AMEDAS_PRESSURE_FALLBACK) return obs;
+        try {
+            const fbObs = await fetchJmaAmedasPressureFallback_(ymd, hhmm, exactKey, blockH);
+            if (!fbObs) return obs;
+            const merged = mergeAmedasPressureFallback_(obs, fbObs);
+            if (amedasPressureValue_(merged) != null) {
+                lastAmedasPresFallbackLabel_ = JMA_AMEDAS_PRESSURE_FALLBACK_LABEL ||
+                    JMA_AMEDAS_PRESSURE_FALLBACK;
+                console.log('[JMA] 気圧を近傍地点で補完',
+                    JMA_AMEDAS_PRESSURE_FALLBACK,
+                    amedasPressureValue_(merged) + 'hPa',
+                    lastAmedasPresFallbackLabel_ || '');
+                return merged;
+            }
+        } catch (e) {
+            console.warn('[JMA] 気圧フォールバック失敗:', e.message || e);
+        }
+        lastAmedasPresFallbackLabel_ = '';
+        return obs;
+    }
     function amedasToWeatherIcon(obs) {
         const p10 = amedasFieldValue(obs.precipitation10m);
         const p1 = amedasFieldValue(obs.precipitation1h);
@@ -4797,9 +4920,14 @@
                             console.warn('[JMA] map補完(point)失敗:', supErr);
                         }
                     }
+                    obs = await supplementAmedasPressure_(obs, ymd, hhmm, exactKey, blockH);
                     return { latest, obs };
                 }
-                return { latest, obs: pickPointBlockObs_(data, entry.exactKey || exactKey) };
+                obs = await supplementAmedasPressure_(
+                    pickPointBlockObs_(data, entry.exactKey || exactKey),
+                    ymd, hhmm, exactKey, blockH
+                );
+                return { latest, obs };
             } catch (e) { lastErr = e; }
         }
         throw lastErr || new Error('JMA amedas failed');
@@ -4946,6 +5074,11 @@
             case 'rain': return obs.time + '・10分';
             case 'tmaxmin': return obs.date + '日中';
             case 'gust': return obs.date + '最大';
+            case 'pres':
+                if (lastAmedasPresFallbackLabel_) {
+                    return obs.stamp + '時点（' + lastAmedasPresFallbackLabel_ + '）';
+                }
+                return obs.stamp + '時点';
             default: return obs.stamp + '時点';
         }
     }
@@ -4998,7 +5131,7 @@
         const p10 = amedasFieldValue(obs.precipitation10m);
         const p1h = amedasFieldValue(obs.precipitation1h);
         const wind = amedasFieldValue(obs.wind);
-        const pres = amedasFieldValue(obs.normalPressure) ?? amedasFieldValue(obs.pressure);
+        const pres = amedasPressureValue_(obs);
         const wdir = amedasFieldValue(obs.windDirection);
         const maxT = amedasFieldValue(obs.maxTemp);
         const minT = amedasFieldValue(obs.minTemp);
@@ -5224,13 +5357,14 @@
     function getWbgtOnlyMessageJp() {
         if (wbgtOffSeason) return '';
         if (wbgtUnavailable) return unknownMsg.jp;
-        if (currentWbgtLevel < 0) return unknownMsg.jp;
+        if (currentWbgtLevel < 0) return '';
         return multi[currentWbgtLevel].jp;
     }
     /* 下帯: WBGT取得不可時は「取得不可」のみ（雨タグ等の非依存表示なし） */
     function getS1WbgtMessageJp() {
         if (wbgtOffSeason) return '';
-        if (wbgtUnavailable || currentWbgtLevel < 0) return unknownMsg.jp;
+        if (wbgtUnavailable) return unknownMsg.jp;
+        if (currentWbgtLevel < 0) return '';
         const rain = getRainAlertMessageJp();
         const wbgt = multi[currentWbgtLevel].jp;
         if (rain && wbgt) return rain + '　' + wbgt;
@@ -5693,7 +5827,7 @@
     function getT3Messages_() {
         if (wbgtOffSeason) return [];
         /* 3段デザイン: 発表時も中段は現在WBGT段階の多言語（上帯のみアラート文言に差し替え） */
-        const isUnknown = wbgtUnavailable || currentWbgtLevel < 0;
+        const isUnknown = wbgtUnavailable;
         const m = isUnknown ? unknownMsg : multi[currentWbgtLevel];
         const langs = ['jp', 'en', 'vn', 'tl'];
         const all = langs.map(function (key) { return splitT3Message_(m[key]); });
@@ -6109,7 +6243,9 @@
             finishScene4();
             return;
         }
-        if (!lastWbgtSlots && DEMO_SIGNAGE_ACTIVE && currentWbgtLevel >= 0) {
+        if (lastWbgtSlots) {
+            updateForecastSlots(lastWbgtSlots);
+        } else if (DEMO_SIGNAGE_ACTIVE && currentWbgtLevel >= 0) {
             updateForecastSlots(mockSlotsForDemoLevel(currentWbgtLevel));
         }
         buildFcLvTrack(false);
@@ -6405,8 +6541,9 @@
         updateClock();
         startClockTicker();
         refreshSignageBg();
-        /* 初回取得完了まで「取得不可」は出さない（取得失敗時のみ applyWbgtSlotsToDom が設定） */
+        /* 初回取得完了まで「取得不可」は出さない。1分以上連続失敗時のみ applyWbgtUnavailableToDom_ */
         wbgtUnavailable = false;
+        clearWbgtUnavailableGrace_();
         wbgtOffSeason = false;
         try {
             buildTicker();
