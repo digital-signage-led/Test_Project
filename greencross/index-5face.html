@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- wbgt-cube-cspi2026-5face-greencross / CSPI2026 国際建設・測量展 WBGT サイネージ（本番 5面 640×128・ロゴあり） -->
 <!-- 会場: 幕張メッセ 〒261-8550 千葉県千葉市美浜区中瀬2-1 / WBGT・AMeDAS 45212（千葉） -->
 <html lang="ja" class="native-640">
@@ -731,6 +731,11 @@
             background: var(--led-foot-bar-bg); overflow: hidden;
             z-index: 2; box-sizing: border-box;
         }
+        #scene3 .t3-guid-bar .s2-meta-msg-scroll {
+            display: inline-flex; align-items: center;
+            height: var(--led-foot-bar-h); max-height: var(--led-foot-bar-h);
+            line-height: 1.15; overflow: hidden; box-sizing: border-box;
+        }
         .t3-scroll-body {
             width: 100%; height: var(--led-col-body-h); flex-shrink: 0;
             position: relative; overflow: hidden; box-sizing: border-box;
@@ -743,14 +748,15 @@
         .t3-slot {
             width: 256px; height: 100%; flex-shrink: 0; box-sizing: border-box;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 2px; padding: 0 4px;
+            gap: 4px; padding: 0 4px;
         }
         .t3-l1, .t3-l2 {
-            line-height: 1.04; font-weight: 900; white-space: nowrap;
+            line-height: 1.08; font-weight: 900; white-space: nowrap;
             letter-spacing: 0.3px; text-align: center;
             font-family: "Noto Sans JP", "Inter", sans-serif;
             color: #ebebeb; max-width: 248px;
             box-sizing: border-box;
+            overflow: hidden; flex-shrink: 0;
         }
         /* --- 熱中症アラート（256×128モジュール×2。各256内で同じ文言が追随して流れる） --- */
         #sceneAlert.active { display: block; }
@@ -1548,7 +1554,7 @@
     },
     geo: { lat: 35.6481, lon: 140.0347 },
     timeZone: 'Asia/Tokyo',
-    refreshMs: 300000,
+    refreshMs: 60000,
     footSource: '出典：気象庁・環境省データ'
   };
 
@@ -1804,11 +1810,11 @@
         return row ? { bgColor: row.bgColor, barColor: row.barColor } : UNKNOWN;
     }
 
-    /** displayMode: 'normal' | 'unavailable' | 'offseason' — 灰色は unavailable のみ */
+    /** displayMode: 'normal' | 'unavailable' | 'offseason' — 濃い灰は unavailable のみ。取得待ちは OFF_SEASON */
     function colorsForDisplay(levelIdx, displayMode) {
         if (displayMode === 'offseason') return OFF_SEASON;
         if (displayMode === 'unavailable') return UNKNOWN;
-        if (levelIdx == null || levelIdx < 0) return UNKNOWN;
+        if (levelIdx == null || levelIdx < 0) return OFF_SEASON;
         return colorsForLevel(levelIdx);
     }
 
@@ -2366,6 +2372,7 @@
     let lastWbgtSlots = null;
     let tickerAnimId = null;
     let dataRefreshTimerId = null;
+    let scheduledFetchInFlight_ = false;
     let lastFetchFail = false;
     /* 気象庁ホームページ「気象の状況」の更新タイミングに合わせた取得スケジュール（JST） */
     const FETCH_RETRY_MS = 60000;
@@ -4257,9 +4264,9 @@
     const SCENE1_WBGT_LAPS = 2;
     const SCENE1_WBGT_SETS = 3;
     /** シーン1の表示時間（下帯は即スクロール開始・沖縄版と同型） */
-    const SCENE1_CLOCK_HOLD_MS = 8000;
+    const SCENE1_CLOCK_HOLD_MS = 10000;
     /** 起動直後の1回目だけ短め（静止感を抑える） */
-    const SCENE1_BOOT_HOLD_MS = 5000;
+    const SCENE1_BOOT_HOLD_MS = 8000;
     const SCENE1_WBGT_HOLD_MS = SCENE1_CLOCK_HOLD_MS;
     const SCENE1_WBGT_SPEED_PX = 0.6;
     const SCENE1_SAFETY_MS = 20000;
@@ -4379,6 +4386,8 @@
 
     const timeSync = { baseUtcMs: null, perfAtSync: 0, source: '' };
     const CLOCK_TZ = 'Asia/Tokyo';
+    /** 表示は時:分のみ。内部時刻はこの間隔で NICT 等と再同期（Wi-Fi 前提） */
+    const CLOCK_SYNC_INTERVAL_MS = 60000;
     const clockHmFormatter = new Intl.DateTimeFormat('en-GB', {
         timeZone: CLOCK_TZ, hour: '2-digit', minute: '2-digit', hour12: false
     });
@@ -4468,11 +4477,11 @@
         if (!Number.isFinite(serverUtcMs)) throw new Error('jma-latest parse');
         return utcMsWithRtt(serverUtcMs, t0, t1);
     }
-    const TIME_SYNC_CHAIN = [
-        { name: 'timeapi.io', fetch: fetchUtcMsFromTimeApiIo },
-        { name: 'worldtimeapi', fetch: fetchUtcMsFromWorldTimeApi },
+      const TIME_SYNC_CHAIN = [
         { name: 'NICT', fetch: fetchUtcMsFromNict },
-        { name: 'jma-amedas', fetch: fetchUtcMsFromJmaLatest }
+        { name: 'jma-amedas', fetch: fetchUtcMsFromJmaLatest },
+        { name: 'timeapi.io', fetch: fetchUtcMsFromTimeApiIo },
+        { name: 'worldtimeapi', fetch: fetchUtcMsFromWorldTimeApi }
     ];
     function fetchWithTimeout_(promise, ms, label) {
         return Promise.race([
@@ -4869,14 +4878,19 @@
     }
     function flushDisplayRefresh_(force) {
         if (!pendingDisplayRefresh && !force) return;
-        /* 下帯はループ中でも文言だけ即更新（スクロール位置は維持） */
-        refreshS1WbgtFootBar_(false);
         if (!force && shouldDeferDisplayRefresh_()) return;
         pendingDisplayRefresh = false;
+        refreshS1WbgtFootBar_(false);
         buildTicker();
         buildFcLvTrack(false);
     }
     async function runScheduledFetch(event) {
+        if (scheduledFetchInFlight_) {
+            console.log('[取得] 前回の取得が完了していないためスキップ');
+            return !lastFetchFail;
+        }
+        scheduledFetchInFlight_ = true;
+        try {
         const plan = Object.assign(
             { jma: true, moe: true, nowc: true, forecast: true, labels: ['fetch'] },
             event || {}
@@ -4951,6 +4965,9 @@
         if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(false);
         lastFetchFail = (plan.jma && !jmaOk) || (plan.moe && !moeOk);
         return !lastFetchFail;
+        } finally {
+            scheduledFetchInFlight_ = false;
+        }
     }
     function scheduleDataRefresh() {
         if (dataRefreshTimerId != null) clearTimeout(dataRefreshTimerId);
@@ -6068,6 +6085,8 @@
         const setEl = el.querySelector('.s2-meta-set-flow');
         t3GuidLapPx = setEl ? Math.max(SCENE2_META_LAP_PX, setEl.offsetWidth) : SCENE2_META_LAP_PX;
         applyGlobalScroll_(el, t3GuidLapPx);
+        sizeT3GuideText_();
+        requestAnimationFrame(sizeT3GuideText_);
     }
     const T3_HEAT_ALERT_TOP = {
         warning: { text: '熱中症警戒アラート発表中', cls: 't3-top-ha-warning' },
@@ -6144,6 +6163,28 @@
             staticTopBar.classList.remove('t3-lv-wave-active', 't3-lv-wave-severe', 't3-lv-wave-danger');
         }
     }
+    function t3TextBlockH_(probe1, probe2, hasL1, gap) {
+        const h1 = hasL1 ? probe1.offsetHeight : 0;
+        const h2 = probe2.offsetHeight;
+        const g = (hasL1 && h1 > 0 && h2 > 0) ? gap : 0;
+        return h1 + g + h2;
+    }
+    function t3TextOverflows_(probe1, probe2, hasL1, usableW, usableH, gap) {
+        if (hasL1 && probe1.scrollWidth > usableW) return true;
+        if (probe2.scrollWidth > usableW) return true;
+        return t3TextBlockH_(probe1, probe2, hasL1, gap) > usableH;
+    }
+    function fitT3LineScale_(nodes, maxW) {
+        if (!nodes || !nodes.length) return;
+        nodes.forEach(function (n) {
+            n.style.transform = '';
+            n.style.transformOrigin = 'center center';
+            const sw = n.scrollWidth;
+            if (sw > maxW && sw > 0) {
+                n.style.transform = 'scaleX(' + (maxW / sw).toFixed(4) + ')';
+            }
+        });
+    }
     function sizeT3Text_() {
         const slot = document.querySelector('#scene3 .t3-slot');
         if (!slot) return;
@@ -6152,12 +6193,18 @@
         if (!probe1 || !probe2) return;
         const usableW = T3_UNIT_W - 8;
         const bodyEl = document.querySelector('#scene3 .t3-scroll-body');
-        const usableH = bodyEl && bodyEl.clientHeight > 0 ? bodyEl.clientHeight - 2 : 70;
-        const gap = 2;
-        const l2Min = 22;
+        const usableH = bodyEl && bodyEl.clientHeight > 0 ? bodyEl.clientHeight - 4 : 66;
+        const gap = 4;
+        const l2Min = 18;
         const setAll = function (f1, f2) {
-            document.querySelectorAll('#scene3 .t3-l1').forEach(function (n) { n.style.fontSize = f1 + 'px'; });
-            document.querySelectorAll('#scene3 .t3-l2').forEach(function (n) { n.style.fontSize = f2 + 'px'; });
+            document.querySelectorAll('#scene3 .t3-l1').forEach(function (n) {
+                n.style.fontSize = (f1 > 0 ? f1 : 0) + 'px';
+                n.style.transform = '';
+            });
+            document.querySelectorAll('#scene3 .t3-l2').forEach(function (n) {
+                n.style.fontSize = f2 + 'px';
+                n.style.transform = '';
+            });
         };
         const capL2_ = function (f1, f2) {
             const maxL2 = Math.max(l2Min, f1 - 3);
@@ -6167,35 +6214,52 @@
         if (!hasL1) {
             let f2 = Math.min(T3_L1_MAX, Math.floor((usableH - 2) / T3_LINE_H));
             setAll(0, f2);
-            let g = 140;
-            while (g-- > 0 && f2 > l2Min) {
-                if (probe2.scrollWidth <= usableW) break;
+            let guard = 200;
+            while (guard-- > 0 && f2 > l2Min && t3TextOverflows_(probe1, probe2, false, usableW, usableH, gap)) {
                 f2 -= 1;
                 setAll(0, f2);
             }
+            fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l2'), usableW);
             return;
         }
-        /* l1 > l2 を保ち、l2 は l1 の T3_L2_RATIO 倍を目安に大きく */
         let f1 = Math.min(T3_L1_MAX, Math.floor((usableH - gap) / (T3_LINE_H * (1 + T3_L2_RATIO))));
         let f2 = capL2_(f1, Math.round(f1 * T3_L2_RATIO));
         setAll(f1, f2);
-        while (f1 > 8 && (f1 * T3_LINE_H + gap + f2 * T3_LINE_H) > usableH) {
-            f1 -= 1;
-            f2 = capL2_(f1, Math.round(f1 * T3_L2_RATIO));
+        let guard = 200;
+        while (guard-- > 0 && t3TextOverflows_(probe1, probe2, hasL1, usableW, usableH, gap)) {
+            const w1 = hasL1 && probe1.scrollWidth > usableW;
+            const w2 = probe2.scrollWidth > usableW;
+            const tall = t3TextBlockH_(probe1, probe2, hasL1, gap) > usableH;
+            if ((w1 || tall) && f1 > 8) {
+                f1 -= 1;
+                f2 = capL2_(f1, Math.round(f1 * T3_L2_RATIO));
+            } else if (w2 && f2 > l2Min) {
+                f2 -= 1;
+            } else if (tall && f2 > l2Min) {
+                f2 -= 1;
+            } else {
+                break;
+            }
             setAll(f1, f2);
         }
-        let g = 140;
-        while (g-- > 0 && f1 > 8) {
-            if (probe1.scrollWidth <= usableW) break;
-            f1 -= 1;
-            f2 = capL2_(f1, Math.round(f1 * T3_L2_RATIO));
-            setAll(f1, f2);
-        }
-        g = 140;
-        while (g-- > 0 && f2 > l2Min) {
-            if (probe2.scrollWidth <= usableW) break;
-            f2 -= 1;
-            setAll(f1, f2);
+        fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l1'), usableW);
+        fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l2'), usableW);
+    }
+    function sizeT3GuideText_() {
+        const bar = document.querySelector('#scene3 .t3-guid-bar');
+        const probe = document.querySelector('#scene3 .t3-guid-bar .s2-meta-group');
+        if (!bar || !probe) return;
+        const barH = bar.clientHeight > 0 ? bar.clientHeight : 28;
+        const targets = document.querySelectorAll('#scene3 .t3-guid-bar .s2-meta-msg-scroll');
+        let fz = 13;
+        targets.forEach(function (n) {
+            n.style.fontSize = fz + 'px';
+            n.style.lineHeight = barH + 'px';
+        });
+        let guard = 24;
+        while (guard-- > 0 && fz > 9 && probe.offsetHeight > barH) {
+            fz -= 1;
+            targets.forEach(function (n) { n.style.fontSize = fz + 'px'; });
         }
     }
     function setT3Lang_(idx) {
@@ -6673,17 +6737,31 @@
         } catch (err) {
             console.error('Init display:', err);
         }
-        setInterval(syncTimeFromNetwork, 300000);
+        setInterval(function () {
+            syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
+        }, CLOCK_SYNC_INTERVAL_MS);
         syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
-        /* ループを先に開始し、データ取得はバックグラウンド（雨雲は起動後に別取得） */
-        startSequence();
-        startBackgroundFetch_({
-            jma: true, moe: true, nowc: false, forecast: true, labels: ['起動']
-        });
-        updateRainNowcastAlert_().then(function () {
-            queueDisplayRefresh_();
-            if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(false);
-        });
+        /* 初回取得を待ってからループ開始（濃い灰の時間を短く・更新の重なりを防ぐ） */
+        var mainLoopStarted_ = false;
+        function beginMainLoop_() {
+            if (mainLoopStarted_) return;
+            mainLoopStarted_ = true;
+            startSequence();
+            scheduleDataRefresh();
+            updateRainNowcastAlert_().then(function () {
+                queueDisplayRefresh_();
+                if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(false);
+            });
+        }
+        if (s1) {
+            s1.style.display = sceneDisplayMode(s1);
+            s1.classList.add('active');
+            updateClock();
+        }
+        Promise.race([
+            runScheduledFetch({ jma: true, moe: true, nowc: false, forecast: true, labels: ['起動'] }),
+            new Promise(function (resolve) { setTimeout(resolve, 3500); })
+        ]).finally(beginMainLoop_);
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
                 syncTimeFromNetwork().then(function() { updateClock(); });
