@@ -1,5 +1,4 @@
 ﻿<!DOCTYPE html>
-<!-- wbgt-cube-cspi2026 / 4面は index-4face.html、5面は index-5face.html（index.html は 4面と同一） -->
 <!-- wbgt-cube-cspi2026-4face / CSPI2026 国際建設・測量展 WBGT サイネージ（本番 4面 512×128・ロゴなし） -->
 <!-- 会場: 幕張メッセ 〒261-8550 千葉県千葉市美浜区中瀬2-1 / WBGT・AMeDAS 45212（千葉） -->
 <html lang="ja" class="native-640 layout-512">
@@ -4466,9 +4465,9 @@
         if (!Number.isFinite(serverUtcMs)) throw new Error('jma-latest parse');
         return utcMsWithRtt(serverUtcMs, t0, t1);
     }
+    /** JMA latest_time は観測時刻（10分単位）のため時計同期には使わない */
     const TIME_SYNC_CHAIN = [
         { name: 'NICT', fetch: fetchUtcMsFromNict },
-        { name: 'jma-amedas', fetch: fetchUtcMsFromJmaLatest },
         { name: 'timeapi.io', fetch: fetchUtcMsFromTimeApiIo },
         { name: 'worldtimeapi', fetch: fetchUtcMsFromWorldTimeApi }
     ];

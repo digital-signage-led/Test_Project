@@ -1,27 +1,26 @@
 ﻿<!DOCTYPE html>
-<!-- wbgt-cube-cspi2026 / 4面は index-4face.html、5面は index-5face.html（index.html は 4面と同一） -->
-<!-- wbgt-cube-cspi2026-4face / CSPI2026 国際建設・測量展 WBGT サイネージ（本番 4面 512×128・ロゴなし） -->
+<!-- wbgt-cube-cspi2026-5face / CSPI2026 国際建設・測量展 WBGT サイネージ（本番 5面 640×128・ロゴあり） -->
 <!-- 会場: 幕張メッセ 〒261-8550 千葉県千葉市美浜区中瀬2-1 / WBGT・AMeDAS 45212（千葉） -->
-<html lang="ja" class="native-640 layout-512">
+<html lang="ja" class="native-640">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>WBGT Signage 4面 - CSPI2026 国際建設・測量展</title>
+    <title>WBGT Signage 5面 - CSPI2026 国際建設・測量展</title>
     <script>
-/** 4面 512×128 本番用（layout512 + native640） */
+/** 5面 640×128 本番用（ロゴ列 128px + native640） */
 (function () {
     var q = new URLSearchParams(location.search);
-    if (!q.has('layout512')) q.set('layout512', '1');
     if (!q.has('native640')) q.set('native640', '1');
+    if (!q.has('embed')) q.set('embed', '1');
     var qs = q.toString();
     if (qs && location.search !== '?' + qs) {
         history.replaceState(null, '', location.pathname + '?' + qs);
     }
-    document.documentElement.classList.add('native-640', 'layout-512');
+    document.documentElement.classList.add('native-640');
     function addBody_() {
-        if (document.body) document.body.classList.add('native-640', 'layout-512');
+        if (document.body) document.body.classList.add('native-640');
     }
     if (document.body) addBody_();
     else document.addEventListener('DOMContentLoaded', addBody_);
@@ -78,17 +77,18 @@
         /* 右端 128×128（x≥512）: 上バー色で塗りつぶし・ロゴ中央 */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; background: #3a3a3a; order: 2; overflow: hidden; position: relative;
+            flex-shrink: 0; background: transparent; order: 2; overflow: hidden; position: relative;
             transition: background-color 0.6s ease;
         }
         .logo-rotator {
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
             display: flex; align-items: center; justify-content: center;
             transform-origin: center center;
-            transition: transform 0.6s ease-in-out;
+            transition: none;
         }
         .logo-img {
-            display: block; max-width: 118px; max-height: 118px; width: auto; height: auto;
+            display: block; width: 112px; height: 112px;
+            max-width: 112px; max-height: 112px;
             object-fit: contain; object-position: center center; margin: 0;
         }
         .content-area { width: 512px; height: 128px; position: relative; overflow: hidden; flex-shrink: 0; order: 1; background: transparent; }
@@ -1508,7 +1508,7 @@
         .ra-pair.ra-white-mode::after { display: none; }
     </style>
 </head>
-<body class="native-640 layout-512">
+<body class="native-640">
 <script>
 /**
  * 現場ごとの設定（GAS は 1 本共通・地点は moe.point で切替）
@@ -1558,9 +1558,9 @@
   global.SignageConfig = cfg;
 
   global.SIGNAGE_CONFIG = {
-    logoSrc: '',
-    logoAlt: 'CSPI2026 国際建設・測量展',
-    logoPanelBg: '#3a3a3a',
+    logoSrc: 'assets/logo.png',
+    logoAlt: 'デジタルサイネージ株式会社',
+    logoPanelBg: '',
     footLogoSrc: ''
   };
 })(typeof window !== 'undefined' ? window : global);
@@ -1576,7 +1576,7 @@
 <div class="canvas">
     <div class="logo-panel">
         <div class="logo-rotator" id="logo-rotator">
-            <img class="logo-img" id="signage-logo" src="" alt="">
+            <img class="logo-img" id="signage-logo" src="assets/logo.png" alt="デジタルサイネージ株式会社">
         </div>
     </div>
     <div class="content-area">
@@ -2006,7 +2006,7 @@
         applySceneStripBg(content, levelIdx, displayMode);
     }
 
-    /** 右端 128×128 ロゴ列: WBGT段階の上バー色（barColor）で塗りつぶし */
+    /** 右端 128×128 ロゴ列: 上バー色（barColor）で塗りつぶし */
     function initSignageLogo_() {
         const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
         const cfg = global.SIGNAGE_CONFIG;
@@ -2571,13 +2571,15 @@
             const lv = pendingSignageBgLv_;
             const mode = pendingSignageBgMode_;
             pendingSignageBgRefresh_ = false;
-            if (lv === lastSignageBgLv_ && mode === lastSignageBgMode_) return;
-            lastSignageBgLv_ = lv;
-            lastSignageBgMode_ = mode;
-            refreshSignageBg();
-            return;
+            if (lv !== lastSignageBgLv_ || mode !== lastSignageBgMode_) {
+                lastSignageBgLv_ = lv;
+                lastSignageBgMode_ = mode;
+                refreshSignageBg();
+            }
+        } else {
+            refreshSignageBgIfChanged_(false);
         }
-        refreshSignageBgIfChanged_(false);
+        applySignageLogoPanel_();
     }
     function wbgtSlotsEqual_(a, b) {
         if (!a || !b || a.length < 4 || b.length < 4) return false;
@@ -4055,7 +4057,6 @@
         const heroBundle = !whiteBundle && pairEl && pairEl.classList.contains('ra-hero-bundle');
         const heroMode = !whiteBundle && pairEl && pairEl.classList.contains('ra-hero-mode');
         const midBundle = whiteBundle || heroBundle;
-        stepLogo90(420, true);
         const tracks = document.querySelectorAll('#sceneRainWarn .ra-track');
         if (!tracks.length && !midBundle) {
             if (DEMO_RAINWARN_ONLY) return;
@@ -4096,6 +4097,7 @@
             const prevMidX = raFlow_.midBandX;
             advanceGlobalScroll_(getScrollSpeedPx_());
             stepHeroChromeBands_(raFlow_);
+            tickLogoScrollSync(getScrollSpeedPx_(), 128);
             if (raFlow_.midBundle) {
                 if (raFlow_.whiteBundle) {
                     raFlow_.bandX = wrapScrollX_(globalScrollX_, RA_WHITE_BAND_W);
@@ -4200,7 +4202,7 @@
             finishMainLoopToS1_();
             return;
         }
-        stepLogo90(420, true);
+        nudgeLogo90Seamless_();
         scheduleDemoStep_(function () {
             const next = idx + 1;
             if (next < rainWarnActive.length) playSceneRainWarn(next);
@@ -4228,31 +4230,29 @@
         playSceneRainWarn(0);
     }
     let logoRotDeg = 0;
-    const LOGO_ROT_STEP_MS = 420;
-
+    const LOGO_ROT_PANEL_W = 128;
     function stopLogoSpinInterval() {
-        // 連続回転は使わない（静止 / 90°回転のみ）
+        // noop（互換用）
     }
-    /** 切替時は高速スピンを入れて 90°進める（見た目は +90°） */
-    function stepLogo90(transitionMs, withFastSpin) {
+    function applyLogoTransform_(animateMs) {
         if (!logoRotator) return;
-        const spinDelta = withFastSpin === false ? 90 : 450;
-        logoRotDeg += spinDelta;
-        logoRotator.style.transition = `transform ${transitionMs ?? LOGO_ROT_STEP_MS}ms ease-in-out`;
-        logoRotator.style.transform = `rotate(${logoRotDeg}deg)`;
+        if (animateMs > 0) {
+            logoRotator.style.transition = 'transform ' + animateMs + 'ms linear';
+        } else {
+            logoRotator.style.transition = 'none';
+        }
+        logoRotator.style.transform = 'rotate(' + logoRotDeg + 'deg)';
     }
     function resetLogoRotation() {
         logoRotDeg = 0;
-        if (!logoRotator) return;
-        logoRotator.style.transition = `transform ${LOGO_ROT_STEP_MS}ms ease-in-out`;
-        logoRotator.style.transform = 'rotate(0deg)';
+        applyLogoTransform_(0);
     }
-    function beginLogoSceneScroll(panelWidthPx) {
-        // スクロール追従回転は行わない
-    }
-    /** コンテンツが1パネル分スクロールするたびに90° */
-    function tickLogoScrollSync(totalScrolledPx, panelWidthPx) {
-        // スクロール追従回転は行わない
+    /** コンテンツの横移動量に連動（128px で 90°・線形） */
+    function tickLogoScrollSync(scrollPx, panelWidthPx) {
+        if (!logoRotator || !scrollPx) return;
+        const w = panelWidthPx > 0 ? panelWidthPx : LOGO_ROT_PANEL_W;
+        logoRotDeg += (scrollPx / w) * 90;
+        applyLogoTransform_(0);
     }
     const FOOT_BAR_SLOT_W = 256;
     const FOOT_BAR_LAP_PX = FOOT_BAR_SLOT_W * 2;
@@ -4315,6 +4315,15 @@
     const DEMO_SCROLL_SPEED_PX = 0.5;
     function getScrollSpeedPx_() {
         return (DEMO_SIGNAGE && !DEMO_ONLY) ? DEMO_SCROLL_SPEED_PX : GLOBAL_SCROLL_SPEED_PX;
+    }
+    function getLogoRotStepMs_() {
+        return Math.round(LOGO_ROT_PANEL_W / getScrollSpeedPx_() * (1000 / 60));
+    }
+    /** デモ等: スクロール1スロット分と同速度で90° */
+    function nudgeLogo90Seamless_() {
+        if (!logoRotator) return;
+        logoRotDeg += 90;
+        applyLogoTransform_(getLogoRotStepMs_());
     }
     let sceneSlideAnimId = null;
     let sceneEndHoldTimerId_ = null;
@@ -5829,11 +5838,15 @@
         applyScrollX_(nextEl, SCENE_W);
         current.style.zIndex = '1';
         onComplete?.();
+        let slideLogoPrevOff = 0;
         const t0 = performance.now();
         function tick(now) {
             const p = Math.min(1, (now - t0) / SCENE_SLIDE_MS);
             const eased = p * (2 - p);
-            const off = scrollPx_(eased * SCENE_W);
+            const off = eased * SCENE_W;
+            const slideDelta = off - slideLogoPrevOff;
+            slideLogoPrevOff = off;
+            tickLogoScrollSync(slideDelta, LOGO_ROT_PANEL_W);
             applyScrollX_(current, -off);
             applyScrollX_(nextEl, SCENE_W - off);
             if (p < 1) {
@@ -5933,7 +5946,7 @@
         const idx = startIdx || 0;
         if (isFullDemoStep_()) {
             prepHeatAlert_(idx);
-            stepLogo90(420, true);
+            nudgeLogo90Seamless_();
             scheduleDemoStep_(function () {
                 const next = idx + 1;
                 if (next < heatAlertActive.length) playSceneAlert(next);
@@ -5946,7 +5959,6 @@
             gotoAfterRainWarnOrScene1_();
             return;
         }
-        stepLogo90(420, true);
         const tracks = document.querySelectorAll('#sceneAlert .ha-track');
         if (!tracks.length) {
             if (DEMO_ALERT_ONLY) return;
@@ -5963,6 +5975,7 @@
             const prevX = haFlow_.x;
             advanceGlobalScroll_(getScrollSpeedPx_());
             haFlow_.x = wrapScrollX_(globalScrollX_, HA_UNIT_W);
+            tickLogoScrollSync(getScrollSpeedPx_(), 128);
             if (detectScrollLapCrossed_(prevX, haFlow_.x)) {
                 haFlow_.laps += 1;
                 if (haFlow_.laps >= HA_LAPS_BEFORE_SWITCH) {
@@ -6325,7 +6338,6 @@
             gotoAfterScene3_();
             return;
         }
-        stepLogo90(420, true);
         const tracks = document.querySelectorAll('#scene3 .t3-track');
         if (!tracks.length) {
             setTimeout(function () { gotoAfterScene3_(); }, 800);
@@ -6346,6 +6358,7 @@
             const prevX = t3Flow_.x;
             advanceGlobalScroll_(getScrollSpeedPx_());
             t3Flow_.x = wrapScrollX_(globalScrollX_, T3_UNIT_W);
+            tickLogoScrollSync(getScrollSpeedPx_(), 128);
             if (detectScrollLapCrossed_(prevX, t3Flow_.x)) {
                 t3Flow_.laps += 1;
                 if (t3Flow_.laps >= T3_LAPS_BEFORE_SWITCH) {
@@ -6378,7 +6391,6 @@
         refreshS1WbgtFootBar_(true);
         applyPendingSignageBgAtScene_();
         updateClock();
-        stepLogo90(420, true);
         const s1WbgtBar = document.querySelector('#scene1 .s1-wbgt-bar');
         const showWbgtFoot = hasS1WbgtFootMessage_();
         if (s1WbgtBar) s1WbgtBar.style.display = showWbgtFoot ? 'block' : 'none';
@@ -6397,6 +6409,7 @@
                 if (advanceToken !== scene1AdvanceToken + 1) return;
                 advanceGlobalScroll_(getScrollSpeedPx_());
                 applyGlobalScroll_(s1WbgtTrack, s1FootLap);
+                tickLogoScrollSync(getScrollSpeedPx_(), 128);
                 scene1AnimId = requestAnimationFrame(animateS1WbgtRtl);
             }
             scene1AnimId = requestAnimationFrame(animateS1WbgtRtl);
@@ -6423,7 +6436,6 @@
         buildScene2MetaTrack(lastAmedasObsTime);
         fitScene2BodyText();
         if (scene2AnimId) cancelAnimationFrame(scene2AnimId);
-        stepLogo90(420, true);
         if (isFullDemoStep_()) {
             scheduleDemoStep_(gotoSceneAfterScene2_);
             return;
@@ -6442,6 +6454,7 @@
             totalScrolled += getScrollSpeedPx_();
             applyGlobalScroll_(conveyor, scene2SetWidth);
             applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
+            tickLogoScrollSync(getScrollSpeedPx_(), 128);
             if (totalScrolled >= scene2ScrollTotal) {
                 scene2AnimId = null;
                 stopLogoSpinInterval();
@@ -6476,7 +6489,6 @@
         applyPendingSignageBgAtScene_();
         fitFcBarLabelFontSize_();
         fitFcWbgtFontSize();
-        stepLogo90(420, true);
         if (isFullDemoStep_()) {
             scheduleDemoStep_(finishScene4);
             return;
@@ -6495,6 +6507,7 @@
             totalScrolled += getScrollSpeedPx_();
             applyGlobalScroll_(fcConveyor, scene4SetWidth);
             applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
+            tickLogoScrollSync(getScrollSpeedPx_(), 128);
             if (totalScrolled >= scene4ScrollTotal) {
                 scene4AnimId = null;
                 stopLogoSpinInterval();
@@ -6513,7 +6526,6 @@
         applyD5TodayFrame_();
         applyD5ForecastTextColors_();
         applyPendingSignageBgAtScene_();
-        stepLogo90(420, true);
         if (isFullDemoStep_()) {
             scheduleDemoStep_(gotoSceneAfterScene5_);
             return;
@@ -6530,11 +6542,7 @@
             advanceGlobalScroll_(getScrollSpeedPx_());
             totalScrolled += getScrollSpeedPx_();
             applyGlobalScroll_(d5Conveyor, scene5SetWidth);
-            if (logoRotator) {
-                logoRotDeg += (GLOBAL_SCROLL_SPEED_PX / 128) * 90;
-                logoRotator.style.transition = 'none';
-                logoRotator.style.transform = `rotate(${logoRotDeg}deg)`;
-            }
+            tickLogoScrollSync(getScrollSpeedPx_(), 128);
             if (totalScrolled >= scene5ScrollTotal) {
                 scene5AnimId = null;
                 stopLogoSpinInterval();
@@ -6754,6 +6762,7 @@
         try {
             syncWbgtSlotsToDomIfReady_();
             refreshSignageBgIfChanged_(true);
+            applySignageLogoPanel_();
             buildTicker();
             buildS1WbgtTrack(false);
             buildFcLvTrack(false);
