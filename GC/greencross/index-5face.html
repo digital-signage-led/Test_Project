@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- wbgt-cube-cspi2026-5face-greencross / CSPI2026 国際建設・測量展 WBGT サイネージ（本番 5面 640×128・ロゴあり） -->
 <!-- 会場: 〒810-0034 福岡市中央区笹丘1丁目17-29 / WBGT・AMeDAS 82182（福岡） -->
 <html lang="ja" class="native-640">
@@ -739,10 +739,10 @@
         .t3-scroll-body {
             width: 100%; height: var(--led-col-body-h); flex-shrink: 0;
             position: relative; overflow: hidden; box-sizing: border-box;
-            padding: 3px 0 8px;
+            padding: 2px 0 5px;
         }
         .t3-track {
-            position: absolute; top: 3px; left: 0; right: 0; bottom: 8px;
+            position: absolute; top: 2px; left: 0; right: 0; bottom: 5px;
             height: auto;
             display: flex; flex-direction: row; align-items: center;
             will-change: transform; backface-visibility: hidden;
@@ -750,16 +750,16 @@
         .t3-slot {
             width: 256px; height: 100%; flex-shrink: 0; box-sizing: border-box;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 3px; padding: 0 4px;
+            gap: 2px; padding: 0 3px;
         }
         .t3-l1, .t3-l2 {
-            line-height: 1.28; font-weight: 900; white-space: nowrap;
+            line-height: 1.22; font-weight: 900; white-space: nowrap;
             letter-spacing: 0.3px; text-align: center;
             font-family: "Noto Sans JP", "Inter", sans-serif;
-            color: #ebebeb; max-width: 248px;
+            color: #ebebeb; max-width: 250px;
             box-sizing: border-box;
             overflow: visible; flex-shrink: 0;
-            padding-bottom: 0.12em;
+            padding-bottom: 0.08em;
         }
         /* --- 熱中症アラート（256×128モジュール×2。各256内で同じ文言が追随して流れる） --- */
         #sceneAlert.active { display: block; }
@@ -4306,8 +4306,8 @@
     let scene5AnimId = null;
     const T3_UNIT_W = 256;
     const T3_L1_MAX = 36;       /* l1 上限（l1 > l2、l2 は T3_L2_RATIO 倍） */
-    const T3_L2_RATIO = 0.82;
-    const T3_LINE_H = 1.28;
+    const T3_L2_RATIO = 0.92;
+    const T3_LINE_H = 1.22;
     const T3_SCROLL_PX = 0.8;
     const T3_TOP_HA_W = 256;
     const T3_TOP_HA_FONT_MAX = 20;
@@ -6180,18 +6180,12 @@
             staticTopBar.classList.remove('t3-lv-wave-active', 't3-lv-wave-severe', 't3-lv-wave-danger');
         }
     }
-    function t3LineBoxH_(node) {
-        const fs = parseFloat(window.getComputedStyle(node).fontSize) || 0;
-        const slack = fs > 0 ? Math.ceil(fs * 0.24) : 0;
-        const rect = node.getBoundingClientRect();
-        return Math.ceil(Math.max(node.offsetHeight, node.scrollHeight, rect.height)) + slack;
-    }
     function t3SlotClipsVert_(slot, bodyEl) {
         if (!slot || !bodyEl) return false;
         const track = slot.parentElement;
         const clipEl = (track && track.classList.contains('t3-track')) ? track : bodyEl;
         const clipR = clipEl.getBoundingClientRect();
-        const pad = 2;
+        const pad = 1;
         let clips = false;
         slot.querySelectorAll('.t3-l1, .t3-l2').forEach(function (n) {
             if (!String(n.textContent || '').trim()) return;
@@ -6200,16 +6194,17 @@
         });
         return clips;
     }
-    function t3TextBlockH_(probe1, probe2, hasL1, gap) {
-        const h1 = hasL1 ? t3LineBoxH_(probe1) : 0;
-        const h2 = t3LineBoxH_(probe2);
-        const g = (hasL1 && h1 > 0 && h2 > 0) ? gap : 0;
-        return h1 + g + h2;
-    }
-    function t3TextOverflows_(probe1, probe2, hasL1, usableW, usableH, gap) {
-        if (hasL1 && probe1.scrollWidth > usableW) return true;
-        if (probe2.scrollWidth > usableW) return true;
-        return t3TextBlockH_(probe1, probe2, hasL1, gap) > usableH;
+    function t3LinesOverlap_(slot) {
+        const lines = [];
+        slot.querySelectorAll('.t3-l1, .t3-l2').forEach(function (n) {
+            if (String(n.textContent || '').trim()) lines.push(n);
+        });
+        for (let i = 0; i < lines.length - 1; i++) {
+            const a = lines[i].getBoundingClientRect();
+            const b = lines[i + 1].getBoundingClientRect();
+            if (a.bottom > b.top + 0.5) return true;
+        }
+        return false;
     }
     function fitT3LineScale_(nodes, maxW) {
         if (!nodes || !nodes.length) return;
@@ -6222,93 +6217,74 @@
             }
         });
     }
+    function t3ApplyFontSize_(f1, f2, hasL1, usableW) {
+        document.querySelectorAll('#scene3 .t3-l1').forEach(function (n) {
+            n.style.fontSize = (f1 > 0 ? f1 : 0) + 'px';
+            n.style.transform = '';
+        });
+        document.querySelectorAll('#scene3 .t3-l2').forEach(function (n) {
+            n.style.fontSize = f2 + 'px';
+            n.style.transform = '';
+        });
+        if (hasL1) fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l1'), usableW);
+        fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l2'), usableW);
+    }
+    function t3LayoutFits_(slot, bodyEl, hasL1, usableW) {
+        if (t3SlotClipsVert_(slot, bodyEl)) return false;
+        if (hasL1 && t3LinesOverlap_(slot)) return false;
+        const nodes = hasL1
+            ? slot.querySelectorAll('.t3-l1, .t3-l2')
+            : slot.querySelectorAll('.t3-l2');
+        for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            if (!String(n.textContent || '').trim()) continue;
+            if (n.getBoundingClientRect().width > usableW + 0.5) return false;
+        }
+        return true;
+    }
+    function t3MaxF2ForF1_(f1, slot, bodyEl, hasL1, usableW, l2Min) {
+        let lo = l2Min;
+        let hi = hasL1 ? Math.min(T3_L1_MAX, Math.max(l2Min, f1)) : T3_L1_MAX;
+        let best = l2Min;
+        while (lo <= hi) {
+            const mid = Math.floor((lo + hi) / 2);
+            t3ApplyFontSize_(hasL1 ? f1 : 0, mid, hasL1, usableW);
+            if (t3LayoutFits_(slot, bodyEl, hasL1, usableW)) {
+                best = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return best;
+    }
     function sizeT3Text_() {
         const slot = document.querySelector('#scene3 .t3-slot');
         if (!slot) return;
         const probe1 = slot.querySelector('.t3-l1');
         const probe2 = slot.querySelector('.t3-l2');
         if (!probe1 || !probe2) return;
-        const usableW = T3_UNIT_W - 8;
+        const usableW = T3_UNIT_W - 6;
         const bodyEl = document.querySelector('#scene3 .t3-scroll-body');
-        const bodyStyle = bodyEl ? window.getComputedStyle(bodyEl) : null;
-        const padV = bodyStyle
-            ? (parseFloat(bodyStyle.paddingTop) || 0) + (parseFloat(bodyStyle.paddingBottom) || 0) + 8
-            : 20;
-        const usableH = bodyEl && bodyEl.clientHeight > 0 ? bodyEl.clientHeight - padV : 48;
-        const gap = 3;
-        const l2Min = 18;
-        const setAll = function (f1, f2) {
-            document.querySelectorAll('#scene3 .t3-l1').forEach(function (n) {
-                n.style.fontSize = (f1 > 0 ? f1 : 0) + 'px';
-                n.style.transform = '';
-            });
-            document.querySelectorAll('#scene3 .t3-l2').forEach(function (n) {
-                n.style.fontSize = f2 + 'px';
-                n.style.transform = '';
-            });
-        };
-        const capL2_ = function (f1, f2) {
-            const maxL2 = Math.max(l2Min, f1 - 3);
-            return Math.max(l2Min, Math.min(f2, maxL2));
-        };
         const hasL1 = String(probe1.textContent || '').trim().length > 0;
+        const l2Min = 18;
+        let bestF1 = 0;
+        let bestF2 = l2Min;
         if (!hasL1) {
-            let f2 = Math.min(T3_L1_MAX, Math.floor((usableH - 2) / T3_LINE_H));
-            setAll(0, f2);
-            let guard = 200;
-            while (guard-- > 0 && f2 > l2Min && t3TextOverflows_(probe1, probe2, false, usableW, usableH, gap)) {
-                f2 -= 1;
-                setAll(0, f2);
-            }
-            fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l2'), usableW);
-            let clipGuard = 80;
-            while (clipGuard-- > 0 && t3SlotClipsVert_(slot, bodyEl)) {
-                if (f2 > l2Min) {
-                    f2 -= 1;
-                    setAll(0, f2);
-                } else {
-                    break;
+            bestF2 = t3MaxF2ForF1_(0, slot, bodyEl, false, usableW, l2Min);
+        } else {
+            let bestScore = 0;
+            for (let f1 = T3_L1_MAX; f1 >= l2Min; f1--) {
+                const f2 = t3MaxF2ForF1_(f1, slot, bodyEl, true, usableW, l2Min);
+                const score = f1 + f2;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestF1 = f1;
+                    bestF2 = f2;
                 }
-                fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l2'), usableW);
             }
-            return;
         }
-        let f1 = Math.min(T3_L1_MAX, Math.floor((usableH - gap) / (T3_LINE_H * (1 + T3_L2_RATIO))));
-        let f2 = capL2_(f1, Math.round(f1 * T3_L2_RATIO));
-        setAll(f1, f2);
-        let guard = 200;
-        while (guard-- > 0 && t3TextOverflows_(probe1, probe2, hasL1, usableW, usableH, gap)) {
-            const w1 = hasL1 && probe1.scrollWidth > usableW;
-            const w2 = probe2.scrollWidth > usableW;
-            const tall = t3TextBlockH_(probe1, probe2, hasL1, gap) > usableH;
-            if ((w1 || tall) && f1 > 8) {
-                f1 -= 1;
-                f2 = capL2_(f1, Math.round(f1 * T3_L2_RATIO));
-            } else if (w2 && f2 > l2Min) {
-                f2 -= 1;
-            } else if (tall && f2 > l2Min) {
-                f2 -= 1;
-            } else {
-                break;
-            }
-            setAll(f1, f2);
-        }
-        fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l1'), usableW);
-        fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l2'), usableW);
-        let clipGuard = 80;
-        while (clipGuard-- > 0 && t3SlotClipsVert_(slot, bodyEl)) {
-            if (hasL1 && f1 > 8) {
-                f1 -= 1;
-                f2 = capL2_(f1, Math.round(f1 * T3_L2_RATIO));
-            } else if (f2 > l2Min) {
-                f2 -= 1;
-            } else {
-                break;
-            }
-            setAll(f1, f2);
-            fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l1'), usableW);
-            fitT3LineScale_(document.querySelectorAll('#scene3 .t3-l2'), usableW);
-        }
+        t3ApplyFontSize_(bestF1, bestF2, hasL1, usableW);
     }
     function sizeT3GuideText_() {
         const bar = document.querySelector('#scene3 .t3-guid-bar');
