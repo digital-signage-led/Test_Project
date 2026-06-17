@@ -745,7 +745,7 @@
         .t3-slot {
             width: 256px; height: 100%; flex-shrink: 0; box-sizing: border-box;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 3px; padding: 0 4px;
+            gap: 0px; padding: 0 4px;
         }
         .t3-l1, .t3-l2 {
             line-height: 1.22; font-weight: 900; white-space: nowrap;
@@ -4298,8 +4298,8 @@
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
     let scene5AnimId = null;
     const T3_UNIT_W = 256;
-    const T3_L1_MAX = 36;       /* l1 上限（l1 > l2、l2 は T3_L2_RATIO 倍） */
-    const T3_L2_RATIO = 0.82;
+    const T3_L1_MAX = 40;       /* l1 上限を拡大（l1 > l2、l2 は T3_L2_RATIO 倍） */
+    const T3_L2_RATIO = 0.45;   /* l2の比率を低下させて1行目と2行目の差を大きくする */
     const T3_LINE_H = 1.22;
     const T3_SCROLL_PX = 0.8;
     const T3_TOP_HA_W = 256;
