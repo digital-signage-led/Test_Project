@@ -4298,8 +4298,8 @@
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
     let scene5AnimId = null;
     const T3_UNIT_W = 256;
-    const T3_L1_MAX = 40;       /* l1 上限を拡大（l1 > l2、l2 は T3_L2_RATIO 倍） */
-    const T3_L2_RATIO = 0.45;   /* l2の比率を低下させて1行目と2行目の差を大きくする */
+    const T3_L1_MAX = 36;       /* l1 上限（2行目を極小化して縦スペースを1行目に集約） */
+    const T3_L2_RATIO = 0.30;   /* l2は1行目の30%（極小） */
     const T3_LINE_H = 1.22;
     const T3_SCROLL_PX = 0.8;
     const T3_TOP_HA_W = 256;
@@ -4477,10 +4477,10 @@
     }
     const TIME_SYNC_CHAIN = [
         { name: 'NICT', fetch: fetchUtcMsFromNict },
-        { name: 'jma-amedas', fetch: fetchUtcMsFromJmaLatest },
         { name: 'timeapi.io', fetch: fetchUtcMsFromTimeApiIo },
         { name: 'worldtimeapi', fetch: fetchUtcMsFromWorldTimeApi }
     ];
+    /* 注意：jma-amedas(latest_time.txt)はアメダス観測時刻=最大10分遅れのため時計同期には使わない */
     function fetchWithTimeout_(promise, ms, label) {
         return Promise.race([
             promise,
@@ -4522,7 +4522,10 @@
         const now = new Date(Math.floor(ms));
         const t = clockHmFormatter.format(now);
         const d = clockDateFormatter.format(now);
-        document.querySelectorAll('.clock-hm').forEach(el => { el.innerText = t; });
+        /* 秒は表示しないが、コロンを1秒ごとに薄↔明で点滅（消えない・フェードなしで瞬時切替） */
+        const colonOn = (now.getSeconds() % 2 === 0);
+        const tHtml = t.replace(':', '<span class="clk-colon" style="opacity:' + (colonOn ? '1' : '0.35') + ';">:</span>');
+        document.querySelectorAll('.clock-hm').forEach(el => { el.innerHTML = tHtml; });
         document.querySelectorAll('#scene1 .s1-bar-label').forEach(el => { el.innerText = d; });
         fitS1DateFontSize_();
     }
@@ -6215,7 +6218,7 @@
         const bodyEl = document.querySelector('#scene3 .t3-scroll-body');
         const usableH = bodyEl && bodyEl.clientHeight > 0 ? bodyEl.clientHeight - 14 : 54;
         const gap = 3;
-        const l2Min = 18;
+        const l2Min = 11;
         const setAll = function (f1, f2) {
             document.querySelectorAll('#scene3 .t3-l1').forEach(function (n) {
                 n.style.fontSize = (f1 > 0 ? f1 : 0) + 'px';
