@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:43 -->
+<!-- LAYOUT_VER:45 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -15,7 +15,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 
 /* ===== サイネージ（LED解像度固定） ===== */
 #signage-root{position:fixed;inset:0;width:100%;height:100%;}
-html.signage #signage-root{position:relative;inset:auto;overflow:hidden;flex-shrink:0;}
+html.signage:not(.signage-fill) #signage-root{position:relative;inset:auto;overflow:hidden;flex-shrink:0;}
+html.signage-fill #signage-root{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:none!important;}
 html.signage-preview,html.signage-preview body{overflow:hidden;width:100%;height:100%;height:100dvh;margin:0;padding:0;}
 html.signage-preview body{display:flex;align-items:center;justify-content:center;background:#000;}
 html.signage-preview #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;}
@@ -744,7 +745,6 @@ html.tune-active #signage-credit{bottom:calc(var(--tune-credit-bottom) * 1px)!im
 }
 .rbar .n{font-size:clamp(10px,min(1.5vw,2.6vh),28px);display:block;}
 .rbar .nm{font-size:clamp(9px,min(1.25vw,2.15vh),22px);display:block;margin-top:0.12vh;}
-.rbar[data-idx="4"]{border-color:#fff;}
 .rbar.active{flex:1.5 1.5 0;align-self:stretch;height:auto;outline:none;z-index:1;}
 .rbar.active .n{font-size:clamp(15px,min(2.5vw,4.3vh),46px);}
 .rbar.active .nm{font-size:clamp(13px,min(2.1vw,3.6vh),36px);}
@@ -893,7 +893,6 @@ html.signage .rbar.active{
   flex:1.5 1.5 0!important;align-self:stretch!important;height:auto!important;
   outline:none!important;z-index:1!important;
 }
-html.signage .rbar[data-idx="4"]{border-color:#fff!important;}
 html.signage .rain[data-rain-lv="4"] .rbar.active,
 html.signage .rain[data-rain-lv="5"] .rbar.active{border-color:#fff!important;}
 html.signage .rain[data-rain-lv="1"] .rbar.active,
@@ -1060,8 +1059,7 @@ const CONFIG = {
   SIGNAGE_INCH:   100,        // 75 | 100 | 125 ★現場のLEDに合わせる
   SIGNAGE_W:      0,          // 任意解像度（pitch/inchより優先）。0=テーブル参照
   SIGNAGE_H:      0,
-  SIGNAGE_PREVIEW_FIT: true,  // true=画面に自動フィット(本番推奨) / false=1:1実解像度。URL ?fit=0 で1:1
-  SIGNAGE_FIT_MODE:  'cover', // 'cover'=黒帯なしで画面全体に表示 / 'contain'=比率維持・黒帯あり
+  SIGNAGE_VIEWPORT_FILL: true, // 実画面pxをキャンバスにする（全解像度・黒帯/切れなし）
   PIN_MODE:       '',        // URL ?mode=rain|wbgt で表示ループを固定
   /* --- WBGT顔アイコン（位置・大きさ）---
      サイネージ: キャンバス幅に対する比率 / PC: vw・% */
@@ -1086,13 +1084,12 @@ function applyConfigFromUrl(){
  if(q.has('gas')) CONFIG.GAS_URL=q.get('gas');
  if(q.has('loop')) CONFIG.LOOP_SEC=Math.max(1,+q.get('loop')||8);
  if(q.has('fetch')) CONFIG.FETCH_MIN=Math.max(1,+q.get('fetch')||15);
- if(q.has('fit')) CONFIG.SIGNAGE_PREVIEW_FIT=!['0','false','no'].includes((q.get('fit')||'').toLowerCase());
- if(q.has('fitmode')) CONFIG.SIGNAGE_FIT_MODE=q.get('fitmode').toLowerCase()==='contain'?'contain':'cover';
+ if(q.has('viewport')) CONFIG.SIGNAGE_VIEWPORT_FILL=!['0','false','no'].includes((q.get('viewport')||'').toLowerCase());
 }
 applyConfigFromUrl();
 /* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
    75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
-const LAYOUT_VER=43;
+const LAYOUT_VER=45;
 const SG_REF_75_W=432;
 const SG_REF_75_H=288;
 const FACE_REF_75_W=SG_REF_75_W;
@@ -1101,19 +1098,9 @@ const FACE_P287_75_SIZE=158;  /* P2.87·75"のみ（150→少し大きく） */
 const SG_CAUTION_MSG_P287_75=28; /* P2.87·75" 注意メッセージ基準(px) */
 const P287_75_H=352;
 function calcSignageFaceLayout(w,h,inch,pitch){
- if(inch===75){
-  if(pitch==='P2.87'){
-   const faceSize=FACE_P287_75_SIZE;
-   const faceRight=Math.round(w*CONFIG.FACE_RIGHT_RATIO);
-   const faceTextPad=faceSize+faceRight+Math.round(w*0.02);
-   return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad};
-  }
-  const faceSize=Math.round(FACE_REF_75_W*FACE_REF_75_RATIO);
-  const faceRight=Math.round(FACE_REF_75_W*CONFIG.FACE_RIGHT_RATIO);
-  const faceTextPad=faceSize+faceRight+Math.round(FACE_REF_75_W*0.02);
-  return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad};
- }
- const faceSize=Math.round(w*FACE_REF_75_RATIO);
+ const p287_75=inch===75&&pitch==='P2.87';
+ const ratio=p287_75?(FACE_P287_75_SIZE/528):FACE_REF_75_RATIO;
+ const faceSize=Math.round(w*ratio);
  const faceRight=Math.round(w*CONFIG.FACE_RIGHT_RATIO);
  return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad:faceSize+faceRight+Math.round(w*0.02)};
 }
@@ -1122,6 +1109,43 @@ const SIGNAGE_RES={
  'P2.87':{75:[528,352],100:[704,528],125:[880,704]}
 };
 let signageFitFn=null;
+function getViewportSize(){
+ const vv=window.visualViewport;
+ return {
+  w:Math.max(1,Math.round(vv?vv.width:window.innerWidth)),
+  h:Math.max(1,Math.round(vv?vv.height:window.innerHeight))
+ };
+}
+function isTuneMode(){
+ const q=new URLSearchParams(location.search);
+ if(!q.has('tune')) return false;
+ const t=(q.get('tune')??'1').toLowerCase();
+ return !['0','false','no','off'].includes(t);
+}
+function shouldUseFixedCanvas(q){
+ if(q.get('embed')==='1') return true;
+ if(isTuneMode()) return true;
+ if(q.get('canvas')==='fixed') return true;
+ const fit=(q.get('fit')||'').toLowerCase();
+ if(fit==='0'||fit==='false'||fit==='no') return true;
+ return false;
+}
+function signageTier(h){
+ return h<=300?'xs':h<=380?'sm':h<=460?'md':'lg';
+}
+function guardSignageOverflow(){
+ const root=document.getElementById('signage-root');
+ if(!root||!document.documentElement.classList.contains('signage-fill')) return;
+ root.style.transform='';
+ root.style.transformOrigin='';
+ const cw=root.clientWidth,ch=root.clientHeight;
+ if(!cw||!ch) return;
+ const sw=root.scrollWidth,sh=root.scrollHeight;
+ if(sw<=cw+1&&sh<=ch+1) return;
+ const s=Math.min(cw/sw,ch/sh,1);
+ root.style.transform='scale('+s+')';
+ root.style.transformOrigin='center center';
+}
 function applySignageAspectCorr(w,h,pitch,inch){
  const row=pitch&&SIGNAGE_RES[pitch];
  const ref=row&&inch&&row[inch]?row[inch]:[SG_REF_75_W,SG_REF_75_H];
@@ -1131,72 +1155,66 @@ function applySignageAspectCorr(w,h,pitch,inch){
  document.documentElement.style.setProperty('--sg-ar',String(ar));
  document.documentElement.style.setProperty('--sg-ar-k',String(k));
 }
-function initSignage(){
+function applySignageLayout(){
  const q=new URLSearchParams(location.search);
- const pitch=q.get('pitch')||CONFIG.SIGNAGE_PITCH||'';
- const inch=+(q.get('inch')||CONFIG.SIGNAGE_INCH||0);
+ const pitch=q.get('pitch')||CONFIG.SIGNAGE_PITCH||'P3.47';
+ const inch=+(q.get('inch')||CONFIG.SIGNAGE_INCH||100);
  const cw=+(q.get('w')||CONFIG.SIGNAGE_W||0);
  const ch=+(q.get('h')||CONFIG.SIGNAGE_H||0);
+ const fixedCanvas=shouldUseFixedCanvas(q);
+ const viewportFill=!fixedCanvas&&CONFIG.SIGNAGE_VIEWPORT_FILL!==false;
  let w,h;
- if(cw>0&&ch>0){ w=cw; h=ch; }
- else { const row=pitch&&SIGNAGE_RES[pitch]; const pair=row&&row[inch]; if(!pair) return null; [w,h]=pair; }
- CONFIG._signage={pitch,inch,w,h};
+ if(viewportFill){
+  ({w,h}=getViewportSize());
+ }else if(cw>0&&ch>0){
+  w=cw; h=ch;
+ }else{
+  const row=SIGNAGE_RES[pitch];
+  const pair=row&&row[inch];
+  w=pair?pair[0]:SG_REF_75_W;
+  h=pair?pair[1]:SG_REF_75_H;
+ }
+ CONFIG._signage={pitch,inch,w,h,viewportFill};
  document.documentElement.classList.add('signage');
  if(q.get('embed')==='1') document.documentElement.classList.add('embed');
  document.documentElement.dataset.pitch=pitch;
  document.documentElement.dataset.inch=String(inch);
  document.documentElement.dataset.layoutVer=String(LAYOUT_VER);
- document.documentElement.dataset.tier=inch===75?'xs':h<=300?'xs':h<=380?'sm':h<=460?'md':'lg';
+ document.documentElement.dataset.tier=signageTier(h);
  document.documentElement.style.setProperty('--signage-w',w+'px');
  document.documentElement.style.setProperty('--signage-h',h+'px');
  document.documentElement.style.setProperty('--sg-scale-w',String(w/SG_REF_75_W));
  document.documentElement.style.setProperty('--sg-scale-h',String(h/SG_REF_75_H));
  applySignageAspectCorr(w,h,pitch,inch);
  const root=document.getElementById('signage-root');
- root.style.width=w+'px';
- root.style.height=h+'px';
- function shouldPreviewFit(){
-  if(q.get('embed')==='1') return false;
-  const fit=q.get('fit');
-  if(fit==='0'||fit==='false'||fit==='no') return false;
-  if(fit==='1'||fit==='true'||fit==='yes') return true;
-  if(q.get('tune')==='1'||document.documentElement.classList.contains('tune-active')) return CONFIG.SIGNAGE_PREVIEW_FIT;
-  if(!CONFIG.DEMO_MODE) return true;
-  return CONFIG.SIGNAGE_PREVIEW_FIT;
- }
- function updateViewport(){
-  let meta=document.querySelector('meta[name="viewport"]');
-  if(!meta){meta=document.createElement('meta');meta.name='viewport';document.head.appendChild(meta);}
-  if(document.documentElement.classList.contains('signage-preview')){
-   meta.content='width=device-width, initial-scale=1';
-  }else if(document.documentElement.classList.contains('signage-1to1')){
-   meta.content='width='+w+', initial-scale=1';
-  }else{
-   meta.content='width='+w+', initial-scale=1, maximum-scale=1, user-scalable=no';
+ document.documentElement.classList.toggle('signage-fill',viewportFill);
+ document.documentElement.classList.remove('signage-preview','signage-contain','signage-1to1');
+ if(viewportFill){
+  root.style.width='';
+  root.style.height='';
+  root.style.transform='';
+  document.documentElement.style.removeProperty('--signage-scale');
+ }else{
+  root.style.width=w+'px';
+  root.style.height=h+'px';
+  if(q.get('embed')!=='1'){
+   document.documentElement.classList.add('signage-preview','signage-contain');
+   const s=Math.min(window.innerWidth/w,window.innerHeight/h);
+   document.documentElement.style.setProperty('--signage-scale',String(s));
   }
  }
- function fit(){
-  if(!shouldPreviewFit()){
-   document.documentElement.classList.remove('signage-preview','signage-cover','signage-contain');
-   document.documentElement.classList.add('signage-1to1');
-   document.documentElement.style.removeProperty('--signage-scale');
-   updateViewport();
-   return;
-  }
-  document.documentElement.classList.remove('signage-1to1');
-  document.documentElement.classList.add('signage-preview');
-  const mode=(CONFIG.SIGNAGE_FIT_MODE==='contain')?'contain':'cover';
-  document.documentElement.classList.toggle('signage-cover',mode==='cover');
-  document.documentElement.classList.toggle('signage-contain',mode==='contain');
-  const sw=window.innerWidth/w,sh=window.innerHeight/h;
-  const s=mode==='cover'?Math.max(sw,sh):Math.min(sw,sh);
-  document.documentElement.style.setProperty('--signage-scale',String(s));
-  updateViewport();
- }
- signageFitFn=fit;
- fit();
- window.addEventListener('resize',fit);
+ let meta=document.querySelector('meta[name="viewport"]');
+ if(!meta){meta=document.createElement('meta');meta.name='viewport';document.head.appendChild(meta);}
+ meta.content=viewportFill?'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no':'width=device-width, initial-scale=1';
  applyFaceLayout();
+ requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
+ return CONFIG._signage;
+}
+function initSignage(){
+ signageFitFn=applySignageLayout;
+ applySignageLayout();
+ window.addEventListener('resize',applySignageLayout);
+ if(window.visualViewport) window.visualViewport.addEventListener('resize',applySignageLayout);
  return CONFIG._signage;
 }
 function refitSignageView(){ if(signageFitFn) signageFitFn(); }
@@ -1362,12 +1380,6 @@ function faceLayoutDefaults(){
   d.faceSize=240;d.faceRight=72;d.faceTop=CONFIG.FACE_TOP_PCT;d.faceTextPad=340;
  }
  return d;
-}
-function isTuneMode(){
- const q=new URLSearchParams(location.search);
- if(!q.has('tune')) return false;
- const t=(q.get('tune')??'1').toLowerCase();
- return !['0','false','no','off'].includes(t);
 }
 function openTuneMode(){
  const q=new URLSearchParams(location.search);
