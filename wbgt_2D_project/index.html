@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:46 -->
+<!-- LAYOUT_VER:49 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -16,7 +16,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 /* ===== サイネージ（LED解像度固定） ===== */
 #signage-root{position:fixed;inset:0;width:100%;height:100%;}
 html.signage:not(.signage-fill) #signage-root{position:relative;inset:auto;overflow:hidden;flex-shrink:0;}
-html.signage-fill #signage-root{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:scale(var(--signage-fit-scale,1))!important;transform-origin:center center!important;}
+html.signage-fill,html.signage-fill body{width:100%;height:100%;height:100dvh;}
+html.signage-fill #signage-root{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;height:100dvh!important;overflow:hidden!important;}
 html.signage-preview,html.signage-preview body{overflow:hidden;width:100%;height:100%;height:100dvh;margin:0;padding:0;}
 html.signage-preview body{display:flex;align-items:center;justify-content:center;background:#000;}
 html.signage-preview #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;}
@@ -73,8 +74,9 @@ html.signage .wbgt-hdr .d{font-size:var(--sg-hdr-d)!important;font-weight:800!im
 html.signage .wbgt-hdr .c{font-size:var(--sg-hdr-c)!important;font-weight:900!important;}
 html.signage .wbgt-body{
   display:grid!important;
-  grid-template-rows:50fr 23fr 12fr auto!important;
+  grid-template-rows:minmax(0,50fr) minmax(0,23fr) auto!important;
   min-height:0!important;
+  overflow:hidden!important;
   --status-name-size:var(--sg-name);
   --status-msg-size:var(--sg-msg);
 }
@@ -113,6 +115,7 @@ html.signage .wbgt-cards{
   gap:calc(var(--signage-w) * 0.008)!important;
   margin:0 calc(var(--signage-w) * 0.02) calc(var(--sg-wbar-tri-h) + var(--sg-wbar-tri-clear))!important;
   align-self:stretch;min-height:0!important;flex:none!important;
+  overflow:clip!important;
 }
 html.signage .wcard{
   border-radius:var(--card-r)!important;
@@ -212,7 +215,7 @@ html.signage .wbar{
 }
 html.signage .wbar[data-idx="0"]{border-radius:var(--card-r) 0 0 var(--card-r)!important;z-index:1;}
 html.signage .wbar[data-idx="4"]{
-  border-radius:0 var(--card-r) var(--card-r) 0!important;
+  border-radius:var(--card-r) var(--card-r) var(--card-r) var(--card-r)!important;
   margin-left:calc(var(--card-r) * -1)!important;
   z-index:5;
   border:none!important;outline:none!important;box-shadow:none!important;
@@ -262,6 +265,11 @@ html.signage .wbgt-body{
     calc(var(--sg-status-msg-fit) * 98 / 23)
   );
   --sg-status-msg:calc(var(--sg-status-name) * 23 / 98);
+}
+/* PC全画面（16:10等）: 横長で縦が足りないとき文字・カード拡大を抑える */
+html.signage-fill .wbgt-body{
+  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio) * var(--sg-ar-k)), calc(var(--signage-h) * 0.30));
+  --sg-card-loupe:min(1.42, calc(1.42 * var(--sg-h-ratio) / var(--sg-w-ratio)));
 }
 html.signage .wbgt-body .wbgt-name{
   font-size:var(--sg-status-name)!important;
@@ -363,8 +371,8 @@ html.signage[data-tier="xs"] .wbgt-hdr .t-xs{display:flex;}
 .wbgt-hdr .c{font-size:clamp(22px,min(4.6vw,7.7vh),68px);font-weight:900;color:#111;}
 
 .wbgt-body{
-  flex:1;min-height:0;display:grid;grid-template-rows:50fr 23fr 12fr auto;
-  padding:0;transition:background 0.35s;
+  flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,50fr) minmax(0,23fr) auto;
+  padding:0;transition:background 0.35s;overflow:hidden;
   --card-r:clamp(8px,1.2vw,14px);
   --bar-r:clamp(10px,1.4vw,16px);
   --face-w:clamp(165px,32vw,470px);
@@ -509,7 +517,7 @@ html.face-edit .wbgt-face.face-dragging{
 .wbar[data-idx="2"]{z-index:3;}
 .wbar[data-idx="3"]{z-index:4;}
 .wbar[data-idx="4"]{
-  border-radius:0 var(--card-r) var(--card-r) 0;
+  border-radius:var(--card-r);
   margin-left:calc(var(--card-r) * -1);
   z-index:5;
   border:none;outline:none;box-shadow:none;
@@ -595,7 +603,7 @@ html.tune-active .wbgt-bar-wrap{
 html.tune-active .wbgt-bar{overflow:visible!important;}
 html.tune-active .wbar[data-idx="0"]{border-radius:var(--card-r) 0 0 var(--card-r)!important;}
 html.tune-active .wbar[data-idx="4"]{
-  border-radius:0 var(--card-r) var(--card-r) 0!important;
+  border-radius:var(--card-r)!important;
   margin-left:calc(var(--card-r) * -1)!important;
 }
 html.tune-active .wbar[data-idx="1"],
@@ -760,7 +768,8 @@ html.tune-active #signage-credit{bottom:calc(var(--tune-credit-bottom) * 1px)!im
 
 /* ========== RAIN サイネージ（432×288 基準 · 全レベル同一配置） ========== */
 html.signage .rain{
-  grid-template-rows:20fr 60fr 20fr;
+  height:100%!important;min-height:0!important;
+  grid-template-rows:minmax(0,20fr) minmax(0,60fr) minmax(0,20fr)!important;
   --rain-pad-x:calc(var(--signage-w) * 0.026);
   --rain-pad-y:calc(var(--signage-h) * 0.016);
   --rain-left-w:27%;
@@ -781,6 +790,7 @@ html.signage .rain{
   --rain-main-gap:calc(var(--signage-h) * 0.009);
 }
 html.signage .rain-hdr{
+  min-height:0!important;
   grid-template-columns:1fr auto!important;
   padding:var(--rain-pad-y) var(--rain-pad-x) calc(var(--rain-pad-y) * 0.65)!important;
   border-bottom-width:max(1px, calc(var(--signage-h) * 0.007))!important;
@@ -825,6 +835,7 @@ html.signage .rain-lvbox .lv{font-size:min(calc(var(--signage-w) * 0.026), calc(
 html.signage .rain-lvbox .num{font-size:min(calc(var(--signage-w) * 0.17), calc(var(--signage-h) * 0.35))!important;}
 
 html.signage .rain-mid{
+  min-height:0!important;
   grid-template-columns:minmax(0,var(--rain-left-w)) max(1px, calc(var(--signage-h) * 0.007)) minmax(0,1fr)!important;
   column-gap:var(--rain-mid-gap)!important;
   padding:calc(var(--signage-h) * 0.02) var(--rain-pad-x) calc(var(--signage-h) * 0.016)!important;
@@ -873,6 +884,7 @@ html.signage .rain-pub-upd{font-size:var(--rain-pub-upd-size)!important;font-wei
 html.signage .rain-face{max-width:100%!important;width:100%!important;}
 
 html.signage .rain-bar{
+  min-height:0!important;overflow:hidden!important;
   gap:calc(var(--signage-w) * 0.0055)!important;
   padding:calc(var(--signage-h) * 0.012) var(--rain-pad-x) calc(var(--signage-h) * 0.018)!important;
   align-items:center!important;overflow:visible!important;
@@ -1093,7 +1105,7 @@ function applyConfigFromUrl(){
 applyConfigFromUrl();
 /* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
    75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
-const LAYOUT_VER=46;
+const LAYOUT_VER=49;
 const SG_REF_75_W=432;
 const SG_REF_75_H=288;
 const FACE_REF_75_W=SG_REF_75_W;
@@ -1114,10 +1126,11 @@ const SIGNAGE_RES={
 };
 let signageFitFn=null;
 function getViewportSize(){
+ const doc=document.documentElement;
  const vv=window.visualViewport;
  return {
-  w:Math.max(1,Math.round(vv?vv.width:window.innerWidth)),
-  h:Math.max(1,Math.round(vv?vv.height:window.innerHeight))
+  w:Math.max(1,Math.round(vv?vv.width:doc.clientWidth||window.innerWidth)),
+  h:Math.max(1,Math.round(vv?vv.height:doc.clientHeight||window.innerHeight))
  };
 }
 function isTuneMode(){
@@ -1137,36 +1150,7 @@ function shouldUseFixedCanvas(q){
 function signageTier(h){
  return h<=300?'xs':h<=380?'sm':h<=460?'md':'lg';
 }
-function guardSignageOverflow(){
- const root=document.getElementById('signage-root');
- const doc=document.documentElement;
- if(!root||!doc.classList.contains('signage-fill')) return;
- doc.style.setProperty('--signage-fit-scale','1');
- void root.offsetHeight;
- const vw=window.innerWidth,vh=window.innerHeight;
- let maxL=vw,maxR=0,maxT=vh,maxB=0;
- root.querySelectorAll('.board:not(.hide)').forEach(board=>{
-  board.querySelectorAll('.wbgt-hdr,.wbgt-body,.wbgt-bar-wrap,.wbgt-foot,.rain-hdr,.rain-main,.rain-bar,.rain-foot').forEach(el=>{
-   const r=el.getBoundingClientRect();
-   if(r.width<1&&r.height<1) return;
-   maxL=Math.min(maxL,r.left);
-   maxR=Math.max(maxR,r.right);
-   maxT=Math.min(maxT,r.top);
-   maxB=Math.max(maxB,r.bottom);
-  });
-  board.querySelectorAll('.wbar.active,.rbar.active').forEach(el=>{
-   const r=el.getBoundingClientRect();
-   const tri=parseFloat(getComputedStyle(doc).getPropertyValue('--sg-wbar-tri-h'))||parseFloat(getComputedStyle(doc).getPropertyValue('--wbar-tri-h'))||0;
-   if(tri>0) maxT=Math.min(maxT,r.top-tri);
-  });
- });
- const pad=2;
- const cw=Math.max(maxR-maxL,root.scrollWidth,root.clientWidth);
- const ch=Math.max(maxB-maxT,root.scrollHeight,root.clientHeight);
- if(cw<=vw+pad&&ch<=vh+pad) return;
- const s=Math.min(vw/cw,vh/ch,1);
- if(s<0.999) doc.style.setProperty('--signage-fit-scale',String(s));
-}
+function guardSignageOverflow(){/* 縮小スケールは黒帯の原因になるため廃止。グリッド auto 行で実寸に合わせる */}
 function applySignageAspectCorr(w,h,pitch,inch){
  const row=pitch&&SIGNAGE_RES[pitch];
  const ref=row&&inch&&row[inch]?row[inch]:[SG_REF_75_W,SG_REF_75_H];
@@ -1216,8 +1200,8 @@ function applySignageLayout(){
  if(viewportFill){
   root.style.width='';
   root.style.height='';
-  document.documentElement.style.setProperty('--signage-fit-scale','1');
   document.documentElement.style.removeProperty('--signage-scale');
+  document.documentElement.style.removeProperty('--signage-fit-scale');
  }else{
   root.style.width=w+'px';
   root.style.height=h+'px';
