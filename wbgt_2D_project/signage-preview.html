@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>サイネージ解像度プレビュー — WBGT</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0e0e12;color:#e8e8e8;font-family:'Segoe UI','Noto Sans JP',sans-serif;padding:20px 24px 40px;}
+h1{font-size:20px;font-weight:900;margin-bottom:6px;}
+.lead{font-size:13px;color:#aaa;margin-bottom:12px;line-height:1.6;}
+.lead a{color:#4fc3f7;}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:20px;}
+.toolbar button{
+  background:#2a2a35;color:#e8e8e8;border:1px solid #555;border-radius:8px;
+  padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.toolbar button:hover{border-color:#4fc3f7;color:#4fc3f7;}
+.ver{font-size:12px;color:#888;}
+table.spec{width:100%;max-width:720px;border-collapse:collapse;font-size:13px;margin-bottom:24px;}
+table.spec th,table.spec td{border:1px solid #333;padding:8px 12px;text-align:center;}
+table.spec th{background:#1a1a22;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;}
+.cell{background:#18181f;border:1px solid #333;border-radius:10px;padding:14px;}
+.cell h2{font-size:15px;font-weight:900;margin-bottom:4px;}
+.meta{font-size:12px;color:#888;margin-bottom:10px;}
+.ratio{display:inline-block;background:#2a2a35;padding:2px 8px;border-radius:4px;margin-left:6px;font-size:11px;}
+.viewport{overflow:hidden;background:#000;border:1px solid #444;border-radius:4px;line-height:0;}
+.viewport iframe{border:0;transform-origin:0 0;display:block;}
+.links{margin-top:10px;font-size:12px;}
+.links a{color:#4fc3f7;margin-right:12px;}
+</style>
+</head>
+<body>
+<h1>LEDサイネージ — 6解像度プレビュー</h1>
+<p class="lead">
+  各枠は<strong>実ピクセル数どおり</strong>のレイアウトを縮小表示しています（デモデータ・WBGT注意表示）。<br>
+  <a href="index.html">通常表示（PCフル画面）</a> ·
+  <a href="setup.html">URL発行（仕様入力）</a> ·
+  <a href="signage-preview.html">このページ</a> ·
+  <a href="wbgt-levels-preview.html">WBGT 5段階一覧</a> ·
+  <a href="rain-levels-preview.html">大雨 5段階一覧</a>
+</p>
+<div class="toolbar">
+  <button type="button" id="reloadBtn">プレビューを再読み込み</button>
+  <span class="ver" id="verInfo"></span>
+</div>
+
+<table class="spec">
+  <thead>
+    <tr><th>ピッチ</th><th>75インチ</th><th>100インチ</th><th>125インチ</th></tr>
+  </thead>
+  <tbody>
+    <tr><th>P3.47</th><td>432×288</td><td>576×432</td><td>720×576</td></tr>
+    <tr><th>P2.87</th><td>528×352</td><td>704×528</td><td>880×704</td></tr>
+  </tbody>
+</table>
+
+<div class="grid" id="grid"></div>
+
+<script>
+/* index.html の LAYOUT_VER と揃える（index 側 dataset.layout-ver でも確認可） */
+const LAYOUT_VER=39;
+const SPECS=[
+ {pitch:'P3.47',inch:75,w:432,h:288},
+ {pitch:'P3.47',inch:100,w:576,h:432},
+ {pitch:'P3.47',inch:125,w:720,h:576},
+ {pitch:'P2.87',inch:75,w:528,h:352},
+ {pitch:'P2.87',inch:100,w:704,h:528},
+ {pitch:'P2.87',inch:125,w:880,h:704}
+];
+const MAX_W=300;
+const grid=document.getElementById('grid');
+const verInfo=document.getElementById('verInfo');
+
+function indexUrl(s,opts){
+ opts=opts||{};
+ const q=new URLSearchParams({
+  pitch:s.pitch,
+  inch:String(s.inch),
+  demo:'1',
+  level:'1',
+  v:String(LAYOUT_VER),
+  _:String(Date.now()+Math.random())
+ });
+ if(opts.embed) q.set('embed','1');
+ if('fit' in opts) q.set('fit',String(opts.fit));
+ if(opts.tune) q.set('tune','1');
+ return 'index.html?'+q.toString();
+}
+
+function buildGrid(){
+ grid.innerHTML='';
+ verInfo.textContent='レイアウト版 '+LAYOUT_VER+' · 読込 '+new Date().toLocaleTimeString();
+ SPECS.forEach(s=>{
+  const scale=Math.min(1,MAX_W/s.w);
+  const ratio=(s.w/s.h).toFixed(3);
+  const cell=document.createElement('div');
+  cell.className='cell';
+  const fullUrl=indexUrl(s,{fit:'0'});
+  cell.innerHTML=`
+   <h2>${s.pitch} · ${s.inch}インチ<span class="ratio">${ratio}</span></h2>
+   <div class="meta">${s.w} × ${s.h} px</div>
+   <div class="viewport" style="width:${Math.round(s.w*scale)}px;height:${Math.round(s.h*scale)}px"></div>
+   <div class="links">
+    <a href="${fullUrl}" target="_blank">フルサイズで開く（1:1）</a>
+    <a href="${indexUrl(s,{embed:1})}" target="_blank">実解像度1:1（埋め込み）</a>
+    <a href="${indexUrl(s,{tune:'1',fit:'0'})}" target="_blank">フルサイズで微調整</a>
+   </div>`;
+  const vp=cell.querySelector('.viewport');
+  const ifr=document.createElement('iframe');
+  ifr.width=s.w;
+  ifr.height=s.h;
+  ifr.style.width=s.w+'px';
+  ifr.style.height=s.h+'px';
+  ifr.style.transform='scale('+scale+')';
+  ifr.src=indexUrl(s,{embed:1});
+  ifr.title=s.pitch+' '+s.inch+'インチ';
+  vp.appendChild(ifr);
+  grid.appendChild(cell);
+ });
+}
+
+document.getElementById('reloadBtn').addEventListener('click',buildGrid);
+window.addEventListener('pageshow',e=>{if(e.persisted) buildGrid();});
+buildGrid();
+</script>
+</body>
+</html>

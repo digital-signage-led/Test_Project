@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>防災モニタリングシステム（WBGT / 大雨情報）</title>
+<!-- LAYOUT_VER:40 -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Noto Sans JP',sans-serif;}
+
+/* ===== サイネージ（LED解像度固定） ===== */
+#signage-root{position:fixed;inset:0;width:100%;height:100%;}
+html.signage #signage-root{position:relative;inset:auto;overflow:hidden;flex-shrink:0;}
+html.signage-preview,html.signage-preview body{overflow:auto;}
+html.signage-preview body{display:flex;align-items:center;justify-content:center;min-height:100%;min-width:100%;}
+html.signage-preview #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;}
+html.signage-1to1,html.signage-1to1 body{overflow:auto!important;height:auto!important;min-height:100%;}
+html.signage-1to1 body{display:flex;align-items:flex-start;justify-content:center;padding:16px;background:#111;min-width:100%;}
+html.signage-1to1 #signage-root{box-shadow:0 0 0 2px #333;flex-shrink:0;}
+html.signage .board{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;}
+html.signage .wbgt-body{padding:0;}
+html.signage .wbgt-bar{margin:0;}
+html.signage #gear,html.signage #demo{display:none!important;}
+html.signage.embed #tune-launcher{display:none!important;}
+html.signage #signage-credit{position:absolute;}
+
+/* サイネージ: vw/vh はブラウザ全体を参照するため、LEDキャンバス(px)基準で固定 */
+/* P3.47·75インチ（432×288）基準の比率 → 実キャンバス(--signage-w/h)で全解像度を比例スケール */
+html.signage{
+  --sg-h-ratio:calc(var(--signage-h) / 288px);
+  --sg-w-ratio:calc(var(--signage-w) / 432px);
+  --sg-hdr-t:calc(var(--signage-w) * 0.036);
+  --sg-hdr-d:calc(var(--signage-w) * 0.028);
+  --sg-hdr-c:calc(var(--signage-w) * 0.061);
+  --sg-name:min(calc(var(--signage-w) * 0.14), calc(var(--signage-h) * 0.17));
+  --sg-msg:calc(var(--sg-name) * 0.36);
+  --sg-card-lbl:calc(var(--signage-w) * 0.022);
+  --sg-card-ic:calc(var(--signage-w) * 0.029);
+  --sg-card-v:calc(var(--signage-w) * 0.043);
+  --sg-card-u:calc(var(--signage-w) * 0.022);
+  --sg-badge:calc(var(--signage-w) * 0.026);
+  --sg-card-loupe:1.42;
+  --sg-bar-h:calc(var(--signage-h) * 30 / 288);
+  --sg-wbar-n:calc(var(--signage-w) * 0.043);
+  --sg-wbar-rg:calc(var(--signage-w) * 0.032);
+  --sg-wbar-rg-mt:calc(var(--sg-wbar-n) * 0.08);
+  --sg-bar-pad-y:calc(var(--signage-h) * 5 / 288);
+  --sg-wbar-tri-w:calc(var(--signage-w) * 0.022);
+  --sg-wbar-tri-h:calc(var(--signage-h) * 0.022);
+  --sg-wbar-tri-clear:calc(var(--signage-h) * 0.006);
+}
+html.signage[data-tier="sm"]{
+  --sg-bar-h:calc(var(--signage-h) * 36 / 288);
+}
+html.signage[data-tier="md"],
+html.signage[data-tier="lg"]{
+  --sg-bar-h:calc(var(--signage-h) * 40 / 288);
+}
+html.signage .wbgt-hdr{min-height:12%!important;padding:calc(var(--signage-h) * 0.018) calc(var(--signage-w) * 0.022)!important;}
+html.signage .wbgt-hdr .t{font-size:var(--sg-hdr-t)!important;font-weight:900!important;line-height:1.15;max-width:62%;}
+html.signage .wbgt-hdr .t-l1{white-space:normal;word-break:keep-all;}
+html.signage .wbgt-hdr .d{font-size:var(--sg-hdr-d)!important;font-weight:800!important;}
+html.signage .wbgt-hdr .c{font-size:var(--sg-hdr-c)!important;font-weight:900!important;}
+html.signage .wbgt-body{
+  display:grid!important;
+  grid-template-rows:50fr 23fr 12fr auto!important;
+  min-height:0!important;
+  --status-name-size:var(--sg-name);
+  --status-msg-size:var(--sg-msg);
+}
+html.signage .wbgt-top{
+  padding:calc(var(--signage-h) * 0.01) calc(var(--signage-w) * 0.022) 0!important;
+  overflow:hidden;position:relative!important;justify-content:center!important;
+  min-height:0!important;flex:none!important;
+}
+html.signage .wbgt-top .left{
+  text-align:center!important;width:100%;
+  padding-left:calc(var(--signage-w) * 0.022)!important;
+  padding-right:var(--face-text-pad)!important;box-sizing:border-box;align-self:center;
+  display:flex!important;flex-direction:column!important;align-items:center!important;
+  container-type:inline-size;
+}
+html.signage .wbgt-name{
+  font-weight:900!important;
+  text-align:center!important;width:100%;white-space:nowrap!important;
+}
+html.signage .wbgt-msg{
+  font-weight:700!important;
+  text-align:center!important;width:100%;white-space:nowrap!important;
+}
+html.signage .wbgt-face{
+  position:absolute!important;right:var(--face-right)!important;top:var(--face-top)!important;
+  transform:translateY(-50%)!important;
+  width:var(--face-w)!important;max-width:55%;padding-right:0!important;
+}
+html.signage .wbgt-face img{
+  width:100%!important;transform:scale(var(--face-img-scale,1))!important;transform-origin:center center!important;
+}
+/* P3.47·75": 安全の顔イラストのみ絵柄が大きく見えるため他レベルに合わせる */
+html.signage[data-pitch="P3.47"][data-inch="75"] .wbgt-body.wbgt-lv0{--face-img-scale:0.9;}
+
+html.signage .wbgt-cards{
+  gap:calc(var(--signage-w) * 0.008)!important;
+  margin:0 calc(var(--signage-w) * 0.02) calc(var(--sg-wbar-tri-h) + var(--sg-wbar-tri-clear))!important;
+  align-self:stretch;min-height:0!important;flex:none!important;
+}
+html.signage .wcard{
+  border-radius:var(--card-r)!important;
+  padding:calc(var(--signage-h) * 0.014) calc(var(--signage-w) * 0.008)!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  gap:0!important;overflow:hidden!important;position:relative!important;
+  container-type:size;
+}
+/* ルーペ: 拡大後ちょうどカード内に収まる（はみ出し防止） */
+html.signage .wcard-in{
+  --sg-card-loupe-eff:var(--sg-card-loupe);
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  gap:calc(var(--signage-h) * 0.004)!important;
+  width:calc(100% / var(--sg-card-loupe-eff))!important;
+  height:calc(100% / var(--sg-card-loupe-eff))!important;
+  transform:scale(var(--sg-card-loupe-eff))!important;
+  transform-origin:center center!important;
+  box-sizing:border-box!important;
+}
+html.signage .wcard .val{display:flex!important;justify-content:center!important;align-items:baseline!important;width:100%!important;max-width:100%!important;}
+html.signage .wcard .lbl{
+  font-size:min(calc(var(--sg-card-lbl) * 1.2), 34cqh)!important;font-weight:700!important;
+  white-space:nowrap!important;line-height:1.05!important;
+}
+html.signage .wcard .ic{font-size:min(calc(var(--sg-card-ic) * 1.15), 1.15em)!important;}
+html.signage .wcard .ic-thermo svg{height:1.35em!important;}
+html.signage .wcard .v{
+  font-size:min(calc(var(--sg-card-v) * 1.2), 54cqh, calc(96cqw / 5.5))!important;
+  font-weight:900!important;line-height:1!important;
+}
+html.signage .wcard .u{
+  font-size:min(calc(var(--sg-card-u) * 1.15), 28cqh)!important;font-weight:700!important;
+}
+html.signage .wbgt-badge{
+  font-size:min(calc(var(--sg-badge) * 1.2), 34cqh)!important;font-weight:900!important;
+  padding:2px calc(var(--signage-w) * 0.016)!important;white-space:nowrap!important;line-height:1.05!important;
+}
+/* 温度/湿度/更新時刻は行間を詰めてカード内に収める */
+html.signage .wcard-metric .wcard-in{gap:calc(var(--signage-h) * 0.002)!important;}
+
+/* P3.47·75": WBGTカードのみ少し小さく */
+html.signage[data-pitch="P3.47"][data-inch="75"] .wcard-wbgt .wbgt-badge{
+  font-size:min(calc(var(--sg-badge) * 1.05), 30cqh)!important;
+  padding:2px calc(var(--signage-w) * 0.014)!important;
+}
+html.signage[data-pitch="P3.47"][data-inch="75"] .wcard-wbgt .v{
+  font-size:min(calc(var(--sg-card-v) * 1.05), 46cqh, calc(96cqw / 5.5))!important;
+}
+
+/* P3.47·125": 数値は432×288比例で拡大 / 白カード上の文言は少し小さく */
+html.signage[data-pitch="P3.47"][data-inch="125"]{
+  --sg-card-loupe:1.48;
+}
+html.signage[data-pitch="P3.47"][data-inch="125"] .wcard .lbl{
+  font-size:min(calc(var(--sg-card-lbl) * 1.1), 30cqh)!important;
+}
+html.signage[data-pitch="P3.47"][data-inch="125"] .wcard .ic{
+  font-size:min(calc(var(--sg-card-ic) * 1.05), 1.08em)!important;
+}
+html.signage[data-pitch="P3.47"][data-inch="125"] .wbgt-badge{
+  font-size:min(calc(var(--sg-badge) * 1.1), 30cqh)!important;
+}
+html.signage[data-pitch="P3.47"][data-inch="125"] .wcard .v{
+  font-size:min(calc(var(--sg-card-v) * 1.28), 58cqh, calc(96cqw / 5.5))!important;
+}
+html.signage[data-pitch="P3.47"][data-inch="125"] .wcard .u{
+  font-size:min(calc(var(--sg-card-u) * 1.22), 32cqh)!important;
+}
+
+/* P2.87·75": 白カード上の文言を少し小さく */
+html.signage[data-pitch="P2.87"][data-inch="75"] .wcard .lbl{
+  font-size:min(calc(var(--sg-card-lbl) * 1.06), 30cqh)!important;
+}
+html.signage[data-pitch="P2.87"][data-inch="75"] .wcard .ic{
+  font-size:min(calc(var(--sg-card-ic) * 1.02), 1.05em)!important;
+}
+html.signage[data-pitch="P2.87"][data-inch="75"] .wbgt-badge{
+  font-size:min(calc(var(--sg-badge) * 1.06), 30cqh)!important;
+}
+
+html.signage .wbgt-body{--card-r:calc(var(--signage-w) * 0.016);--bar-r:calc(var(--signage-w) * 0.028);--bar-h:var(--sg-bar-h);}
+html.signage .wbgt-bar-wrap{
+  padding:var(--sg-bar-pad-y) calc(var(--signage-w) * 0.022) var(--sg-bar-pad-y)!important;
+  flex:none!important;align-self:stretch;
+}
+html.signage .wbgt-bar{
+  display:flex!important;gap:0!important;
+  overflow:visible!important;
+  min-height:var(--bar-h)!important;
+}
+html.signage .wbar.active{padding-top:calc(var(--signage-h) * 0.011)!important;padding-bottom:calc(var(--signage-h) * 0.011)!important;}
+html.signage .wbar{
+  flex:1!important;
+  padding:calc(var(--signage-h) * 0.009) 1px!important;
+  min-width:0;container-type:inline-size;
+}
+html.signage .wbar[data-idx="0"]{border-radius:var(--card-r) 0 0 var(--card-r)!important;z-index:1;}
+html.signage .wbar[data-idx="4"]{
+  border-radius:var(--card-r)!important;
+  margin-left:calc(var(--card-r) * -1)!important;
+  z-index:5;
+}
+html.signage .wbar[data-idx="1"],
+html.signage .wbar[data-idx="2"],
+html.signage .wbar[data-idx="3"]{
+  border-radius:var(--card-r) 0 0 var(--card-r)!important;
+  margin-left:calc(var(--card-r) * -1)!important;
+  z-index:2;
+}
+html.signage .wbar[data-idx="2"]{z-index:3;}
+html.signage .wbar[data-idx="3"]{z-index:4;}
+html.signage .wbar .n{font-size:min(var(--sg-wbar-n), 19.4cqi)!important;line-height:1.12;font-weight:900!important;white-space:nowrap!important;}
+html.signage .wbar .rg{font-size:min(var(--sg-wbar-rg), 15.75cqi)!important;line-height:1.12;margin-top:var(--sg-wbar-rg-mt)!important;font-weight:700!important;}
+/* 下段バー: 長いラベルは注意基準から少し縮小（被り防止） */
+html.signage .wbar[data-idx="3"] .n{font-size:min(calc(var(--sg-wbar-n) * 0.78), 16.2cqi)!important;}
+html.signage .wbar[data-idx="4"] .n{font-size:min(var(--sg-wbar-n), 18.5cqi)!important;}
+html.signage .wbar[data-idx="3"] .rg,
+html.signage .wbar[data-idx="4"] .rg{font-size:min(calc(var(--sg-wbar-rg) * 0.92), 14.5cqi)!important;}
+html.signage[data-tier="sm"] .wbar .n,
+html.signage[data-tier="md"] .wbar .n,
+html.signage[data-tier="lg"] .wbar .n{font-size:min(calc(var(--sg-wbar-n) * var(--sg-card-loupe)), 19.4cqi)!important;}
+html.signage[data-tier="sm"] .wbar .rg,
+html.signage[data-tier="md"] .wbar .rg,
+html.signage[data-tier="lg"] .wbar .rg{font-size:min(calc(var(--sg-wbar-rg) * var(--sg-card-loupe)), 15.75cqi)!important;}
+html.signage .wbar.active::before{
+  content:''!important;position:absolute!important;left:50%!important;transform:translateX(-50%)!important;
+  border-left:var(--sg-wbar-tri-w) solid transparent!important;
+  border-right:var(--sg-wbar-tri-w) solid transparent!important;
+  border-top:var(--sg-wbar-tri-h) solid #000!important;
+  top:calc(var(--sg-wbar-tri-h) * -1)!important;
+}
+html.signage .wbgt-foot{height:max(4px, calc(var(--signage-h) * 0.016))!important;}
+
+/* 432×288（P3.47·75インチ / xs）向け */
+html.signage[data-tier="xs"] .wbgt-hdr .t{max-width:58%;}
+
+/* WBGT 5段階: 注意と同一サイズ（1行目・2行目とも 98px/23px 基準×高さ比） */
+html.signage .wbgt-body{
+  --sg-status-pad:calc(var(--signage-w) - var(--face-text-pad) - var(--signage-w) * 0.044);
+  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio)), calc(var(--signage-h) * 0.34));
+  --sg-status-msg-fit:calc(var(--sg-status-pad) / 11.5);
+  --sg-status-name:min(
+    var(--sg-status-name-ideal),
+    calc(var(--sg-status-pad) / 2),
+    calc(var(--sg-status-msg-fit) * 98 / 23)
+  );
+  --sg-status-msg:calc(var(--sg-status-name) * 23 / 98);
+}
+html.signage .wbgt-body .wbgt-name{
+  font-size:var(--sg-status-name)!important;
+  line-height:1!important;
+}
+html.signage .wbgt-body .wbgt-msg{
+  font-size:var(--sg-status-msg)!important;
+  margin-top:calc(var(--sg-status-name) * 0.08)!important;
+  line-height:1.15!important;
+}
+/* はみ出す長い文言のみ注意サイズから縮小 */
+html.signage .wbgt-body.wbgt-lv3 .wbgt-name{
+  font-size:min(var(--sg-status-name), calc(var(--sg-status-pad) / 4))!important;
+}
+html.signage .wbgt-body.wbgt-lv4 .wbgt-msg{
+  font-size:min(var(--sg-status-msg), calc(var(--sg-status-pad) / 15))!important;
+}
+
+/* 75インチなど低解像度（PCフル画面時のみ vw 微調整） */
+html:not(.signage)[data-tier="xs"] .wbgt-hdr{min-height:14%;padding:0.5vh 1.8vw;}
+html:not(.signage)[data-tier="xs"] .wbgt-hdr .t{font-size:clamp(18px,4.8vw,52px);}
+html:not(.signage)[data-tier="xs"] .wbgt-body{--status-name-size:clamp(36px,min(15vw,22vh),160px);}
+html:not(.signage)[data-tier="xs"] .wbgt-cards{gap:0.5vw;margin:0.5vh 0;}
+html:not(.signage)[data-tier="xs"] .wcard .v{font-size:clamp(16px,3.6vw,44px);}
+html:not(.signage)[data-tier="xs"] .wbar .n{font-size:clamp(11px,2.4vw,28px);}
+html:not(.signage)[data-tier="xs"] .wbar .rg{font-size:clamp(9px,2vw,22px);}
+html:not(.signage)[data-tier="sm"] .wbgt-body{--status-name-size:clamp(44px,min(16vw,24vh),200px);}
+
+/* ===== FULL-BLEED BOARD ===== */
+.board{position:fixed;inset:0;width:100vw;height:100vh;display:flex;flex-direction:column;transition:background 0.35s;}
+.hide{display:none!important;}
+
+/* ===== GEAR + DEMO OVERLAY ===== */
+#gear{position:fixed;bottom:12px;left:12px;z-index:50;width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,0.45);color:#fff;font-size:17px;cursor:pointer;opacity:0.45;transition:opacity .2s;}
+#gear:hover{opacity:1;}
+#demo{position:fixed;bottom:52px;left:12px;z-index:50;background:rgba(20,20,28,0.96);border:1px solid #444;border-radius:10px;padding:12px 14px;display:none;flex-direction:column;gap:10px;max-width:320px;}
+#demo.show{display:flex;}
+#demo .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+#demo label{color:#ccc;font-size:12px;font-weight:700;min-width:54px;}
+#demo button{background:#333;color:#bbb;border:1px solid #555;border-radius:6px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+#demo button.on{background:#4fc3f7;color:#06212e;border-color:#4fc3f7;}
+#demo input[type=range]{flex:1;min-width:110px;accent-color:#4fc3f7;cursor:pointer;}
+#demo .val{color:#4fc3f7;font-size:15px;font-weight:900;min-width:40px;text-align:center;}
+#demo .note{color:#f9a825;font-size:10px;line-height:1.4;}
+body.prod #gear,body.prod #demo,body.prod #tune-launcher{display:none!important;}
+#tune-launcher{
+  display:none;position:fixed;top:8px;left:8px;z-index:9997;
+  border:1px solid #4fc3f7;background:rgba(10,12,20,0.92);color:#4fc3f7;
+  border-radius:8px;padding:8px 14px;font-size:13px;font-weight:900;cursor:pointer;font-family:inherit;
+  box-shadow:0 4px 16px rgba(0,0,0,0.35);
+}
+html.demo-active:not(.tune-active) #tune-launcher{display:block;}
+
+/* ===== ヘッダー内：左上 ロゴ・現場・データ提供元 ===== */
+.hdr-loc{
+  min-width:0;align-self:center;
+  display:flex;align-items:center;gap:clamp(6px,0.75vw,14px);
+}
+.hdr-logo{
+  width:clamp(32px,min(4.2vw,7vh),68px);
+  height:clamp(32px,min(4.2vw,7vh),68px);
+  flex-shrink:0;object-fit:contain;display:block;
+}
+.hdr-loc-text{min-width:0;line-height:1.3;}
+.hdr-loc .loc-site{font-size:clamp(10px,1.45vw,22px);font-weight:900;}
+.hdr-loc .loc-src{font-size:clamp(9px,1.2vw,17px);font-weight:700;margin-top:0.2vh;opacity:0.82;}
+
+/* ========== WBGT MODE（参考レイアウト準拠） ========== */
+.wbgt-hdr{
+  background:#fff;
+  min-height:12%;
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:1vw;
+  padding:0.8vh 2.2vw;
+  flex-shrink:0;
+}
+.wbgt-hdr .hdr-loc{display:none;}
+.wbgt-hdr .t{
+  font-size:clamp(22px,4.8vw,72px);
+  font-weight:900;
+  color:#111;
+  line-height:1.1;
+  text-align:left;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:0.02em;
+}
+.wbgt-hdr .t-l1,.wbgt-hdr .t-l2{display:block;white-space:normal;word-break:keep-all;}
+.wbgt-hdr .t-xs{display:none;flex-direction:column;align-items:flex-start;gap:0.05em;}
+html.signage[data-tier="xs"] .wbgt-hdr .t-l1{display:none;}
+html.signage[data-tier="xs"] .wbgt-hdr .t-xs{display:flex;}
+.wbgt-hdr .r{text-align:right;line-height:1.05;align-self:center;flex-shrink:0;}
+.wbgt-hdr .d{font-size:clamp(10px,1.35vw,20px);font-weight:800;color:#111;}
+.wbgt-hdr .c{font-size:clamp(22px,4.6vw,68px);font-weight:900;color:#111;}
+
+.wbgt-body{
+  flex:1;min-height:0;display:grid;grid-template-rows:50fr 23fr 12fr auto;
+  padding:0;transition:background 0.35s;
+  --card-r:clamp(8px,1.2vw,14px);
+  --bar-r:clamp(10px,1.4vw,16px);
+  --face-w:clamp(165px,32vw,470px);
+  --face-right:5.5vw;
+  --face-top:50%;
+  --face-text-pad:clamp(185px,36vw,490px);
+  --status-name-size:clamp(52px,min(17.5vw,22vh),300px);
+  --status-msg-size:calc(var(--status-name-size) * 0.36);
+  --card-loupe:1.42;
+  --wbar-tri-w:9px;
+  --wbar-tri-h:11px;
+  --wbar-tri-clear:4px;
+}
+.wbgt-top{
+  min-height:0;display:flex;align-items:center;justify-content:center;
+  padding:0.8vh 2.2vw 0;position:relative;
+}
+.wbgt-top .left{
+  flex:1;min-width:0;width:100%;text-align:center;box-sizing:border-box;
+  padding-left:2.2vw;padding-right:var(--face-text-pad);align-self:center;
+  display:flex;flex-direction:column;align-items:center;
+  container-type:inline-size;
+}
+.wbgt-name{
+  font-size:var(--status-name-size);font-weight:900;line-height:1;letter-spacing:-0.02em;
+  text-align:center;width:100%;
+}
+.wbgt-msg{
+  font-size:clamp(11px, 7.5cqi, var(--status-msg-size));font-weight:700;margin-top:calc(var(--status-name-size) * 0.12);
+  text-align:center;width:100%;line-height:1.15;white-space:nowrap;
+}
+.wbgt-face{
+  position:absolute;right:var(--face-right);top:var(--face-top);transform:translateY(-50%);
+  width:var(--face-w);flex-shrink:0;display:flex;align-items:center;justify-content:center;
+}
+.wbgt-face img{width:100%;border-radius:50%;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.2));pointer-events:none;transform-origin:center center;}
+/* WBGT顔イラスト — 5段階（意味が伝わる動き。translate/rotate/filter で scale 調整と競合しない） */
+.wbgt-face img[class^="anim-"]{will-change:translate,rotate,filter;}
+.wbgt-face img.anim-safe{animation:face-safe 3.2s ease-in-out infinite;}
+.wbgt-face img.anim-caution{animation:face-caution 4s ease-in-out infinite;}
+.wbgt-face img.anim-warning{animation:face-warning 2.4s ease-out infinite;}
+.wbgt-face img.anim-severe{animation:face-severe 3s ease-in-out infinite;}
+.wbgt-face img.anim-danger{animation:face-danger 1.45s ease-in-out infinite;}
+/* 安全：呼吸 — ゆっくり上下（落ち着き・安定） */
+@keyframes face-safe{
+ 0%,100%{translate:0 0;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.2));}
+ 50%{translate:0 -5%;filter:drop-shadow(0 5px 12px rgba(0,0,0,0.16));}
+}
+/* 注意：左右確認 — 周囲を見渡す動き */
+@keyframes face-caution{
+ 0%,18%,82%,100%{translate:0 0;rotate:0deg;}
+ 28%{translate:-9% 0;rotate:-6deg;}
+ 58%{translate:9% 0;rotate:6deg;}
+}
+/* 警戒：心拍 — ドキドキ2回→休止（異変を感じる） */
+@keyframes face-warning{
+ 0%,100%,72%{translate:0 0;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.22));}
+ 7%,14%{translate:0 -5%;filter:drop-shadow(0 6px 14px rgba(0,0,0,0.28));}
+ 21%,28%{translate:0 -5%;filter:drop-shadow(0 6px 14px rgba(0,0,0,0.28));}
+ 35%{translate:0 0;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.22));}
+}
+/* 厳重警戒：警告パルス — ゆっくり1回上下＋淡いオレンジの光（心拍とは別） */
+@keyframes face-severe{
+ 0%,100%{translate:0 0;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.22));}
+ 45%{translate:0 -5%;filter:drop-shadow(0 6px 16px rgba(255,120,35,0.38));}
+ 60%{translate:0 -2%;filter:drop-shadow(0 5px 13px rgba(255,110,30,0.28));}
+}
+/* 危険：横揺れ＋傾き — 左右に揺れながら傾く（不安定・危険感） */
+@keyframes face-danger{
+ 0%,100%{translate:0 0;rotate:0deg;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.24));}
+ 25%{translate:-7% 0;rotate:-7deg;filter:drop-shadow(0 5px 14px rgba(220,55,45,0.42));}
+ 50%{translate:0 1%;rotate:0deg;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.24));}
+ 75%{translate:7% 0;rotate:7deg;filter:drop-shadow(0 5px 14px rgba(220,55,45,0.42));}
+}
+html.face-edit .wbgt-face{
+  touch-action:none;z-index:10;cursor:pointer;
+}
+html.face-edit .wbgt-face.face-selected{
+  outline:3px dashed rgba(255,255,255,0.92);outline-offset:4px;cursor:grab;
+  box-shadow:0 0 0 2px rgba(0,0,0,0.2);
+}
+html.face-edit .wbgt-face.face-dragging{
+  cursor:grabbing;outline-color:#4fc3f7;
+}
+
+.wbgt-cards{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(5px,0.8vw,12px);
+  margin:0 2vw calc(var(--wbar-tri-h) + var(--wbar-tri-clear));align-self:stretch;min-height:0;
+}
+.wcard{
+  background:#fff;border-radius:var(--card-r);padding:1vh 0.8vw;min-width:0;height:100%;min-height:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  gap:0;overflow:hidden;position:relative;container-type:size;
+}
+.wcard-in{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(3px,0.4vh,8px);width:calc(100% / var(--card-loupe,1.34));height:calc(100% / var(--card-loupe,1.34));
+  transform:scale(var(--card-loupe,1.34));transform-origin:center center;box-sizing:border-box;
+}
+.wcard .lbl{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;font-size:min(calc(clamp(12px,1.78vw,26px) * 1.2),34cqh);font-weight:700;color:#222;white-space:nowrap;line-height:1.05;}
+.wcard .val{display:flex;align-items:baseline;justify-content:center;width:100%;max-width:100%;gap:0.12em;text-align:center;}
+.wcard .ic{font-size:min(calc(clamp(14px,2.05vw,30px) * 1.15),1.15em);}
+.wcard .ic-thermo{display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;}
+.wcard .ic-thermo svg{width:1em;height:1.35em;display:block;}
+.wcard .v{font-size:min(calc(clamp(20px,3.9vw,58px) * 1.2),54cqh,calc(96cqw/5.5));font-weight:900;color:#111;line-height:1;}
+.wcard .u{font-size:min(calc(clamp(12px,1.68vw,24px) * 1.15),28cqh);font-weight:700;color:#555;margin-left:0;}
+.wbgt-badge{display:inline-block;color:#fff;font-size:min(calc(clamp(12px,1.9vw,28px) * 1.2),34cqh);font-weight:900;border-radius:999px;padding:3px 14px;transition:background 0.35s;align-self:center;white-space:nowrap;line-height:1.05;}
+
+.wbgt-bar-wrap{
+  flex:none;align-self:stretch;
+  padding:0.5vh 2.2vw 0.6vh;
+  position:relative;
+  overflow:visible;
+}
+.wbgt-bar{
+  display:flex;
+  align-items:stretch;
+  gap:0;
+  min-height:clamp(40px,10.5vh,72px);
+  overflow:visible;
+}
+.wbar.active{padding-top:0.75vh;padding-bottom:0.75vh;}
+.wbar{
+  flex:1;min-width:0;
+  container-type:inline-size;
+  border-radius:0;
+  padding:0.65vh 1px;
+  text-align:center;font-weight:900;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  position:relative;
+}
+/* 安全：左上下を温度カードと同じ角丸 */
+.wbar[data-idx="0"]{border-radius:var(--card-r) 0 0 var(--card-r);z-index:1;}
+/* 注意・警戒・厳重警戒・危険：左上下を温度カードと同じ角丸 */
+.wbar[data-idx="1"],
+.wbar[data-idx="2"],
+.wbar[data-idx="3"]{
+  border-radius:var(--card-r) 0 0 var(--card-r);
+  margin-left:calc(var(--card-r) * -1);
+  z-index:2;
+}
+.wbar[data-idx="2"]{z-index:3;}
+.wbar[data-idx="3"]{z-index:4;}
+.wbar[data-idx="4"]{
+  border-radius:var(--card-r);
+  margin-left:calc(var(--card-r) * -1);
+  z-index:5;
+}
+.wbar .n,.wbar .rg{display:block;width:100%;text-align:center;}
+.wbar .n{font-size:clamp(10px,21cqi,17px);line-height:1.12;font-weight:900;white-space:nowrap;}
+.wbar .rg{font-size:clamp(9px,17cqi,14px);font-weight:700;line-height:1.12;margin-top:0.08em;}
+.wbar.active{z-index:6;}
+.wbar.active::before{
+  content:'';position:absolute;top:calc(var(--wbar-tri-h) * -1);left:50%;transform:translateX(-50%);
+  border-left:var(--wbar-tri-w) solid transparent;border-right:var(--wbar-tri-w) solid transparent;
+  border-top:var(--wbar-tri-h) solid #000;
+}
+
+.wbgt-foot{flex-shrink:0;height:clamp(5px,1vh,12px);background:#000;width:100%;}
+
+/* ===== レイアウト微調整モード（?tune=1） ===== */
+#tune-panel{
+  display:none;position:fixed;top:8px;left:8px;right:auto;z-index:9999;
+  background:rgba(10,12,20,0.92);border:1px solid #4fc3f7;border-radius:8px;
+  padding:10px 12px;min-width:240px;max-width:280px;max-height:calc(100vh - 16px);overflow:auto;
+  font-size:11px;line-height:1.45;color:#ddd;pointer-events:auto;
+  font-family:'Consolas','Noto Sans JP',monospace;
+  box-shadow:0 8px 28px rgba(0,0,0,0.45);
+}
+html.tune-active #tune-panel:not(.tune-hidden){display:block!important;visibility:visible!important;}
+#tune-fab{
+  display:none;position:fixed;bottom:12px;left:12px;z-index:9998;
+  border:1px solid #4fc3f7;background:rgba(10,12,20,0.9);color:#4fc3f7;
+  border-radius:8px;padding:8px 12px;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;
+}
+html.tune-active #tune-fab{display:block;}
+html.tune-active #tune-panel:not(.tune-hidden)~#tune-fab{display:none;}
+html.tune-active #tune-panel.tune-hidden{display:none!important;}
+html.tune-active.face-selected #tune-panel{opacity:0.55;}
+#tune-panel h3{margin:0 0 6px;font-size:12px;color:#4fc3f7;font-weight:900;}
+#tune-panel .cur{color:#fff;font-weight:900;font-size:13px;margin:4px 0 8px;}
+#tune-panel .val{color:#4fc3f7;}
+#tune-panel .help{color:#888;font-size:10px;margin-top:8px;line-height:1.5;}
+#tune-panel .list{max-height:140px;overflow:auto;margin:6px 0;padding:0;list-style:none;}
+#tune-panel .list li{padding:2px 0;color:#666;cursor:pointer;}
+#tune-panel .list li:hover{color:#aaa;}
+#tune-panel .tune-btns{display:flex;gap:8px;margin-top:8px;}
+#tune-panel .tune-btns button{
+  flex:1;border:1px solid #4fc3f7;background:#1a2a3a;color:#4fc3f7;border-radius:6px;
+  padding:6px 0;font-size:16px;font-weight:900;cursor:pointer;font-family:inherit;
+}
+#tune-panel .tune-btns button:hover{background:#243848;}
+#tune-panel .list li.on{color:#4fc3f7;font-weight:700;}
+html.tune-active .wbgt-body{
+  padding:var(--tune-body-pad-t) var(--tune-body-pad-x) var(--tune-body-pad-b) var(--tune-body-pad-x)!important;
+}
+html.tune-active .wbgt-hdr{min-height:calc(var(--tune-hdr-min) * 1%);padding:calc(var(--tune-hdr-pad-v) * 1px) calc(var(--tune-hdr-pad-x) * 1px);}
+html.tune-active .wbgt-name{font-size:calc(var(--tune-name-size) * 1px)!important;line-height:1;text-align:center!important;width:100%;}
+html.tune-active .wbgt-msg{
+  font-size:calc(var(--tune-name-size) * 0.36 * 1px)!important;
+  margin-top:calc(var(--tune-msg-mt) * 1px);text-align:center!important;width:100%;white-space:nowrap!important;
+}
+html.tune-active .wbgt-top .left{
+  padding-right:calc(var(--tune-face-text-pad) * 1px)!important;
+  text-align:center!important;align-items:center!important;
+}
+html.tune-active .wbgt-face{
+  width:calc(var(--tune-face-size) * 1px)!important;
+  right:calc(var(--tune-face-right) * 1px)!important;
+  top:calc(var(--tune-face-top) * 1%)!important;
+  max-width:none!important;
+}
+html.signage.tune-active .wbgt-face{
+  width:calc(var(--tune-face-size) * 1px)!important;
+  right:calc(var(--tune-face-right) * 1px)!important;
+  top:calc(var(--tune-face-top) * 1%)!important;
+  max-width:none!important;
+}
+html.tune-active .wbgt-cards{gap:calc(var(--tune-cards-gap) * 1px);margin:calc(var(--tune-cards-mt) * 1px) 0;}
+html.tune-active .wcard .v{font-size:calc(var(--tune-card-v) * 1px)!important;}
+html.tune-active .wcard .lbl{font-size:calc(var(--tune-card-lbl) * 1px)!important;}
+html.tune-active .wbgt-bar-wrap{
+  padding-left:calc(var(--tune-bar-margin-x) * 1px)!important;
+  padding-right:calc(var(--tune-bar-margin-x) * 1px)!important;
+  padding-bottom:calc(var(--tune-body-pad-b) * 1px)!important;
+}
+html.tune-active .wbgt-bar{overflow:visible!important;}
+html.tune-active .wbar[data-idx="0"]{border-radius:var(--card-r) 0 0 var(--card-r)!important;}
+html.tune-active .wbar[data-idx="4"]{
+  border-radius:var(--card-r)!important;
+  margin-left:calc(var(--card-r) * -1)!important;
+}
+html.tune-active .wbar[data-idx="1"],
+html.tune-active .wbar[data-idx="2"],
+html.tune-active .wbar[data-idx="3"]{
+  border-radius:var(--card-r) 0 0 var(--card-r)!important;
+  margin-left:calc(var(--card-r) * -1)!important;
+}
+html.tune-active .wbar .n{font-size:calc(var(--tune-wbar-n) * 1px)!important;}
+html.tune-active .wbar .rg{font-size:calc(var(--tune-wbar-rg) * 1px)!important;}
+html.tune-active #signage-credit{bottom:calc(var(--tune-credit-bottom) * 1px)!important;}
+
+/* ========== RAIN MODE（参考 20% / 60% / 20% · 左27% / 右73% 固定） ========== */
+.rain{
+  flex:1;min-height:0;overflow:hidden;
+  display:grid;
+  grid-template-rows:20fr 60fr 20fr;
+  --rain-pad-x:2.6vw;
+  --rain-pad-y:1.6vh;
+  --rain-left-w:27%;
+  --rain-face-share:30%;
+  --rain-txt:#fff;
+  --rain-divider:#fff;
+  transition:background 0.35s;
+}
+.rain-hdr{
+  min-height:0;overflow:hidden;
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:end;
+  padding:var(--rain-pad-y) var(--rain-pad-x) calc(var(--rain-pad-y)*0.65);
+  border-bottom:2px solid var(--rain-txt);
+}
+.rain-hdr-side{display:none;}
+.rain-hdr .t{
+  grid-column:1/-1;grid-row:1;
+  font-size:clamp(22px,min(5.2vw,9.2vh),92px);
+  font-weight:900;line-height:1;text-align:center;color:var(--rain-txt);
+  min-width:0;align-self:center;padding-bottom:0.25vh;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.rain-hdr .r{
+  grid-column:2;grid-row:1;z-index:1;
+  display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+  text-align:right;line-height:1.05;color:var(--rain-txt);min-width:0;
+}
+.rain-hdr .d,.rain-hdr .c{line-height:1;font-variant-numeric:tabular-nums;}
+.rain-hdr .d{font-size:clamp(10px,1.35vw,20px);font-weight:800;white-space:nowrap;}
+.rain-hdr .c{font-size:clamp(22px,4.6vw,68px);font-weight:900;white-space:nowrap;}
+
+.rain-mid{
+  min-height:0;overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,var(--rain-left-w)) max(1px,2px) minmax(0,1fr);
+  column-gap:2.2vw;
+  padding:2vh var(--rain-pad-x) 1.6vh;
+  align-items:stretch;
+}
+.rain-mid-left{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;align-self:stretch;}
+.rain-lvbox{
+  width:100%;max-width:100%;height:auto;max-height:100%;
+  position:relative;flex-shrink:1;align-self:center;
+  border:none;background:transparent;overflow:visible;
+}
+.rain-lvbox .rain-lv-crop{display:none;overflow:hidden;width:100%;max-height:100%;aspect-ratio:320/268;align-items:flex-start;justify-content:center;}
+.rain-lvbox .rain-lv-img{display:none;width:100%;height:auto;object-fit:cover;object-position:center top;}
+.rain-lvbox.has-img .rain-lv-crop{display:flex;}
+.rain-lvbox.has-img .rain-lv-img{display:block;}
+.rain-lvbox.has-img .rain-lv-fallback{display:none;}
+.rain-lvbox .rain-lv-fallback{
+  display:none;width:100%;max-height:100%;
+  align-items:center;justify-content:center;
+}
+.rain-lvbox.use-fallback .rain-lv-fallback{display:flex;}
+.rain-lv-card{
+  width:100%;max-height:100%;display:flex;flex-direction:column;
+  border-radius:12px;overflow:hidden;box-sizing:border-box;
+}
+.rain-lvbox .cap{
+  font-size:clamp(9px,min(1.35vw,2.2vh),22px);font-weight:900;text-align:center;line-height:1.2;
+  padding:0.65vh 0.4vw;flex-shrink:0;width:100%;margin:0;
+  border-radius:0;
+}
+.rain-lvbox .lvwrap{
+  width:100%;aspect-ratio:1;flex:1 1 auto;min-height:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0.15vh;padding:0.5vh 0.3vw;
+  border:none;border-radius:0;box-sizing:border-box;
+}
+.rain-lvbox .lv{font-size:clamp(11px,min(1.65vw,2.7vh),28px);font-weight:900;line-height:1;}
+.rain-lvbox .num{font-size:clamp(52px,min(11vw,22vh),200px);font-weight:900;line-height:0.88;letter-spacing:-0.04em;}
+
+.rain-vdiv{background:var(--rain-divider);width:2px;min-height:0;align-self:stretch;}
+
+.rain-main{
+  min-width:0;min-height:0;overflow:hidden;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr);
+  height:100%;
+  padding-top:0.4vh;
+  gap:0.9vh;
+}
+.rain-pub{
+  align-self:flex-start;flex-shrink:0;border-radius:999px;
+  font-size:clamp(10px,min(1.55vw,2.65vh),26px);font-weight:900;
+  padding:0.35vh 1.2vw;line-height:1.2;max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rain-pub-upd{font-size:1.28em;font-weight:900;}
+.rain-name{
+  flex-shrink:0;
+  font-size:clamp(24px,min(6.2vw,10.5vh),100px);font-weight:900;
+  line-height:1.06;letter-spacing:-0.02em;margin:0;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.rain-body{
+  min-height:0;overflow:hidden;min-width:0;
+  display:grid;grid-template-rows:minmax(0,1fr) auto;
+}
+.rain-action{
+  min-height:0;overflow:hidden;min-width:0;
+  display:grid;grid-template-columns:minmax(0,var(--rain-face-share)) minmax(0,1fr);
+  column-gap:1.8vw;align-items:center;align-self:center;
+}
+.rain-face{width:100%;max-width:100%;justify-self:center;min-width:0;}
+.rain-face img{width:100%;height:auto;border-radius:50%;display:block;filter:none;background:transparent;}
+.rain-textcol{min-width:0;min-height:0;display:flex;align-items:center;overflow:hidden;container-type:inline-size;}
+.rain-msg{
+  font-size:min(clamp(18px,min(4.5vw,7.6vh),70px), calc(100cqi / 11));font-weight:900;line-height:1.28;
+  overflow:hidden;white-space:normal;word-break:keep-all;max-width:100%;
+}
+.rain-sub{
+  font-size:clamp(12px,min(2.25vw,3.85vh),40px);font-weight:900;line-height:1.32;
+  text-align:right;justify-self:end;align-self:end;
+  padding:0.4vh 0 0;max-width:100%;
+  overflow:hidden;white-space:normal;word-break:keep-all;
+}
+
+.rain-bar{
+  min-height:0;overflow:visible;
+  display:flex;align-items:center;
+  gap:0.55vw;
+  padding:1.2vh var(--rain-pad-x) 1.8vh;
+}
+.rbar{
+  flex:1 1 0;min-width:0;align-self:center;height:66.667%;max-height:100%;
+  border:2px solid #111;border-radius:10px;
+  padding:0.55vh 3px;text-align:center;font-weight:900;line-height:1.18;
+  display:flex;flex-direction:column;justify-content:center;
+  box-sizing:border-box;
+}
+.rbar .n{font-size:clamp(10px,min(1.5vw,2.6vh),28px);display:block;}
+.rbar .nm{font-size:clamp(9px,min(1.25vw,2.15vh),22px);display:block;margin-top:0.12vh;}
+.rbar[data-idx="4"]{border-color:#fff;}
+.rbar.active{flex:1.5 1.5 0;align-self:stretch;height:auto;outline:none;z-index:1;}
+.rbar.active .n{font-size:clamp(15px,min(2.5vw,4.3vh),46px);}
+.rbar.active .nm{font-size:clamp(13px,min(2.1vw,3.6vh),36px);}
+.rain[data-rain-lv="4"] .rbar.active,
+.rain[data-rain-lv="5"] .rbar.active{border-color:#fff;}
+.rain[data-rain-lv="1"] .rbar.active,
+.rain[data-rain-lv="2"] .rbar.active,
+.rain[data-rain-lv="3"] .rbar.active{border-color:#111;}
+
+/* ========== RAIN サイネージ（432×288 基準 · 全レベル同一配置） ========== */
+html.signage .rain{
+  grid-template-rows:20fr 60fr 20fr;
+  --rain-pad-x:calc(var(--signage-w) * 0.026);
+  --rain-pad-y:calc(var(--signage-h) * 0.016);
+  --rain-left-w:27%;
+  --rain-face-share:30%;
+  --rain-title-size:min(calc(var(--signage-w) * 0.083), calc(var(--signage-h) * 0.17));
+  --rain-name-size:min(calc(var(--signage-w) * 0.108), calc(var(--signage-h) * 0.152));
+  --rain-msg-size:min(calc(var(--signage-w) * 0.055), calc(var(--signage-h) * 0.087));
+  --rain-sub-size:calc(var(--signage-w) * 0.032);
+  --rain-pub-size:calc(var(--signage-w) * 0.022);
+  --rain-pub-upd-size:calc(var(--signage-w) * 0.030);
+  --rain-bar-n-size:min(calc(var(--signage-w) * 0.023), 22cqi);
+  --rain-bar-nm-size:min(calc(var(--signage-w) * 0.019), 18cqi);
+  --rain-bar-n-active:min(calc(var(--signage-w) * 0.039), 33cqi);
+  --rain-bar-nm-active:min(calc(var(--signage-w) * 0.032), 27cqi);
+  --rain-bar-nm-active-long:min(calc(var(--signage-w) * 0.026), 22cqi);
+  --rain-mid-gap:calc(var(--signage-w) * 0.022);
+  --rain-action-gap:calc(var(--signage-w) * 0.016);
+  --rain-main-gap:calc(var(--signage-h) * 0.009);
+}
+html.signage .rain-hdr{
+  grid-template-columns:1fr auto!important;
+  padding:var(--rain-pad-y) var(--rain-pad-x) calc(var(--rain-pad-y) * 0.65)!important;
+  border-bottom-width:max(1px, calc(var(--signage-h) * 0.007))!important;
+}
+html.signage .rain-hdr .t{
+  grid-column:1/-1!important;grid-row:1!important;
+  font-size:var(--rain-title-size)!important;
+  padding-bottom:calc(var(--signage-h) * 0.002)!important;
+}
+html.signage .rain-hdr .r{
+  grid-column:2!important;grid-row:1!important;z-index:1!important;
+  display:flex!important;flex-direction:column!important;align-items:flex-end!important;
+  justify-content:center!important;line-height:1.05!important;
+}
+html.signage .rain-hdr .d,
+html.signage .rain-hdr .c{line-height:1!important;font-variant-numeric:tabular-nums!important;}
+html.signage .rain-hdr .d{font-size:var(--sg-hdr-d)!important;font-weight:800!important;}
+html.signage .rain-hdr .c{font-size:var(--sg-hdr-c)!important;font-weight:900!important;}
+
+html.signage .rain-vdiv{width:max(1px, calc(var(--signage-h) * 0.007))!important;}
+html.signage .rain-lvbox.has-img .rain-lv-crop{
+  max-height:min(100%, calc(var(--signage-h) * 0.44))!important;
+  aspect-ratio:320/268!important;
+}
+html.signage .rain-lvbox.has-img .rain-lv-img{
+  width:100%!important;height:auto!important;
+  object-fit:cover!important;object-position:center top!important;
+}
+html.signage .rain-lv-card{
+  max-height:min(100%, calc(var(--signage-h) * 0.44))!important;
+  border-radius:calc(var(--signage-w) * 0.028)!important;
+}
+html.signage .rain-lvbox .cap{
+  font-size:calc(var(--signage-w) * 0.021)!important;
+  padding:calc(var(--signage-h) * 0.007) calc(var(--signage-w) * 0.008)!important;
+}
+html.signage .rain-lvbox .lvwrap{
+  gap:calc(var(--signage-h) * 0.001)!important;
+  padding:calc(var(--signage-h) * 0.005) calc(var(--signage-w) * 0.003)!important;
+}
+html.signage .rain-lvbox .lv{font-size:calc(var(--signage-w) * 0.026)!important;}
+html.signage .rain-lvbox .num{font-size:min(calc(var(--signage-w) * 0.17), calc(var(--signage-h) * 0.35))!important;}
+
+html.signage .rain-mid{
+  grid-template-columns:minmax(0,var(--rain-left-w)) max(1px, calc(var(--signage-h) * 0.007)) minmax(0,1fr)!important;
+  column-gap:var(--rain-mid-gap)!important;
+  padding:calc(var(--signage-h) * 0.02) var(--rain-pad-x) calc(var(--signage-h) * 0.016)!important;
+  overflow:hidden!important;align-items:stretch!important;
+}
+html.signage .rain-mid-left{align-items:center!important;justify-content:center!important;align-self:stretch!important;}
+html.signage .rain-main{
+  min-width:0!important;overflow:hidden!important;
+  display:grid!important;grid-template-rows:auto auto minmax(0,1fr)!important;
+  height:100%!important;gap:var(--rain-main-gap)!important;
+  padding-top:calc(var(--signage-h) * 0.004)!important;
+}
+html.signage .rain-body{
+  min-width:0!important;min-height:0!important;
+  display:grid!important;grid-template-rows:minmax(0,1fr) auto!important;
+}
+html.signage .rain-action{
+  grid-template-columns:minmax(0,var(--rain-face-share)) minmax(0,1fr)!important;
+  column-gap:var(--rain-action-gap)!important;min-width:0!important;
+  align-items:center!important;align-self:center!important;
+}
+html.signage .rain-textcol{min-width:0!important;container-type:inline-size!important;}
+html.signage .rain-msg{
+  font-size:min(var(--rain-msg-size), calc(100cqi / 11))!important;
+  line-height:1.28!important;max-width:100%!important;
+  white-space:normal!important;word-break:keep-all!important;
+}
+html.signage .rain-sub{
+  font-size:var(--rain-sub-size)!important;
+  padding:calc(var(--signage-h) * 0.004) 0 0!important;
+  white-space:normal!important;word-break:keep-all!important;
+  text-align:right!important;justify-self:end!important;align-self:end!important;
+}
+html.signage .rain-name{
+  font-size:var(--rain-name-size)!important;
+  margin:0!important;line-height:1.06!important;
+  white-space:nowrap!important;text-overflow:ellipsis!important;
+}
+html.signage .rain-pub{
+  font-size:var(--rain-pub-size)!important;
+  padding:calc(var(--signage-h) * 0.003) calc(var(--signage-w) * 0.012)!important;
+  border-radius:999px!important;max-width:100%!important;
+  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+html.signage .rain-pub-upd{font-size:var(--rain-pub-upd-size)!important;font-weight:900!important;}
+html.signage .rain-face{max-width:100%!important;width:100%!important;}
+
+html.signage .rain-bar{
+  gap:calc(var(--signage-w) * 0.0055)!important;
+  padding:calc(var(--signage-h) * 0.012) var(--rain-pad-x) calc(var(--signage-h) * 0.018)!important;
+  align-items:center!important;overflow:visible!important;
+}
+html.signage .rbar{
+  flex:1 1 0!important;align-self:center!important;
+  height:66.667%!important;max-height:100%!important;
+  border-width:max(1px, calc(var(--signage-h) * 0.007))!important;
+  border-radius:calc(var(--signage-w) * 0.023)!important;
+  padding:calc(var(--signage-h) * 0.0055) 1px!important;
+  container-type:inline-size;
+}
+html.signage .rbar .n{font-size:var(--rain-bar-n-size)!important;line-height:1.12!important;}
+html.signage .rbar .nm{font-size:var(--rain-bar-nm-size)!important;margin-top:calc(var(--signage-h) * 0.001)!important;line-height:1.12!important;}
+html.signage .rbar[data-idx="3"] .nm,
+html.signage .rbar[data-idx="4"] .nm{font-size:min(calc(var(--signage-w) * 0.015), 14cqi)!important;}
+html.signage .rbar.active .n{font-size:var(--rain-bar-n-active)!important;}
+html.signage .rbar.active .nm{font-size:var(--rain-bar-nm-active)!important;}
+html.signage .rbar.active[data-idx="3"] .nm,
+html.signage .rbar.active[data-idx="4"] .nm{font-size:var(--rain-bar-nm-active-long)!important;}
+html.signage .rbar.active{
+  flex:1.5 1.5 0!important;align-self:stretch!important;height:auto!important;
+  outline:none!important;z-index:1!important;
+}
+html.signage .rbar[data-idx="4"]{border-color:#fff!important;}
+html.signage .rain[data-rain-lv="4"] .rbar.active,
+html.signage .rain[data-rain-lv="5"] .rbar.active{border-color:#fff!important;}
+html.signage .rain[data-rain-lv="1"] .rbar.active,
+html.signage .rain[data-rain-lv="2"] .rbar.active,
+html.signage .rain[data-rain-lv="3"] .rbar.active{border-color:#111!important;}
+</style>
+</head>
+<body>
+<button type="button" id="tune-launcher" onclick="openTuneMode()" title="レイアウト微調整モードを開く">📐 微調整モード</button>
+<div id="signage-root">
+
+<button id="gear" onclick="document.getElementById('demo').classList.toggle('show')">⚙</button>
+<div id="demo">
+  <div class="row">
+    <label>表示</label>
+    <button id="modeWbgt" class="on" onclick="setMode('wbgt')">WBGT</button>
+    <button id="modeRain" onclick="setMode('rain')">大雨情報</button>
+  </div>
+  <div id="wbgtCtl">
+    <div class="row"><label>WBGT</label><input type="range" id="wS" min="15" max="36" step="0.5" value="23.0"><span class="val" id="wV">23.0</span></div>
+    <div class="row"><label>段階</label>
+      <button type="button" onclick="setWbgtLevel(0)">安全</button>
+      <button type="button" onclick="setWbgtLevel(1)">注意</button>
+      <button type="button" onclick="setWbgtLevel(2)">警戒</button>
+      <button type="button" onclick="setWbgtLevel(3)">厳重</button>
+      <button type="button" onclick="setWbgtLevel(4)">危険</button>
+    </div>
+    <div class="row"><label>温度</label><input type="range" id="tS" min="18" max="42" step="0.5" value="26.0"><span class="val" id="tV">26.0</span></div>
+    <div class="row"><label>湿度</label><input type="range" id="hS" min="20" max="100" step="1" value="50"><span class="val" id="hV">50</span></div>
+  </div>
+  <div id="rainCtl" class="hide">
+    <div class="row"><label>警戒レベル</label>
+      <button onclick="setRain(1)">1</button><button onclick="setRain(2)">2</button>
+      <button onclick="setRain(3)">3</button><button onclick="setRain(4)">4</button><button onclick="setRain(5)">5</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>微調整</label>
+    <button type="button" onclick="openTuneMode()">レイアウト微調整を開く</button>
+  </div>
+  <div class="note">⚠ 本番: gas/api.gs を貼り付け→「新しいデプロイ」必須。古いGASのままだと取得不可になります。</div>
+</div>
+
+<!-- ===== WBGT BOARD ===== -->
+<div class="board" id="wbgtBoard">
+  <div class="wbgt-hdr">
+    <div class="t">
+      <span class="t-l1">熱中症(WBGT)モニタリングシステム</span>
+      <span class="t-xs"><span>熱中症(WBGT)</span><span>モニタリングシステム</span></span>
+    </div>
+    <div class="r"><div class="d" id="wDate"></div><div class="c" id="wClock">--:--</div></div>
+  </div>
+  <div class="wbgt-body" id="wBody" style="background:#FAD24A">
+    <div class="wbgt-top">
+      <div class="left">
+        <div class="wbgt-name" id="wName" style="color:#1a1a1a">注意</div>
+        <div class="wbgt-msg"  id="wMsg" style="color:#1a1a1a">体調を注意して作業進行</div>
+      </div>
+      <div class="wbgt-face" id="wFaceBox"><img id="wFace" src="" alt=""></div>
+    </div>
+    <div class="wbgt-cards">
+      <div class="wcard wcard-metric"><div class="wcard-in"><div class="lbl"><span class="ic ic-thermo" aria-hidden="true"><svg viewBox="0 0 20 32" xmlns="http://www.w3.org/2000/svg"><rect x="7.5" y="2" width="5" height="18" rx="2.5" fill="#f8bbd0" stroke="#bdbdbd" stroke-width="1"/><circle cx="10" cy="26" r="6" fill="#e53935" stroke="#bdbdbd" stroke-width="1"/><rect x="8.5" y="10" width="3" height="10" rx="1.5" fill="#e53935"/></svg></span>温度</div><div class="val"><span class="v" id="wT">26.0</span><span class="u">℃</span></div></div></div>
+      <div class="wcard wcard-metric"><div class="wcard-in"><div class="lbl"><span class="ic">💧</span>湿度</div><div class="val"><span class="v" id="wH">50</span><span class="u">%</span></div></div></div>
+      <div class="wcard wcard-wbgt"><div class="wcard-in"><span class="wbgt-badge" id="wBadge">WBGT</span><div class="val"><span class="v" id="wW">23.0</span></div></div></div>
+      <div class="wcard wcard-metric"><div class="wcard-in"><div class="lbl"><span class="ic">🕐</span>更新時刻</div><div class="val"><span class="v" id="wUpd">15:00</span></div></div></div>
+    </div>
+    <div class="wbgt-bar-wrap">
+      <div class="wbgt-bar" id="wBar"></div>
+    </div>
+    <div class="wbgt-foot"></div>
+  </div>
+</div>
+
+<!-- ===== RAIN BOARD ===== -->
+<div class="board hide" id="rainBoard">
+  <div class="rain" id="rainArea">
+    <div class="rain-hdr" id="rHdr">
+      <div class="rain-hdr-side hdr-loc">
+        <img class="hdr-logo" src="assets/logo.png" alt="">
+        <div class="hdr-loc-text">
+          <div class="loc-site" data-loc-site>千葉県いすみ市</div>
+          <div class="loc-src" data-loc-src>気象庁（いすみ市）</div>
+        </div>
+      </div>
+      <div class="t">大雨情報</div>
+      <div class="r"><div class="d" id="rDate"></div><div class="c" id="rClock">--:--</div></div>
+    </div>
+    <div class="rain-mid">
+      <div class="rain-mid-left">
+        <div class="rain-lvbox use-fallback" id="rLvBox">
+          <div class="rain-lv-crop"><img class="rain-lv-img" id="rLvImg" src="" alt=""></div>
+          <div class="rain-lv-fallback">
+            <div class="rain-lv-card">
+              <div class="cap">現在の警戒レベル</div>
+              <div class="lvwrap"><div class="lv">レベル</div><div class="num" id="rNum">1</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rain-vdiv" id="rVdiv"></div>
+      <div class="rain-main">
+        <span class="rain-pub" id="rPub"><span id="rPubState">発表中</span><span class="rain-pub-upd" id="rPubUpd"></span></span>
+        <div class="rain-name" id="rName">早期注意情報</div>
+        <div class="rain-body">
+          <div class="rain-action">
+            <div class="rain-face"><img id="rFace" src="" alt=""></div>
+            <div class="rain-textcol"><div class="rain-msg" id="rMsg">今後の気象情報に<br>ご注意ください</div></div>
+          </div>
+          <div class="rain-sub" id="rSub">急な天候変化に備え最新情報をご確認ください</div>
+        </div>
+      </div>
+    </div>
+    <div class="rain-bar" id="rBar"></div>
+  </div>
+</div>
+
+</div><!-- /#signage-root -->
+
+<div id="tune-panel" aria-hidden="true">
+  <h3>レイアウト微調整</h3>
+  <div class="cur" id="tuneCur">—</div>
+  <ul class="list" id="tuneList"></ul>
+  <div class="tune-btns">
+    <button type="button" id="tuneMinus" title="値を減らす">−</button>
+    <button type="button" id="tunePlus" title="値を増やす">＋</button>
+  </div>
+  <div class="help">
+    ↑↓ または ＋− で調整 · ←→ で項目切替 · Shift+↑↓ ±10<br>
+    S 保存 · R リセット · C コピー · Esc パネル表示切替<br>
+    顔をクリック→ドラッグで移動 · 完了したら C でコピー
+  </div>
+</div>
+
+<button type="button" id="tune-fab" title="微調整パネルを表示">微調整パネル</button>
+
+<script>
+/* ============================================================
+   現場ごとの設定（ここだけ編集）
+   - GAS_URL 空 → デモ（⚙スライダー）
+   - GAS_URL 設定 + DEMO_MODE false → 本番
+   ============================================================ */
+const CONFIG = {
+  DEMO_MODE:    false,       // true=デモ（⚙表示） / false=本番（⚙非表示）★本番はfalse
+  DEFAULT_MODE: 'wbgt',      // ループ無効時の起動画面
+  LOOP_SEC:       8,         // WBGT・大雨 各画面の表示秒数（発表中は交互に切替）
+  RAIN_LOOP_MIN:  2,         // 大雨注意報以上が発表されたらループに含める
+  GAS_URL:        'https://script.google.com/macros/s/AKfycbypX8gmSDsx449D61PUHEkud6863ENczcivJ4axfVxZhLNDtcjx1we7fYTPeTw0kmBx/exec',
+  SITE_NAME:      '大阪府大阪市',           // 左上に表示する現場名
+  WBGT_POINT:     '620780',  // 環境省 大阪（大阪管区気象台・APIは62078）
+  WBGT_PLACE:     '環境省（観測地点：大阪）', // 左上・WBGT画面（取得元は自動付記）
+  WBGT_ENV_FALLBACK: true,   // GAS失敗時に環境省API/CSVを直接取得
+  RAIN_AREA:      '2710000', // 気象庁 大阪府大阪市
+  RAIN_PLACE:     '気象庁（大阪市）',       // 左上・大雨画面
+  RAIN_JMA_FALLBACK: true,   // GAS失敗時に気象庁APIを直接取得
+  FETCH_MIN:      15,        // データ取得間隔（分）
+  SHOW_CREDIT:    false,     // データ提供元（画面下部）※一旦非表示
+  SHOW_LOC_SRC:   false,     // 左上の気象庁・環境省表記 ※一旦非表示
+  /* --- サイネージ（LED）--- ★現場のピッチ・インチに合わせて必ず設定
+     P3.47: 75"=432×288 / 100"=576×432 / 125"=720×576
+     P2.87: 75"=528×352 / 100"=704×528 / 125"=880×704
+     URLでも上書き可: ?pitch=P3.47&inch=100
+     空にするとPCフル画面レイアウト（サイネージプレビューと不一致） */
+  SIGNAGE_PITCH:  'P3.47',    // 'P3.47' | 'P2.87' ★現場のLEDに合わせる
+  SIGNAGE_INCH:   100,        // 75 | 100 | 125 ★現場のLEDに合わせる
+  SIGNAGE_PREVIEW_FIT: false, // false=1:1実解像度（6解像度プレビューと同じ）/ true=PC画面に収める
+  PIN_MODE:       '',        // URL ?mode=rain|wbgt で表示ループを固定
+  /* --- WBGT顔アイコン（位置・大きさ）---
+     サイネージ: キャンバス幅に対する比率 / PC: vw・% */
+  FACE_SIZE_RATIO:  0.31,   // サイネージ幅 × この値 = 顔の幅(px)（75"基準と同じ比率）
+  FACE_RIGHT_RATIO: 0.07,   // サイネージ幅 × この値 = 右余白(px)
+  FACE_TOP_PCT:     50,      // 縦位置（%）50=中央
+  FACE_SIZE_VW:     32,      // PCフル画面時の幅(vw)
+  FACE_RIGHT_VW:    5.5,     // PCフル画面時の右余白(vw)
+};
+function applyConfigFromUrl(){
+ const q=new URLSearchParams(location.search);
+ if(q.has('site')) CONFIG.SITE_NAME=decodeURIComponent(q.get('site'));
+ if(q.has('pitch')) CONFIG.SIGNAGE_PITCH=q.get('pitch');
+ if(q.has('inch')) CONFIG.SIGNAGE_INCH=+q.get('inch');
+ if(q.has('point')) CONFIG.WBGT_POINT=q.get('point');
+ else if(q.has('wbgt')) CONFIG.WBGT_POINT=q.get('wbgt');
+ if(q.has('area')) CONFIG.RAIN_AREA=q.get('area');
+ if(q.has('wbgt_place')) CONFIG.WBGT_PLACE=decodeURIComponent(q.get('wbgt_place'));
+ if(q.has('rain_place')) CONFIG.RAIN_PLACE=decodeURIComponent(q.get('rain_place'));
+ if(q.has('gas')) CONFIG.GAS_URL=q.get('gas');
+ if(q.has('loop')) CONFIG.LOOP_SEC=Math.max(1,+q.get('loop')||8);
+ if(q.has('fetch')) CONFIG.FETCH_MIN=Math.max(1,+q.get('fetch')||15);
+}
+applyConfigFromUrl();
+/* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
+   75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
+const LAYOUT_VER=40;
+const SG_REF_75_W=432;
+const SG_REF_75_H=288;
+const FACE_REF_75_W=SG_REF_75_W;
+const FACE_REF_75_RATIO=0.31; /* P3.47·75" = 432×0.31 ≈ 134px */
+const FACE_P287_75_SIZE=158;  /* P2.87·75"のみ（150→少し大きく） */
+const SG_CAUTION_MSG_P287_75=28; /* P2.87·75" 注意メッセージ基準(px) */
+const P287_75_H=352;
+function calcSignageFaceLayout(w,h,inch,pitch){
+ if(inch===75){
+  if(pitch==='P2.87'){
+   const faceSize=FACE_P287_75_SIZE;
+   const faceRight=Math.round(w*CONFIG.FACE_RIGHT_RATIO);
+   const faceTextPad=faceSize+faceRight+Math.round(w*0.02);
+   return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad};
+  }
+  const faceSize=Math.round(FACE_REF_75_W*FACE_REF_75_RATIO);
+  const faceRight=Math.round(FACE_REF_75_W*CONFIG.FACE_RIGHT_RATIO);
+  const faceTextPad=faceSize+faceRight+Math.round(FACE_REF_75_W*0.02);
+  return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad};
+ }
+ const faceSize=Math.round(w*FACE_REF_75_RATIO);
+ const faceRight=Math.round(w*CONFIG.FACE_RIGHT_RATIO);
+ return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad:faceSize+faceRight+Math.round(w*0.02)};
+}
+const SIGNAGE_RES={
+ 'P3.47':{75:[432,288],100:[576,432],125:[720,576]},
+ 'P2.87':{75:[528,352],100:[704,528],125:[880,704]}
+};
+let signageFitFn=null;
+function initSignage(){
+ const q=new URLSearchParams(location.search);
+ const pitch=q.get('pitch')||CONFIG.SIGNAGE_PITCH||'';
+ const inch=+(q.get('inch')||CONFIG.SIGNAGE_INCH||0);
+ const row=pitch&&SIGNAGE_RES[pitch];
+ const pair=row&&row[inch];
+ if(!pair) return null;
+ const [w,h]=pair;
+ CONFIG._signage={pitch,inch,w,h};
+ document.documentElement.classList.add('signage');
+ if(q.get('embed')==='1') document.documentElement.classList.add('embed');
+ document.documentElement.dataset.pitch=pitch;
+ document.documentElement.dataset.inch=String(inch);
+ document.documentElement.dataset.layoutVer=String(LAYOUT_VER);
+ document.documentElement.dataset.tier=inch===75?'xs':h<=300?'xs':h<=380?'sm':h<=460?'md':'lg';
+ document.documentElement.style.setProperty('--signage-w',w+'px');
+ document.documentElement.style.setProperty('--signage-h',h+'px');
+ document.documentElement.style.setProperty('--sg-scale-w',String(w/SG_REF_75_W));
+ document.documentElement.style.setProperty('--sg-scale-h',String(h/SG_REF_75_H));
+ const root=document.getElementById('signage-root');
+ root.style.width=w+'px';
+ root.style.height=h+'px';
+ function shouldPreviewFit(){
+  if(q.get('embed')==='1') return false;
+  const fit=q.get('fit');
+  if(fit==='0'||fit==='false'||fit==='no') return false;
+  if(fit==='1'||fit==='true'||fit==='yes') return true;
+  if(CONFIG._signage&&!CONFIG.DEMO_MODE) return false;
+  return CONFIG.SIGNAGE_PREVIEW_FIT;
+ }
+ function updateViewport(){
+  let meta=document.querySelector('meta[name="viewport"]');
+  if(!meta){meta=document.createElement('meta');meta.name='viewport';document.head.appendChild(meta);}
+  if(document.documentElement.classList.contains('signage-preview')){
+   meta.content='width=device-width, initial-scale=1';
+  }else if(document.documentElement.classList.contains('signage-1to1')){
+   meta.content='width='+w+', initial-scale=1';
+  }else{
+   meta.content='width='+w+', initial-scale=1, maximum-scale=1, user-scalable=no';
+  }
+ }
+ function fit(){
+  if(!shouldPreviewFit()){
+   document.documentElement.classList.remove('signage-preview');
+   document.documentElement.classList.add('signage-1to1');
+   document.documentElement.style.removeProperty('--signage-scale');
+   updateViewport();
+   return;
+  }
+  document.documentElement.classList.remove('signage-1to1');
+  if(!CONFIG.SIGNAGE_PREVIEW_FIT){
+   document.documentElement.classList.remove('signage-preview');
+   document.documentElement.style.removeProperty('--signage-scale');
+   updateViewport();
+   return;
+  }
+  document.documentElement.classList.add('signage-preview');
+  const s=Math.min(window.innerWidth/w,window.innerHeight/h);
+  document.documentElement.style.setProperty('--signage-scale',String(s));
+  updateViewport();
+ }
+ signageFitFn=fit;
+ fit();
+ window.addEventListener('resize',fit);
+ applyFaceLayout();
+ return CONFIG._signage;
+}
+function refitSignageView(){ if(signageFitFn) signageFitFn(); }
+const TUNE_SPECS=[
+ {id:'bodyPadT',label:'本文 上余白(px)',def:8,min:0,max:80},
+ {id:'bodyPadX',label:'本文 左右余白(px)',def:0,min:0,max:80},
+ {id:'bodyPadB',label:'本文 下余白(px)',def:12,min:0,max:80},
+ {id:'hdrMin',label:'ヘッダー高さ(%)',def:12,min:8,max:30},
+ {id:'hdrPadX',label:'ヘッダー 左右(px)',def:14,min:0,max:60},
+ {id:'hdrPadV',label:'ヘッダー 上下(px)',def:6,min:0,max:40},
+ {id:'nameSize',label:'レベル名(px)',def:72,min:20,max:200},
+ {id:'msgSize',label:'メッセージ(px)',def:28,min:10,max:80},
+ {id:'msgMt',label:'メッセージ上間隔(px)',def:4,min:0,max:40},
+ {id:'faceSize',label:'顔 幅(px)',def:135,min:40,max:600},
+ {id:'faceRight',label:'顔 右余白(px)',def:40,min:0,max:120},
+ {id:'faceTop',label:'顔 縦位置(%)',def:50,min:20,max:80},
+ {id:'faceTextPad',label:'文字右余白(px)',def:185,min:40,max:500},
+ {id:'cardsMt',label:'カード上余白(px)',def:6,min:0,max:40},
+ {id:'cardsGap',label:'カード間隔(px)',def:4,min:0,max:30},
+ {id:'cardV',label:'カード数値(px)',def:32,min:10,max:60},
+ {id:'cardLbl',label:'カードラベル(px)',def:14,min:8,max:28},
+ {id:'barR',label:'バー角丸(px)',def:12,min:0,max:40},
+ {id:'barMarginX',label:'バー左右余白(px)',def:20,min:0,max:60},
+ {id:'bleedB',label:'バー間隔(px)',def:0,min:0,max:20},
+ {id:'wbarN',label:'バー名(px)',def:22,min:8,max:48},
+ {id:'wbarRg',label:'バー範囲(px)',def:18,min:8,max:40},
+ {id:'wbarNActive',label:'注意バー名(px)',def:26,min:8,max:56},
+ {id:'wbarRgActive',label:'注意バー範囲(px)',def:22,min:8,max:48},
+ {id:'cautionFlex',label:'注意バー幅(x10)',def:22,min:10,max:40},
+ {id:'creditBottom',label:'クレジット下(px)',def:4,min:0,max:40}
+];
+function tuneStorageKey(){
+ const s=CONFIG._signage;
+ return s?'wbgt_tune_'+s.pitch+'_'+s.inch:'wbgt_tune_default';
+}
+function tuneDefaults(){
+ const s=CONFIG._signage,h=s?s.h:1080;
+ const d={};
+ TUNE_SPECS.forEach(p=>{d[p.id]=p.def;});
+ if(h<=300){d.nameSize=48;d.msgSize=18;d.wbarN=14;d.wbarRg=11;d.cardV=22;d.cardLbl=11;d.hdrMin=12;}
+ else if(h<=380){d.nameSize=58;d.msgSize=22;d.wbarN=18;d.wbarRg=14;d.cardV=27;d.cardLbl=12;}
+ else if(h<=460){d.nameSize=64;d.msgSize=24;d.wbarN=20;d.wbarRg=16;}
+ return d;
+}
+function applyTune(vals){
+ const m={
+  bodyPadT:'--tune-body-pad-t',bodyPadX:'--tune-body-pad-x',bodyPadB:'--tune-body-pad-b',
+  hdrMin:'--tune-hdr-min',hdrPadX:'--tune-hdr-pad-x',hdrPadV:'--tune-hdr-pad-v',
+  nameSize:'--tune-name-size',msgSize:'--tune-msg-size',msgMt:'--tune-msg-mt',
+  faceSize:'--tune-face-size',faceRight:'--tune-face-right',faceTop:'--tune-face-top',faceTextPad:'--tune-face-text-pad',
+  cardsMt:'--tune-cards-mt',cardsGap:'--tune-cards-gap',cardV:'--tune-card-v',cardLbl:'--tune-card-lbl',
+  barR:'--tune-bar-r',barMarginX:'--tune-bar-margin-x',bleedB:'--tune-bleed-b',
+  wbarN:'--tune-wbar-n',wbarRg:'--tune-wbar-rg',wbarNActive:'--tune-wbar-n-active',wbarRgActive:'--tune-wbar-rg-active',
+  cautionFlex:'--tune-caution-flex',creditBottom:'--tune-credit-bottom'
+ };
+ Object.keys(m).forEach(k=>{document.documentElement.style.setProperty(m[k],String(vals[k]));});
+ applyFaceLayout(vals);
+}
+let faceLayoutOverride=null;
+function syncFaceTextPad(vals){
+ const s=CONFIG._signage;
+ const margin=s?Math.round(s.w*0.02):20;
+ vals.faceTextPad=vals.faceSize+vals.faceRight+margin;
+ return vals;
+}
+function clampFacePos(faceRight,faceTop){
+ const rSpec=TUNE_SPECS.find(p=>p.id==='faceRight');
+ const tSpec=TUNE_SPECS.find(p=>p.id==='faceTop');
+ return {
+  faceRight:Math.max(rSpec.min,Math.min(rSpec.max,faceRight)),
+  faceTop:Math.max(tSpec.min,Math.min(tSpec.max,faceTop))
+ };
+}
+function clientToFacePos(clientX,clientY){
+ const face=document.getElementById('wFaceBox');
+ const top=document.querySelector('.wbgt-top');
+ if(!face||!top) return null;
+ const rect=top.getBoundingClientRect();
+ const faceW=face.offsetWidth;
+ const centerX=clientX-rect.left;
+ const centerY=clientY-rect.top;
+ return clampFacePos(
+  Math.round(rect.width-centerX-faceW/2),
+  Math.round((centerY/rect.height)*100)
+ );
+}
+function initFaceDrag(onMove){
+ const face=document.getElementById('wFaceBox');
+ if(!face||face.dataset.dragInit==='1') return;
+ face.dataset.dragInit='1';
+ document.documentElement.classList.add('face-edit');
+ let selected=false,dragging=false;
+ const select=()=>{selected=true;face.classList.add('face-selected');document.documentElement.classList.add('face-selected');};
+ const deselect=()=>{selected=false;dragging=false;face.classList.remove('face-selected','face-dragging');document.documentElement.classList.remove('face-selected');};
+ const applyPos=pos=>{
+  if(!pos) return;
+  onMove(pos);
+ };
+ face.addEventListener('pointerdown',e=>{
+  if(e.button!==0) return;
+  e.stopPropagation();
+  if(!selected){select();return;}
+  dragging=true;
+  face.classList.add('face-dragging');
+  face.setPointerCapture(e.pointerId);
+  applyPos(clientToFacePos(e.clientX,e.clientY));
+ });
+ face.addEventListener('pointermove',e=>{
+  if(!dragging) return;
+  applyPos(clientToFacePos(e.clientX,e.clientY));
+ });
+ const endDrag=()=>{
+  if(!dragging) return;
+  dragging=false;
+  face.classList.remove('face-dragging');
+ };
+ face.addEventListener('pointerup',endDrag);
+ face.addEventListener('pointercancel',endDrag);
+ document.addEventListener('pointerdown',e=>{
+  if(!face.contains(e.target)) deselect();
+ });
+}
+function applyFaceLayout(vals){
+ const body=document.getElementById('wBody');
+ const face=document.getElementById('wFaceBox');
+ if(!body) return;
+ const s=CONFIG._signage;
+ const layout=vals||faceLayoutOverride;
+ if(layout&&layout.faceSize!=null){
+  body.style.setProperty('--face-w',layout.faceSize+'px');
+  body.style.setProperty('--face-right',layout.faceRight+'px');
+  body.style.setProperty('--face-top',layout.faceTop+'%');
+  body.style.setProperty('--face-text-pad',layout.faceTextPad+'px');
+  document.documentElement.style.setProperty('--face-text-pad',layout.faceTextPad+'px');
+  document.documentElement.style.setProperty('--face-text-pad',layout.faceTextPad+'px');
+  if(face){
+   face.style.setProperty('width',layout.faceSize+'px','important');
+   face.style.setProperty('max-width','none','important');
+  }
+  return;
+ }
+ if(face){face.style.removeProperty('width');face.style.removeProperty('max-width');}
+ if(s){
+  const {faceSize:faceW,faceRight,faceTop,faceTextPad:textPad}=calcSignageFaceLayout(s.w,s.h,s.inch,s.pitch);
+  body.style.setProperty('--face-w',faceW+'px');
+  body.style.setProperty('--face-right',faceRight+'px');
+  body.style.setProperty('--face-top',faceTop+'%');
+  body.style.setProperty('--face-text-pad',textPad+'px');
+  document.documentElement.style.setProperty('--face-text-pad',textPad+'px');
+ }else{
+  const vw=CONFIG.FACE_SIZE_VW,rw=CONFIG.FACE_RIGHT_VW,tp=CONFIG.FACE_TOP_PCT;
+  body.style.setProperty('--face-w','clamp(155px,'+vw+'vw,450px)');
+  body.style.setProperty('--face-right',rw+'vw');
+  body.style.setProperty('--face-top',tp+'%');
+  body.style.setProperty('--face-text-pad','clamp(175px,'+(vw+6)+'vw,470px)');
+ }
+}
+function faceLayoutDefaults(){
+ const s=CONFIG._signage,d={};
+ if(s){
+  Object.assign(d,calcSignageFaceLayout(s.w,s.h,s.inch,s.pitch));
+ }else{
+  d.faceSize=240;d.faceRight=72;d.faceTop=CONFIG.FACE_TOP_PCT;d.faceTextPad=340;
+ }
+ return d;
+}
+function isTuneMode(){
+ const q=new URLSearchParams(location.search);
+ if(!q.has('tune')) return false;
+ const t=(q.get('tune')??'1').toLowerCase();
+ return !['0','false','no','off'].includes(t);
+}
+function openTuneMode(){
+ const q=new URLSearchParams(location.search);
+ q.set('tune','1');
+ q.set('demo','1');
+ q.set('fit','0');
+ if(!q.has('pitch')&&CONFIG.SIGNAGE_PITCH) q.set('pitch',CONFIG.SIGNAGE_PITCH);
+ if(!q.has('inch')&&CONFIG.SIGNAGE_INCH) q.set('inch',String(CONFIG.SIGNAGE_INCH));
+ location.search=q.toString();
+}
+function initTune(){
+ if(!isTuneMode()) return;
+ try{
+ CONFIG.DEMO_MODE=true;
+ document.documentElement.classList.add('tune-active');
+ stopDisplayLoop();
+ setMode('wbgt');
+ const panel=document.getElementById('tune-panel');
+ const fab=document.getElementById('tune-fab');
+ if(!panel) return;
+ panel.setAttribute('aria-hidden','false');
+ panel.classList.remove('tune-hidden');
+ if(fab) fab.addEventListener('click',()=>panel.classList.remove('tune-hidden'));
+ let vals=tuneDefaults();
+ Object.assign(vals,faceLayoutDefaults());
+ try{const saved=localStorage.getItem(tuneStorageKey());if(saved) vals=Object.assign(vals,JSON.parse(saved));}catch(e){}
+ TUNE_SPECS.forEach(p=>{
+  let v=vals[p.id];
+  if(!Number.isFinite(v)) v=p.def;
+  vals[p.id]=Math.max(p.min,Math.min(p.max,v));
+ });
+ if(CONFIG._signage){
+  const h=CONFIG._signage.h;
+  vals.nameSize=Math.min(vals.nameSize,Math.round(h*0.26));
+  vals.msgSize=Math.min(vals.msgSize,Math.round(h*0.08));
+  vals.wbarN=Math.min(vals.wbarN,Math.round(h*0.055));
+  vals.wbarRg=Math.min(vals.wbarRg,Math.round(h*0.045));
+ }
+ let idx=0;
+ const clearFaceSelect=()=>{
+  document.documentElement.classList.remove('face-selected');
+  const face=document.getElementById('wFaceBox');
+  if(face) face.classList.remove('face-selected','face-dragging');
+ };
+ const renderList=()=>{
+  const list=document.getElementById('tuneList');
+  list.innerHTML=TUNE_SPECS.map((p,i)=>'<li class="'+(i===idx?'on':'')+'" data-i="'+i+'">'+p.label+': <span class="val">'+vals[p.id]+'</span></li>').join('');
+  const p=TUNE_SPECS[idx];
+  document.getElementById('tuneCur').innerHTML=p.label+' = <span class="val">'+vals[p.id]+'</span>';
+ };
+ const nudge=(dir,step)=>{
+  clearFaceSelect();
+  const p=TUNE_SPECS[idx],v=vals[p.id]+dir*step;
+  vals[p.id]=Math.max(p.min,Math.min(p.max,v));
+  if(p.id==='faceSize'||p.id==='faceRight'||p.id==='faceTop') syncFaceTextPad(vals);
+  applyTune(vals);
+  renderList();
+ };
+ renderList();
+ applyTune(vals);
+ initFaceDrag(pos=>{
+  vals.faceRight=pos.faceRight;
+  vals.faceTop=pos.faceTop;
+  syncFaceTextPad(vals);
+  applyTune(vals);
+  renderList();
+ });
+ document.getElementById('tuneList').addEventListener('click',e=>{
+  const li=e.target.closest('li[data-i]');
+  if(!li) return;
+  idx=+li.dataset.i;
+  clearFaceSelect();
+  renderList();
+ });
+ document.getElementById('tuneMinus').addEventListener('click',()=>nudge(-1,1));
+ document.getElementById('tunePlus').addEventListener('click',()=>nudge(1,1));
+ const onTuneKey=e=>{
+  if(!document.documentElement.classList.contains('tune-active')) return;
+  if(e.target.matches('input,textarea,select,button')) return;
+  const step=e.shiftKey?10:1;
+  if(e.key==='ArrowUp'){e.preventDefault();nudge(1,step);}
+  else if(e.key==='ArrowDown'){e.preventDefault();nudge(-1,step);}
+  else if(e.key==='ArrowLeft'){e.preventDefault();clearFaceSelect();idx=(idx-1+TUNE_SPECS.length)%TUNE_SPECS.length;renderList();}
+  else if(e.key==='ArrowRight'){e.preventDefault();clearFaceSelect();idx=(idx+1)%TUNE_SPECS.length;renderList();}
+  else if(e.key==='s'||e.key==='S'){e.preventDefault();localStorage.setItem(tuneStorageKey(),JSON.stringify(vals));panel.querySelector('h3').textContent='保存しました';setTimeout(()=>{panel.querySelector('h3').textContent='レイアウト微調整';},800);}
+  else if(e.key==='r'||e.key==='R'){e.preventDefault();vals=tuneDefaults();Object.assign(vals,faceLayoutDefaults());applyTune(vals);renderList();localStorage.removeItem(tuneStorageKey());}
+  else if(e.key==='c'||e.key==='C'){
+   e.preventDefault();
+   const txt='/* '+tuneStorageKey()+' */\n'+JSON.stringify(vals,null,2);
+   navigator.clipboard.writeText(txt).catch(()=>{});
+   panel.querySelector('h3').textContent='コピーしました';
+   setTimeout(()=>{panel.querySelector('h3').textContent='レイアウト微調整';},800);
+  }
+  else if(e.key==='Escape'){e.preventDefault();panel.classList.toggle('tune-hidden');}
+ };
+ window.addEventListener('keydown',onTuneKey,true);
+ }catch(err){
+  console.error('initTune failed:',err);
+  document.documentElement.classList.add('tune-active');
+  const panel=document.getElementById('tune-panel');
+  if(panel){
+   panel.classList.remove('tune-hidden');
+   panel.style.display='block';
+   panel.querySelector('h3').textContent='微調整エラー: '+err.message;
+  }
+ }
+}
+const LIVE = !!CONFIG.GAS_URL;
+const dataStatus={wbgt:false,rain:false};
+const lastGood={wbgt:false,rain:false,rainLoop:false,rainLevel:0,rainUpdated:''};
+function syncLoopStatus(){
+ dataStatus.wbgt=!!lastGood.wbgt;
+ dataStatus.rain=!!lastGood.rainLoop;
+}
+function getLoopScreens(){
+ const s=[];
+ if(dataStatus.wbgt) s.push('wbgt');
+ if(dataStatus.rain) s.push('rain');
+ return s;
+}
+let loopTimer=null;
+let loopScreensKey='';
+let fetchInFlight=false;
+
+function wbgtApiNo(point){
+ const n=parseInt(String(point).replace(/\D/g,''),10);
+ if(!isFinite(n)) return NaN;
+ return n>=100000?Math.floor(n/10):n;
+}
+function calcWbgtFromRow(row){
+ const direct=parseFloat(row.wbgt_WBGT||row.wbgt||row.WBGT);
+ if(isFinite(direct)&&direct>=10) return direct;
+ const tw=parseFloat(row.wbgt_Tw),tg=parseFloat(row.wbgt_Tg),ta=parseFloat(row.wbgt_WO||row.wbgt_Ta);
+ if(isFinite(tw)&&isFinite(tg)&&isFinite(ta)) return Math.round((0.7*tw+0.2*tg+0.1*ta)*10)/10;
+ return NaN;
+}
+function fmtWbgtTime(s){
+ if(!s) return '';
+ const m=String(s).match(/(\d{1,2}):(\d{2})/);
+ return m?String(m[1]).padStart(2,'0')+':'+m[2]:String(s);
+}
+function wbgtSourceLabel(source){
+ if(source==='measured') return '・実況実測';
+ if(source==='estimate') return '・実況推定';
+ return '';
+}
+function updateWbgtLocSrc(source){
+ if(!CONFIG.SHOW_LOC_SRC){
+  document.querySelectorAll('[data-loc-src]').forEach(el=>{el.style.display='none';});
+  return;
+ }
+ const base=CONFIG.WBGT_PLACE||'環境省';
+ const src=base+wbgtSourceLabel(source);
+ document.querySelectorAll('[data-loc-src]').forEach(el=>{
+  el.style.display='';
+  if(document.getElementById('wbgtBoard')&&!document.getElementById('wbgtBoard').classList.contains('hide'))
+   el.textContent=src;
+ });
+}
+async function fetchWbgtSurveyEnv(wbgtNo){
+ const pad=n=>String(n).padStart(2,'0');
+ const now=new Date();
+ const to=now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+pad(now.getHours())+pad(now.getMinutes())+pad(now.getSeconds());
+ const y=new Date(now.getTime()-86400000);
+ const from=y.getFullYear()+pad(y.getMonth()+1)+pad(y.getDate())+pad(y.getHours())+pad(y.getMinutes())+pad(y.getSeconds());
+ for(const dt of [1,0]){
+  const url='https://www.wbgt.env.go.jp/api/v1/getSurveyData?data_type='+dt+'&location_type=1&wbgt_nos='+wbgtNo+'&date_from='+from+'&date_to='+to;
+  const res=await fetch(url,{cache:'no-store'});
+  if(!res.ok) continue;
+  const raw=await res.json();
+  const rows=(raw&&raw.data)||[];
+  let latest=null,latestTs=-1;
+  for(const row of rows){
+   const w=calcWbgtFromRow(row);
+   if(!isFinite(w)) continue;
+   const m=String(row.wbgt_date||'').match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s+(\d{1,2}):(\d{2})/);
+   const ts=m?new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]).getTime():0;
+   if(ts>=latestTs){latestTs=ts;latest=row;latest.wbgtCalc=w;}
+  }
+  if(!latest) continue;
+  const temp=parseFloat(latest.wbgt_WO||latest.wbgt_Ta);
+  const tw=parseFloat(latest.wbgt_Tw);
+  let humidity=null;
+  if(isFinite(tw)&&isFinite(temp)&&temp>tw) humidity=Math.max(0,Math.min(100,Math.round(100-(temp-tw)*5)));
+  return{wbgt:latest.wbgtCalc,temp:isFinite(temp)?temp:null,humidity,time:fmtWbgtTime(latest.wbgt_date),source:dt===1?'measured':'estimate'};
+ }
+ throw new Error('survey empty');
+}
+async function fetchWbgtCsvEnv(wbgtNo){
+ const yymm=(()=>{const n=new Date(),p=x=>String(x).padStart(2,'0');return n.getFullYear()+p(n.getMonth()+1);})();
+ const url='https://www.wbgt.env.go.jp/est15WG/dl/wbgt_'+wbgtNo+'_'+yymm+'.csv';
+ const res=await fetch(url,{cache:'no-store'});
+ if(!res.ok) throw new Error('csv http');
+ const text=(await res.text()).replace(/^\uFEFF/,'');
+ const lines=text.split(/\r?\n/);
+ for(let i=lines.length-1;i>=1;i--){
+  const parts=String(lines[i]).trim().split(',');
+  if(parts.length<3) continue;
+  const w=parseFloat(parts[2]);
+  if(!isFinite(w)||w<=0) continue;
+  return{wbgt:w,temp:null,humidity:null,time:fmtWbgtTime(parts[1]),source:'estimate'};
+ }
+ throw new Error('csv empty');
+}
+async function fetchWbgtFromEnv(){
+ const no=wbgtApiNo(CONFIG.WBGT_POINT);
+ if(!isFinite(no)||no<10000) throw new Error('invalid point');
+ try{ return await fetchWbgtSurveyEnv(no); }
+ catch(e1){
+  try{ return await fetchWbgtCsvEnv(no); }
+  catch(e2){ throw new Error('env: '+e1+' / '+e2); }
+ }
+}
+async function fetchWbgtLocalProxy(){
+ const url='/api/wbgt?point='+encodeURIComponent(CONFIG.WBGT_POINT);
+ const res=await fetch(url,{cache:'no-store'});
+ if(!res.ok) throw new Error('proxy http');
+ const d=await res.json();
+ if(d.error||!isFinite(parseFloat(d.wbgt))) throw new Error(d.error||'proxy empty');
+ return d;
+}
+async function fetchWbgtData(){
+ const extra={point:CONFIG.WBGT_POINT};
+ try{
+  const d=await fetchGasJsonp(gasUrl('wbgt',extra)).catch(()=>
+   fetch(gasUrl('wbgt',extra),{cache:'no-store',redirect:'follow',mode:'cors'}).then(r=>{if(!r.ok)throw new Error('http');return r.json();})
+  );
+  if(d&&!d.error&&isFinite(parseFloat(d.wbgt))) return d;
+ }catch(e){}
+ const host=location.hostname;
+ if(host==='127.0.0.1'||host==='localhost'){
+  try{ return await fetchWbgtLocalProxy(); }catch(e){}
+ }
+ if(CONFIG.WBGT_ENV_FALLBACK){
+  return await fetchWbgtFromEnv();
+ }
+ throw new Error('wbgt unavailable');
+}
+function gasUrl(type, extra){
+ const sep=CONFIG.GAS_URL.includes('?')?'&':'?';
+ const q=new URLSearchParams(Object.assign({type},extra||{}));
+ q.set('_',Date.now());
+ return CONFIG.GAS_URL+sep+q.toString();
+}
+
+const FACES = {
+  'safe': 'assets/faces/safe.png',
+  'caution': 'assets/faces/caution.png',
+  'warning': 'assets/faces/warning.png',
+  'severe': 'assets/faces/severe.png',
+  'danger': 'assets/faces/danger.png'
+};
+
+const W_LEVELS=[
+ {name:'安全',msg:'適宜に水分補給',bg:'#4A90D9',txt:'#fff',face:'safe',anim:'anim-safe'},
+ {name:'注意',msg:'体調を注意して作業進行',bg:'#FAD24A',txt:'#1a1a1a',face:'caution',anim:'anim-caution'},
+ {name:'警戒',msg:'休憩強化',bg:'#F2A91B',txt:'#1a1a1a',face:'warning',anim:'anim-severe'},
+ {name:'厳重警戒',msg:'積極的に休憩',bg:'#F47C1B',txt:'#fff',face:'severe',anim:'anim-warning'},
+ {name:'危険',msg:'熱中症の危険性が非常に高い',bg:'#E5302A',txt:'#fff',face:'danger',anim:'anim-danger'},
+];
+const W_PILLS=[
+ {n:'安全',rg:'21未満',c:'#4A90D9',t:'#fff'},
+ {n:'注意',rg:'21～25',c:'#FAD24A',t:'#1a1a1a'},
+ {n:'警戒',rg:'25～28',c:'#F9B233',t:'#1a1a1a'},
+ {n:'厳重警戒',rg:'28～31',c:'#F47C20',t:'#fff'},
+ {n:'危険',rg:'31以上',c:'#E53528',t:'#fff'},
+];
+const W_BADGE=['#4A90D9','#FAD24A','#F9B233','#F47C20','#E53528'];
+function wIdx(w){if(w<21)return 0;if(w<25)return 1;if(w<28)return 2;if(w<31)return 3;return 4;}
+const W_DEMO_W=[18,23,26.5,29.5,33];
+function setWbgtLevel(i){
+ const w=W_DEMO_W[i];if(w==null)return;
+ document.getElementById('wS').value=w;
+ wUpdate();
+}
+const wBarEl=document.getElementById('wBar');
+function wbarLabelHtml(p){
+ const sn=p.sn?`<span class="sn">${p.sn}</span>`:'';
+ return `<span class="n"><span class="ln">${p.n}</span>${sn}</span><span class="rg">${p.rg}</span>`;
+}
+W_PILLS.forEach((p,i)=>{
+ const d=document.createElement('div');
+ d.className='wbar';
+ d.id='wbar'+i;
+ d.dataset.idx=String(i);
+ d.innerHTML=wbarLabelHtml(p);
+ wBarEl.appendChild(d);
+});
+applyWbgtBars(1);
+document.getElementById('wBadge').style.background='#FAD24A';
+const wFaceInit=document.getElementById('wFace');
+wFaceInit.src=FACES.caution;
+wFaceInit.className='anim-caution';
+function applyWbgtBars(activeIdx){
+ const body=document.getElementById('wBody');
+ body.classList.remove('wbgt-lv0','wbgt-lv1','wbgt-lv2','wbgt-lv3','wbgt-lv4');
+ body.classList.add('wbgt-lv'+activeIdx);
+ wBarEl.className='wbgt-bar';
+ W_PILLS.forEach((p,j)=>{
+  const b=document.getElementById('wbar'+j);
+  const on=j===activeIdx;
+  b.classList.toggle('active',on);
+  b.style.background=p.c;
+  b.style.color=p.t;
+ });
+}
+function renderWBGT(t,h,w,timeStr){
+ const i=wIdx(w),L=W_LEVELS[i],P=W_PILLS[i];
+ const body=document.getElementById('wBody');
+ body.style.background=P.c;
+ const nm=document.getElementById('wName');nm.textContent=L.name;nm.style.color=P.t;
+ const mg=document.getElementById('wMsg');mg.textContent=L.msg;mg.style.color=P.t;
+ document.getElementById('wT').textContent=(t==null||!isFinite(t))?'−−':t.toFixed(1);
+ document.getElementById('wH').textContent=(h==null||!isFinite(h))?'−−':Math.round(h);
+ document.getElementById('wW').textContent=w.toFixed(1);
+ document.getElementById('wBadge').style.background=P.c;
+ const f=document.getElementById('wFace');f.src=FACES[L.face];f.className=L.anim;f.style.display='';
+ applyWbgtBars(i);
+ if(timeStr){document.getElementById('wUpd').textContent=timeStr;}
+}
+// 取得失敗時：推定値を一切出さず「取得不可」のみ（熱中症事故防止の絶対ルール）
+function renderWBGTUnavailable(){
+ document.getElementById('wBody').style.background='#555';
+ const nm=document.getElementById('wName');nm.textContent='取得不可';nm.style.color='#fff';
+ const mg=document.getElementById('wMsg');mg.textContent='データを取得できません';mg.style.color='#fff';
+ document.getElementById('wT').textContent='−−';document.getElementById('wH').textContent='−−';document.getElementById('wW').textContent='−−';
+ document.getElementById('wBadge').style.background='#888';
+ document.getElementById('wFace').style.display='none';
+ document.getElementById('wFace').className='';
+ W_PILLS.forEach((p,j)=>{const b=document.getElementById('wbar'+j);b.classList.remove('active');b.style.background=p.c;b.style.color=p.t;});
+ document.getElementById('wBody').classList.remove('wbgt-lv0','wbgt-lv1','wbgt-lv2','wbgt-lv3','wbgt-lv4');
+ wBarEl.className='wbgt-bar';
+ document.getElementById('wUpd').textContent='取得不可';
+}
+// デモ（スライダー）
+function wUpdate(){
+ const w=parseFloat(document.getElementById('wS').value),t=parseFloat(document.getElementById('tS').value),h=parseInt(document.getElementById('hS').value);
+ document.getElementById('wV').textContent=w.toFixed(1);document.getElementById('tV').textContent=t.toFixed(1);document.getElementById('hV').textContent=h;
+ renderWBGT(t,h,w);
+}
+// 実データ取得（GAS api.gs → type=all で一括取得）
+function applyWbgtData(d){
+ const w=parseFloat(d.wbgt),t=parseFloat(d.temp),h=parseFloat(d.humidity);
+ if(isFinite(w)) renderWBGT(isFinite(t)?t:null,isFinite(h)?h:null,w,d.time);
+ else renderWBGTUnavailable();
+}
+function applyRainData(d){
+ const lv=parseInt(d.level,10);
+ if(lv>=1&&lv<=5){rainLevel=lv;rUpdate();}
+ else renderRainUnavailable();
+}
+function fetchGasJsonp(url){
+ return new Promise((resolve,reject)=>{
+  const cb='_gasCb'+Date.now();
+  const sep=url.includes('?')?'&':'?';
+  const script=document.createElement('script');
+  const timer=setTimeout(()=>{cleanup();reject(new Error('timeout'));},20000);
+  function cleanup(){clearTimeout(timer);delete window[cb];if(script.parentNode)script.parentNode.removeChild(script);}
+  window[cb]=function(d){cleanup();resolve(d);};
+  script.onerror=function(){cleanup();reject(new Error('jsonp'));};
+  script.src=url+sep+'callback='+cb;
+  document.head.appendChild(script);
+ });
+}
+function fetchGasData(extra){
+ const url=gasUrl('all',extra);
+ return fetchGasJsonp(url).catch(()=>
+  fetch(url,{cache:'no-store',redirect:'follow',mode:'cors'})
+   .then(r=>{if(!r.ok)throw new Error('http');return r.json();})
+ );
+}
+function applyWbgtResult(d){
+ const w=parseFloat(d.wbgt);
+ if(isFinite(w)){
+  lastGood.wbgt=true;
+  dataStatus.wbgt=true;
+  applyWbgtData(d);
+  if(d.source) updateWbgtLocSrc(d.source);
+  return true;
+ }
+ return false;
+}
+function applyRainResult(d){
+ const lv=parseInt(d.level,10);
+ if(!(lv>=1&&lv<=5)) return false;
+ const prevLoop=lastGood.rainLoop;
+ lastGood.rain=true;
+ lastGood.rainLevel=lv;
+ lastGood.rainLoop=lv>=CONFIG.RAIN_LOOP_MIN;
+ dataStatus.rain=lastGood.rainLoop;
+ if(d.updated!=null&&d.updated!==''){rainUpdated=d.updated;lastGood.rainUpdated=d.updated;}
+ else if(lastGood.rainUpdated) rainUpdated=lastGood.rainUpdated;
+ applyRainData(d);
+ if(prevLoop!==lastGood.rainLoop) loopScreensKey='';
+ return true;
+}
+function prefectureCodeFromArea(areaCode){
+ const s=String(areaCode);
+ return s.length>=2?s.slice(0,2)+'0000':s;
+}
+function class10FromArea(areaCode){
+ const s=String(areaCode);
+ return s.length>=6?s.substring(0,2)+'0030':s;
+}
+function findAreaItem(items,code){
+ if(!items) return null;
+ for(const it of items) if(String(it.areaCode)===String(code)) return it;
+ return null;
+}
+function kindToRainLevel(k){
+ if(!k) return 0;
+ const st=String(k.status||'');
+ if(st.indexOf('なし')>=0) return 1;
+ if(st.indexOf('解除')>=0&&st.indexOf('継続')<0) return 0;
+ const blob=JSON.stringify(k);
+ if(blob.indexOf('大雨特別')>=0||blob.indexOf('レベル５')>=0||blob.indexOf('レベル5')>=0) return 5;
+ if(blob.indexOf('大雨危険')>=0||blob.indexOf('レベル４')>=0||blob.indexOf('レベル4')>=0) return 4;
+ if(blob.indexOf('大雨警報')>=0&&blob.indexOf('注意')<0) return 3;
+ if(blob.indexOf('大雨注意')>=0) return 2;
+ const c=String(k.code||'');
+ if(!c) return 0;
+ if(c==='33') return 5;
+ if(c==='39'||c==='40'||c==='41'||c==='42') return 4;
+ if(c==='03') return 3;
+ if(c==='10') return 2;
+ return 0;
+}
+function kindsToRainLevel(kinds){
+ if(!kinds||!kinds.length) return 1;
+ let maxLevel=1;
+ for(const k of kinds) maxLevel=Math.max(maxLevel,kindToRainLevel(k));
+ return maxLevel;
+}
+async function fetchRainLevelR8(areaCode){
+ const code=String(areaCode);
+ const pref=prefectureCodeFromArea(code);
+ const res=await fetch('https://www.jma.go.jp/bosai/warning/data/r8/'+pref+'.json',{cache:'no-store'});
+ if(!res.ok) throw new Error('jma r8 '+res.status);
+ const list=await res.json();
+ if(!list.length||!list[0].warning) throw new Error('jma r8 empty');
+ const head=list[0];
+ const w=head.warning;
+ let maxLevel=1;
+ const item20=findAreaItem(w.class20Items,code);
+ if(item20) maxLevel=Math.max(maxLevel,kindsToRainLevel(item20.kinds));
+ if(maxLevel<=1){
+  const item10=findAreaItem(w.class10Items,class10FromArea(code));
+  if(item10) maxLevel=Math.max(maxLevel,kindsToRainLevel(item10.kinds));
+ }
+ return{level:maxLevel,updated:head.reportDatetime||''};
+}
+async function fetchRainFromJma(areaCode){
+ return fetchRainLevelR8(areaCode);
+}
+async function fetchRainLocalProxy(){
+ const url='/api/rain?area='+encodeURIComponent(CONFIG.RAIN_AREA);
+ const res=await fetch(url,{cache:'no-store'});
+ if(!res.ok) throw new Error('proxy http');
+ const d=await res.json();
+ if(d.error||d.level==null) throw new Error(d.error||'proxy empty');
+ return d;
+}
+async function fetchRainData(){
+ const extra={area:CONFIG.RAIN_AREA};
+ try{
+  const rain=await fetchGasJsonp(gasUrl('rain',extra)).catch(()=>
+   fetch(gasUrl('rain',extra),{cache:'no-store',redirect:'follow',mode:'cors'})
+    .then(r=>{if(!r.ok) throw new Error('http');return r.json();})
+  );
+  if(rain&&!rain.error&&rain.level!=null) return rain;
+ }catch(e){}
+ const host=location.hostname;
+ if(host==='127.0.0.1'||host==='localhost'){
+  try{ return await fetchRainLocalProxy(); }catch(e){}
+ }
+ if(CONFIG.RAIN_JMA_FALLBACK) return await fetchRainFromJma(CONFIG.RAIN_AREA);
+ throw new Error('rain unavailable');
+}
+async function fetchAll(){
+ if(!LIVE||fetchInFlight) return;
+ fetchInFlight=true;
+ try{
+  let wbgtOk=false,rainOk=false;
+  try{
+   const all=await fetchGasData({point:CONFIG.WBGT_POINT,area:CONFIG.RAIN_AREA});
+   if(all.wbgt&&!all.wbgt.error) wbgtOk=applyWbgtResult(all.wbgt);
+   if(all.rain&&all.rain.level!=null&&!all.rain.error) rainOk=applyRainResult(all.rain);
+  }catch(e){}
+  if(!wbgtOk){
+   try{ wbgtOk=applyWbgtResult(await fetchWbgtData()); }catch(e){}
+  }
+  if(!rainOk){
+   try{
+    const rain=await fetchRainData();
+    if(rain&&!rain.error&&rain.level!=null) rainOk=applyRainResult(rain);
+   }catch(e){}
+  }
+  if(!wbgtOk&&!lastGood.wbgt) renderWBGTUnavailable();
+  if(!rainOk&&!lastGood.rain) renderRainUnavailable();
+  if(!rainOk) rainUpdated=lastGood.rainUpdated||'';
+ }catch(e){
+  if(!lastGood.wbgt) renderWBGTUnavailable();
+  if(!lastGood.rain) renderRainUnavailable();
+ }finally{
+  fetchInFlight=false;
+  syncLoopStatus();
+  restartDisplayLoop();
+ }
+}
+const R_LEVELS={
+ 1:{name:'早期注意情報',msg:'今後の気象情報に<br>ご注意ください',sub:'急な天候変化に備え最新情報をご確認ください',bg:'#103246',txt:'#fff',face:'caution',anim:'',box:{bodyFill:'#fff',bodyTxt:'#111',border:'transparent',capFill:'#111',capTxt:'#fff'},pub:{fill:'#111',txt:'#fff'}},
+ 2:{name:'大雨注意報',msg:'災害への心構えを<br>高めてください',sub:'屋外作業の安全確認を行ってください',bg:'#F2E700',txt:'#111',face:'warning',anim:'',box:{bodyFill:'#fff',bodyTxt:'#111',border:'#111',capFill:'#111',capTxt:'#fff'},pub:{fill:'#111',txt:'#fff'}},
+ 3:{name:'大雨警報',msg:'危険な場所には<br>近づかないでください',sub:'作業の継続可否を確認してください',bg:'#FF2800',txt:'#fff',face:'warning',anim:'',box:{bodyFill:'transparent',bodyTxt:'#fff',border:'#fff',capFill:'#fff',capTxt:'#FF2800'},pub:{fill:'#fff',txt:'#FF2800'}},
+ 4:{name:'大雨危険警報',msg:'危険な場所から<br>避難してください',sub:'身の安全を最優先してください',bg:'#AA00AA',txt:'#fff',face:'danger',anim:'',box:{bodyFill:'transparent',bodyTxt:'#fff',border:'#fff',capFill:'#fff',capTxt:'#AA00AA'},pub:{fill:'#fff',txt:'#AA00AA'}},
+ 5:{name:'大雨特別警報',msg:'命を守る行動を<br>とってください',sub:'直ちに安全確保を行ってください',bg:'#0C0C0C',txt:'#fff',face:'danger',anim:'',box:{bodyFill:'transparent',bodyTxt:'#fff',border:'#fff',capFill:'#fff',capTxt:'#111'},pub:{fill:'#fff',txt:'#111'}},
+};
+const R_PILLS=[
+ {lv:'レベル1',nm:'早期注意情報',c:'#fff',t:'#111'},
+ {lv:'レベル2',nm:'大雨注意報',c:'#F2E700',t:'#111'},
+ {lv:'レベル3',nm:'大雨警報',c:'#FF2800',t:'#fff'},
+ {lv:'レベル4',nm:'大雨危険警報',c:'#AA00AA',t:'#fff'},
+ {lv:'レベル5',nm:'大雨特別警報',c:'#0C0C0C',t:'#fff'},
+];
+const RAIN_LV_IMG='assets/rain-levels/level-';
+const RAIN_FACES={
+ 1:'assets/rain-faces/lv1.png',
+ 2:'assets/rain-faces/lv2.png',
+ 3:'assets/rain-faces/lv3.png',
+ 4:'assets/rain-faces/lv4.png',
+ 5:'assets/rain-faces/lv5.png',
+};
+let rainLevel=1;
+let rainUpdated='';
+function formatRainReportTime(iso){
+ if(!iso) return '';
+ const d=new Date(iso);
+ if(isNaN(d.getTime())) return '';
+ const pad=n=>String(n).padStart(2,'0');
+ return d.getFullYear()+'年'+pad(d.getMonth()+1)+'月'+pad(d.getDate())+'日'+pad(d.getHours())+'時'+pad(d.getMinutes())+'分更新';
+}
+function updateRainPub(){
+ const pub=document.getElementById('rPub');
+ const state=document.getElementById('rPubState');
+ const updEl=document.getElementById('rPubUpd');
+ const upd=formatRainReportTime(rainUpdated);
+ state.textContent='発表中';
+ updEl.textContent=upd?' '+upd:'';
+ pub.style.display='';
+}
+async function ensureRainUpdated(){
+ if(rainUpdated||!CONFIG.RAIN_JMA_FALLBACK) return;
+ try{
+  const d=await fetchRainFromJma(CONFIG.RAIN_AREA);
+  if(d&&d.updated){
+   rainUpdated=d.updated;
+   lastGood.rainUpdated=d.updated;
+   updateRainPub();
+  }
+ }catch(e){}
+}
+const rBarEl=document.getElementById('rBar');
+R_PILLS.forEach((p,i)=>{const d=document.createElement('div');d.className='rbar';d.id='rbar'+i;d.dataset.idx=String(i);d.innerHTML=`<span class="n">${p.lv}</span><span class="nm">${p.nm}</span>`;rBarEl.appendChild(d);});
+function applyRainLvBoxStyles(L){
+ const box=document.getElementById('rLvBox');
+ const card=box.querySelector('.rain-lv-card');
+ const cap=box.querySelector('.cap');
+ const lvwrap=box.querySelector('.lvwrap');
+ cap.style.background=L.box.capFill;
+ cap.style.color=L.box.capTxt;
+ lvwrap.style.background=L.box.bodyFill;
+ if(card){
+  card.style.border=(L.box.border&&L.box.border!=='transparent')?`2px solid ${L.box.border}`:'none';
+ }
+ box.querySelector('.lv').style.color=L.box.bodyTxt;
+ const num=document.getElementById('rNum');
+ num.style.color=L.box.bodyTxt;
+ num.textContent=rainLevel;
+}
+function pngHasTransparency(img){
+ try{
+  const w=img.naturalWidth,h=img.naturalHeight;
+  if(!w||!h) return false;
+  const c=document.createElement('canvas');
+  c.width=w;c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0);
+  const a=(x,y)=>ctx.getImageData(x,y,1,1).data[3];
+  const pts=[[0,0],[w-1,0],[0,h-1],[w-1,h-1],[w>>1,0],[w>>1,h-1]];
+  for(const [x,y] of pts) if(a(x,y)<250) return true;
+  for(let x=0;x<w;x+=Math.max(1,Math.floor(w/10))) if(a(x,h-1)<250) return true;
+  return false;
+ }catch(e){return false;}
+}
+function setRainLvImage(lv){
+ const L=R_LEVELS[lv];
+ const box=document.getElementById('rLvBox');
+ const img=document.getElementById('rLvImg');
+ function showFallback(){box.classList.remove('has-img');box.classList.add('use-fallback');applyRainLvBoxStyles(L);}
+ function showImg(){box.classList.add('has-img');box.classList.remove('use-fallback');}
+ function onReady(){
+  if(!img.naturalWidth){showFallback();return;}
+  if(!pngHasTransparency(img)){showFallback();return;}
+  showImg();
+ }
+ img.onload=onReady;
+ img.onerror=showFallback;
+ img.src=RAIN_LV_IMG+lv+'.png';
+ img.alt='警戒レベル'+lv;
+ if(img.complete){if(img.naturalWidth>0) onReady(); else showFallback();}
+}
+function rUpdate(){
+ const L=R_LEVELS[rainLevel];
+ const area=document.getElementById('rainArea');
+ area.style.background=L.bg;
+ area.style.setProperty('--rain-txt',L.txt);
+ area.style.setProperty('--rain-divider',L.txt);
+ area.classList.toggle('on-dark',rainLevel>=3);
+ area.dataset.rainLv=String(rainLevel);
+ setRainLvImage(rainLevel);
+ const pub=document.getElementById('rPub');pub.style.background=L.pub.fill;pub.style.color=L.pub.txt;updateRainPub();
+ const nm=document.getElementById('rName');nm.textContent=L.name;nm.style.color=L.txt;
+ const mg=document.getElementById('rMsg');mg.innerHTML=L.msg;mg.style.color=L.txt;
+ const sb=document.getElementById('rSub');sb.textContent=L.sub;sb.style.color=L.txt;
+ const f=document.getElementById('rFace');f.src=RAIN_FACES[rainLevel]||FACES[L.face];f.className='';f.style.display='';
+ R_PILLS.forEach((p,i)=>{
+  const b=document.getElementById('rbar'+i);
+  const a=(i+1)===rainLevel;
+  b.classList.toggle('active',a);
+  b.style.background=p.c;
+  b.style.color=p.t;
+ });
+ ensureRainUpdated();
+}
+// 取得失敗時：警戒レベルを推定せず「取得不可」のみ
+function renderRainUnavailable(){
+ const area=document.getElementById('rainArea');
+ area.style.background='#555';
+ area.style.setProperty('--rain-txt','#fff');
+ area.style.setProperty('--rain-divider','#fff');
+ area.classList.add('on-dark');
+ const box=document.getElementById('rLvBox');
+ document.getElementById('rLvImg').removeAttribute('src');
+ box.classList.remove('has-img');
+ box.classList.add('use-fallback');
+ const card=box.querySelector('.rain-lv-card');
+ if(card) card.style.border='none';
+ const lvwrap=box.querySelector('.lvwrap');
+ lvwrap.style.background='transparent';
+ box.querySelector('.lv').style.color='#fff';
+ document.getElementById('rNum').style.color='#fff';
+ const cap=box.querySelector('.cap');cap.style.background='#888';cap.style.color='#fff';
+ document.getElementById('rNum').textContent='−';
+ const pub=document.getElementById('rPub');pub.style.background='#888';pub.style.color='#fff';
+ document.getElementById('rPubState').textContent='取得不可';
+ document.getElementById('rPubUpd').textContent='';
+ document.getElementById('rName').textContent='取得不可';document.getElementById('rName').style.color='#fff';
+ document.getElementById('rMsg').innerHTML='データを取得できません';document.getElementById('rMsg').style.color='#fff';
+ document.getElementById('rSub').textContent='';
+ document.getElementById('rFace').style.display='none';
+ document.getElementById('rFace').className='';
+ R_PILLS.forEach((p,i)=>{const b=document.getElementById('rbar'+i);b.classList.remove('active');b.style.background=p.c;b.style.borderColor='transparent';b.style.color=p.t;});
+}
+function setRain(n){rainLevel=n;rUpdate();if(CONFIG.DEMO_MODE){dataStatus.rain=n>=CONFIG.RAIN_LOOP_MIN;restartDisplayLoop();}}
+function updateLocBadge(mode){
+ const src=(mode==='wbgt'?CONFIG.WBGT_PLACE:CONFIG.RAIN_PLACE)||'';
+ document.querySelectorAll('[data-loc-site]').forEach(el=>{el.textContent=CONFIG.SITE_NAME||'';});
+ document.querySelectorAll('[data-loc-src]').forEach(el=>{
+  if(!CONFIG.SHOW_LOC_SRC){el.style.display='none';return;}
+  el.style.display='';
+  el.textContent=src;
+ });
+}
+function setMode(m){const w=(m==='wbgt');
+ document.getElementById('wbgtBoard').classList.toggle('hide',!w);
+ document.getElementById('rainBoard').classList.toggle('hide',w);
+ document.getElementById('wbgtCtl').classList.toggle('hide',!w);
+ document.getElementById('rainCtl').classList.toggle('hide',w);
+ document.getElementById('modeWbgt').classList.toggle('on',w);
+ document.getElementById('modeRain').classList.toggle('on',!w);
+ updateLocBadge(m);
+ if(!w) rUpdate();
+}
+function stopDisplayLoop(){
+ if(loopTimer){clearTimeout(loopTimer);loopTimer=null;}
+}
+function startDisplayLoop(screens){
+ const sec=Math.max(1,CONFIG.LOOP_SEC||8)*1000;
+ let idx=0;
+ function step(){
+  setMode(screens[idx]);
+  if(screens.length<2) return;
+  loopTimer=setTimeout(()=>{
+   idx=(idx+1)%screens.length;
+   step();
+  },sec);
+ }
+ step();
+}
+function restartDisplayLoop(){
+ if(document.documentElement.classList.contains('tune-active')) return;
+ if(CONFIG.PIN_MODE){
+  stopDisplayLoop();
+  loopScreensKey='';
+  setMode(CONFIG.PIN_MODE);
+  return;
+ }
+ syncLoopStatus();
+ const screens=getLoopScreens();
+ const key=screens.join(',');
+ if(screens.length===0){
+  stopDisplayLoop();
+  loopScreensKey='';
+  setMode(CONFIG.DEFAULT_MODE==='rain'?'rain':'wbgt');
+  return;
+ }
+ if(screens.length===1){
+  stopDisplayLoop();
+  loopScreensKey=key;
+  setMode(screens[0]);
+  return;
+ }
+ if(key===loopScreensKey&&loopTimer) return;
+ stopDisplayLoop();
+ loopScreensKey=key;
+ startDisplayLoop(screens);
+}
+function clock(){const n=new Date(),days=['日','月','火','水','木','金','土'];
+ const d=n.getFullYear()+'.'+String(n.getMonth()+1).padStart(2,'0')+'.'+String(n.getDate()).padStart(2,'0')+' ('+days[n.getDay()]+')';
+ const t=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+ document.getElementById('wDate').textContent=d;document.getElementById('wClock').textContent=t;if(!LIVE)document.getElementById('wUpd').textContent=t;
+ document.getElementById('rDate').textContent=d;document.getElementById('rClock').textContent=t;
+}
+function tick(){ fetchAll(); }
+
+function initApp(){
+ if(CONFIG.DEMO_MODE) document.documentElement.classList.add('demo-active');
+ if(!document.documentElement.classList.contains('tune-active')) applyFaceLayout();
+ if(!CONFIG.DEMO_MODE){
+  document.body.classList.add('prod');
+  document.getElementById('gear').classList.add('hide');
+  document.getElementById('demo').classList.add('hide');
+ }
+ setInterval(clock,1000);
+ clock();
+ updateLocBadge(CONFIG.DEFAULT_MODE==='rain'?'rain':'wbgt');
+ if(CONFIG.DEMO_MODE){
+  const q=new URLSearchParams(location.search);
+  const pin=q.get('mode');
+  if(pin==='rain'||pin==='wbgt') CONFIG.PIN_MODE=pin;
+  const lv=q.get('level');
+  if(lv!=null&&/^[0-4]$/.test(lv)) document.getElementById('wS').value=W_DEMO_W[+lv];
+  const rlv=q.get('rain');
+  if(rlv!=null&&/^[1-5]$/.test(rlv)) setRain(+rlv);
+  if(CONFIG.PIN_MODE==='rain'){
+   dataStatus.wbgt=false;
+   dataStatus.rain=true;
+   setMode('rain');
+  }else if(CONFIG.PIN_MODE==='wbgt'){
+   dataStatus.wbgt=true;
+   dataStatus.rain=false;
+   setMode('wbgt');
+  }
+  ['wS','tS','hS'].forEach(id=>document.getElementById(id).addEventListener('input',wUpdate));
+  wUpdate();
+  rUpdate();
+  if(!document.documentElement.classList.contains('tune-active')){
+   let demoFace=Object.assign(faceLayoutDefaults(),faceLayoutOverride||{});
+   initFaceDrag(pos=>{
+    demoFace.faceSize=demoFace.faceSize||document.getElementById('wFaceBox').offsetWidth;
+    demoFace.faceRight=pos.faceRight;
+    demoFace.faceTop=pos.faceTop;
+    syncFaceTextPad(demoFace);
+    faceLayoutOverride=demoFace;
+    applyFaceLayout(demoFace);
+   });
+  }
+  dataStatus.wbgt=true;
+  dataStatus.rain=rainLevel>=CONFIG.RAIN_LOOP_MIN;
+  restartDisplayLoop();
+ }else if(LIVE){
+  renderWBGTUnavailable();
+  renderRainUnavailable();
+  setMode(CONFIG.DEFAULT_MODE==='rain'?'rain':'wbgt');
+  tick();
+  setInterval(tick,Math.max(1,CONFIG.FETCH_MIN)*60000);
+ }else{
+  renderWBGTUnavailable();
+  renderRainUnavailable();
+ }
+}
+if(new URLSearchParams(location.search).get('demo')==='1') CONFIG.DEMO_MODE=true;
+initSignage();
+refitSignageView();
+initTune();
+initApp();
+
+/* 気象業務法：データ提供元クレジット（法令上必須。CONFIG.SHOW_CREDITで制御） */
+if(CONFIG.SHOW_CREDIT){
+  const c=document.createElement('div');
+  c.id='signage-credit';
+  c.textContent='データ提供：気象庁、環境省';
+  c.style.cssText='bottom:4px;left:50%;transform:translateX(-50%);z-index:5;font-size:10px;padding:2px 10px;border-radius:6px 6px 0 0;background:rgba(0,0,0,0.4);color:#fff;opacity:0.7;pointer-events:none;font-family:inherit;white-space:nowrap;';
+  if(document.documentElement.classList.contains('signage')){
+   c.style.position='absolute';
+   document.getElementById('signage-root').appendChild(c);
+  }else{
+   c.style.cssText='position:fixed;'+c.style.cssText;
+   document.body.appendChild(c);
+  }
+}
+</script>
+</body>
+</html>

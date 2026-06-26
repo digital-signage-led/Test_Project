@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大雨情報 — 5段階レイアウトプレビュー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0e0e12;color:#e8e8e8;font-family:'Segoe UI','Noto Sans JP',sans-serif;padding:20px 24px 40px;}
+h1{font-size:20px;font-weight:900;margin-bottom:6px;}
+.lead{font-size:13px;color:#aaa;margin-bottom:16px;line-height:1.6;}
+.lead a{color:#4fc3f7;}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;font-size:13px;}
+.toolbar label{font-weight:700;color:#ccc;}
+.toolbar select{background:#1a1a22;color:#eee;border:1px solid #444;border-radius:6px;padding:6px 10px;font:inherit;}
+.ver{font-size:12px;color:#666;margin-bottom:20px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.cell{background:#18181f;border:1px solid #333;border-radius:10px;padding:14px;}
+.cell h2{font-size:15px;font-weight:900;margin-bottom:2px;}
+.cell .sub{font-size:12px;color:#888;margin-bottom:10px;}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:6px;vertical-align:middle;}
+.viewport{overflow:hidden;background:#000;border:1px solid #444;border-radius:4px;line-height:0;}
+.viewport iframe{border:0;transform-origin:0 0;display:block;}
+.links{margin-top:10px;font-size:12px;}
+.links a{color:#4fc3f7;margin-right:12px;}
+#reloadBtn{background:#1a1a22;color:#4fc3f7;border:1px solid #4fc3f7;border-radius:6px;padding:6px 14px;font:inherit;font-weight:700;cursor:pointer;}
+#reloadBtn:hover{background:#243040;}
+</style>
+</head>
+<body>
+<h1>大雨情報 — 5段階レイアウト一覧</h1>
+<p class="lead">
+  レベル1（早期注意）〜レベル5（特別警報）を並べて確認できます。<br>
+  <a href="wbgt-levels-preview.html">WBGT 5段階プレビュー</a> ·
+  <a href="signage-preview.html">6解像度プレビュー</a> ·
+  <a href="index.html?demo=1&mode=rain">デモ（大雨単体）</a>
+</p>
+
+<div class="toolbar">
+  <label for="spec">解像度</label>
+  <select id="spec">
+    <option value="P3.47|75">P3.47 · 75インチ（432×288）</option>
+    <option value="P3.47|100" selected>P3.47 · 100インチ（576×432）</option>
+    <option value="P3.47|125">P3.47 · 125インチ（720×576）</option>
+    <option value="P2.87|75">P2.87 · 75インチ（528×352）</option>
+    <option value="P2.87|100">P2.87 · 100インチ（704×528）</option>
+    <option value="P2.87|125">P2.87 · 125インチ（880×704）</option>
+  </select>
+  <button type="button" id="reloadBtn">プレビューを再読み込み</button>
+</div>
+<p class="ver" id="verInfo">—</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const LAYOUT_VER=39;
+const LEVELS=[
+ {lv:1,name:'早期注意情報',bg:'#103246',txt:'#fff'},
+ {lv:2,name:'大雨注意報',bg:'#F2E700',txt:'#111'},
+ {lv:3,name:'大雨警報',bg:'#FF2800',txt:'#fff'},
+ {lv:4,name:'大雨危険警報',bg:'#AA00AA',txt:'#fff'},
+ {lv:5,name:'大雨特別警報',bg:'#0C0C0C',txt:'#fff'}
+];
+const SIZES={
+ 'P3.47|75':[432,288],'P3.47|100':[576,432],'P3.47|125':[720,576],
+ 'P2.87|75':[528,352],'P2.87|100':[704,528],'P2.87|125':[880,704]
+};
+const MAX_W=320;
+const grid=document.getElementById('grid');
+const specSel=document.getElementById('spec');
+const verInfo=document.getElementById('verInfo');
+const q=new URLSearchParams(location.search);
+if(q.get('pitch')&&q.get('inch')) specSel.value=q.get('pitch')+'|'+q.get('inch');
+
+function indexUrl(pitch,inch,rainLv){
+ return 'index.html?pitch='+encodeURIComponent(pitch)+'&inch='+inch
+  +'&embed=1&demo=1&mode=rain&rain='+rainLv+'&v='+LAYOUT_VER+'&_='+Date.now();
+}
+
+function render(){
+ grid.innerHTML='';
+ const key=specSel.value;
+ const [pitch,inch]=key.split('|');
+ const [w,h]=SIZES[key];
+ const scale=Math.min(1,MAX_W/w);
+ verInfo.textContent='レイアウト版 '+LAYOUT_VER+' · 読込 '+new Date().toLocaleTimeString();
+ LEVELS.forEach(L=>{
+  const cell=document.createElement('div');
+  cell.className='cell';
+  cell.innerHTML=`
+   <h2>レベル${L.lv} · ${L.name}<span class="badge" style="background:${L.bg};color:${L.txt}">Lv${L.lv}</span></h2>
+   <div class="sub">${pitch} · ${inch}インチ · ${w}×${h}px</div>
+   <div class="viewport" style="width:${Math.round(w*scale)}px;height:${Math.round(h*scale)}px"></div>
+   <div class="links">
+    <a href="index.html?pitch=${encodeURIComponent(pitch)}&inch=${inch}&demo=1&mode=rain&rain=${L.lv}&fit=0" target="_blank">フルサイズ（1:1）</a>
+   </div>`;
+  const vp=cell.querySelector('.viewport');
+  const ifr=document.createElement('iframe');
+  ifr.width=w; ifr.height=h;
+  ifr.style.width=w+'px'; ifr.style.height=h+'px';
+  ifr.style.transform='scale('+scale+')';
+  ifr.src=indexUrl(pitch,inch,L.lv);
+  ifr.title='大雨 Lv'+L.lv;
+  vp.appendChild(ifr);
+  grid.appendChild(cell);
+ });
+}
+
+document.getElementById('reloadBtn').addEventListener('click',render);
+specSel.addEventListener('change',render);
+window.addEventListener('pageshow',e=>{if(e.persisted) render();});
+render();
+</script>
+</body>
+</html>

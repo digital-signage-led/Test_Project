@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>サイネージ URL 発行 — 仕様入力</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0e0e12;color:#e8e8e8;font-family:'Segoe UI','Noto Sans JP',sans-serif;padding:20px 24px 48px;max-width:920px;margin:0 auto;}
+h1{font-size:22px;font-weight:900;margin-bottom:6px;}
+.lead{font-size:13px;color:#aaa;margin-bottom:20px;line-height:1.65;}
+.lead a{color:#4fc3f7;}
+.panel{background:#18181f;border:1px solid #333;border-radius:12px;padding:20px 22px;margin-bottom:20px;}
+.panel h2{font-size:14px;font-weight:900;color:#ccc;margin-bottom:14px;letter-spacing:0.02em;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+@media(max-width:640px){.grid{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:12px;font-weight:700;color:#999;}
+.field input,.field select{
+  background:#121218;color:#eee;border:1px solid #444;border-radius:8px;
+  padding:9px 11px;font-size:14px;font-family:inherit;width:100%;
+}
+.field input:focus,.field select:focus{outline:none;border-color:#4fc3f7;}
+.hint{font-size:11px;color:#666;line-height:1.45;}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.presets button{
+  background:#252530;color:#ddd;border:1px solid #555;border-radius:8px;
+  padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.presets button:hover{border-color:#4fc3f7;color:#4fc3f7;}
+.url-box{
+  background:#0a0a0f;border:2px solid #4fc3f7;border-radius:10px;padding:14px 16px;
+  word-break:break-all;font-size:13px;line-height:1.55;color:#e0f4ff;min-height:3.2em;
+}
+.url-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.url-actions button,.url-actions a.btn{
+  background:#4fc3f7;color:#111;border:none;border-radius:8px;
+  padding:10px 18px;font-size:13px;font-weight:900;cursor:pointer;font-family:inherit;
+  text-decoration:none;display:inline-block;
+}
+.url-actions button.secondary,.url-actions a.secondary{
+  background:#2a2a35;color:#e8e8e8;border:1px solid #555;
+}
+.url-actions button:hover,.url-actions a.btn:hover{filter:brightness(1.08);}
+.res-badge{
+  display:inline-block;background:#2a2a35;border:1px solid #444;border-radius:6px;
+  padding:4px 10px;font-size:12px;font-weight:700;margin-top:8px;color:#aaa;
+}
+.copied{font-size:12px;color:#6fcf97;margin-left:8px;opacity:0;transition:opacity .2s;}
+.copied.show{opacity:1;}
+</style>
+</head>
+<body>
+<h1>サイネージ URL 発行</h1>
+<p class="lead">
+  現場の仕様を入力すると、<strong>本番用URLが即座に生成</strong>されます。LED端末のブラウザにこのURLを設定してください。<br>
+  <a href="index.html">本番画面</a> ·
+  <a href="signage-preview.html">6解像度プレビュー</a> ·
+  <a href="index.html?demo=1">デモ</a>
+</p>
+
+<div class="panel">
+  <h2>プリセット</h2>
+  <div class="presets" id="presets"></div>
+</div>
+
+<form id="form" class="panel" autocomplete="off">
+  <h2>現場仕様</h2>
+  <div class="grid">
+    <div class="field full">
+      <label for="site">現場名（左上表示）</label>
+      <input type="text" id="site" placeholder="例：大阪府大阪市">
+    </div>
+    <div class="field">
+      <label for="pitch">LEDピッチ</label>
+      <select id="pitch">
+        <option value="P3.47">P3.47</option>
+        <option value="P2.87">P2.87</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="inch">インチ</label>
+      <select id="inch">
+        <option value="75">75インチ</option>
+        <option value="100" selected>100インチ</option>
+        <option value="125">125インチ</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="point">WBGT 観測地点コード</label>
+      <input type="text" id="point" inputmode="numeric" placeholder="620780">
+      <span class="hint">環境省6桁（大阪=620780）</span>
+    </div>
+    <div class="field">
+      <label for="area">大雨 市町村コード</label>
+      <input type="text" id="area" inputmode="numeric" placeholder="2710000">
+      <span class="hint">気象庁（大阪市=2710000）</span>
+    </div>
+    <div class="field">
+      <label for="wbgt_place">WBGT 取得元表記</label>
+      <input type="text" id="wbgt_place" placeholder="環境省（観測地点：大阪）">
+    </div>
+    <div class="field">
+      <label for="rain_place">大雨 取得元表記</label>
+      <input type="text" id="rain_place" placeholder="気象庁（大阪市）">
+    </div>
+    <div class="field full">
+      <label for="gas">GAS API URL（本番データ取得）</label>
+      <input type="url" id="gas" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <div class="field">
+      <label for="loop">画面切替（秒）</label>
+      <input type="number" id="loop" min="1" max="120" value="8">
+      <span class="hint">WBGT・大雨 各画面の表示時間</span>
+    </div>
+    <div class="field">
+      <label for="fetch">データ更新（分）</label>
+      <input type="number" id="fetch" min="1" max="60" value="15">
+    </div>
+  </div>
+</form>
+
+<div class="panel">
+  <h2>発行URL（本番）</h2>
+  <div class="url-box" id="urlOut" aria-live="polite"></div>
+  <span class="res-badge" id="resBadge"></span>
+  <div class="url-actions">
+    <button type="button" id="copyBtn">URLをコピー</button>
+    <a class="btn secondary" id="openBtn" href="#" target="_blank" rel="noopener">本番画面を開く</a>
+    <span class="copied" id="copiedMsg">コピーしました</span>
+  </div>
+</div>
+
+<script>
+const LAYOUT_VER=40;
+const SIZES={
+ 'P3.47':{75:[432,288],100:[576,432],125:[720,576]},
+ 'P2.87':{75:[528,352],100:[704,528],125:[880,704]}
+};
+const DEFAULT_GAS='https://script.google.com/macros/s/AKfycbypX8gmSDsx449D61PUHEkud6863ENczcivJ4axfVxZhLNDtcjx1we7fYTPeTw0kmBx/exec';
+const PRESETS={
+ '大阪（標準）':{
+  site:'大阪府大阪市',pitch:'P3.47',inch:'100',
+  point:'620780',area:'2710000',
+  wbgt_place:'環境省（観測地点：大阪）',rain_place:'気象庁（大阪市）',
+  gas:DEFAULT_GAS,loop:'8',fetch:'15'
+ },
+ 'いすみ市':{
+  site:'千葉県いすみ市',pitch:'P3.47',inch:'100',
+  point:'620780',area:'1223800',
+  wbgt_place:'環境省（観測地点：大阪）',rain_place:'気象庁（いすみ市）',
+  gas:DEFAULT_GAS,loop:'8',fetch:'15'
+ }
+};
+const form=document.getElementById('form');
+const urlOut=document.getElementById('urlOut');
+const resBadge=document.getElementById('resBadge');
+const openBtn=document.getElementById('openBtn');
+const copiedMsg=document.getElementById('copiedMsg');
+const ids=['site','pitch','inch','point','area','wbgt_place','rain_place','gas','loop','fetch'];
+
+function readForm(){
+ const o={};
+ ids.forEach(id=>{o[id]=document.getElementById(id).value.trim();});
+ return o;
+}
+function fillForm(p){
+ ids.forEach(id=>{
+  if(p[id]!=null) document.getElementById(id).value=p[id];
+ });
+ updateUrl();
+}
+function buildQuery(cfg){
+ const q=new URLSearchParams();
+ q.set('pitch',cfg.pitch||'P3.47');
+ q.set('inch',cfg.inch||'100');
+ q.set('fit','0');
+ q.set('v',String(LAYOUT_VER));
+ if(cfg.site) q.set('site',cfg.site);
+ if(cfg.point) q.set('point',cfg.point);
+ if(cfg.area) q.set('area',cfg.area);
+ if(cfg.wbgt_place) q.set('wbgt_place',cfg.wbgt_place);
+ if(cfg.rain_place) q.set('rain_place',cfg.rain_place);
+ if(cfg.gas) q.set('gas',cfg.gas);
+ if(cfg.loop&&cfg.loop!=='8') q.set('loop',cfg.loop);
+ if(cfg.fetch&&cfg.fetch!=='15') q.set('fetch',cfg.fetch);
+ return q;
+}
+function buildUrl(cfg){
+ const base=new URL('index.html',location.href);
+ base.search=buildQuery(cfg).toString();
+ return base.href;
+}
+function updateUrl(){
+ const cfg=readForm();
+ const url=buildUrl(cfg);
+ urlOut.textContent=url;
+ openBtn.href=url;
+ const pitch=cfg.pitch||'P3.47';
+ const inch=+(cfg.inch||100);
+ const sz=SIZES[pitch]&&SIZES[pitch][inch];
+ resBadge.textContent=sz?`${pitch} · ${inch}" = ${sz[0]}×${sz[1]}px（1:1本番）`:'';
+ history.replaceState(null,'',buildQuery(cfg).toString()?'?'+buildQuery(cfg).toString():location.pathname);
+}
+function loadFromPageQuery(){
+ const q=new URLSearchParams(location.search);
+ if(!q.toString()){fillForm(PRESETS['大阪（標準）']);return;}
+ const cfg={};
+ ids.forEach(id=>{
+  if(q.has(id)) cfg[id]=id==='site'||id.includes('place')?decodeURIComponent(q.get(id)):q.get(id);
+ });
+ if(!cfg.gas) cfg.gas=DEFAULT_GAS;
+ fillForm(Object.assign({},PRESETS['大阪（標準）'],cfg));
+}
+
+const presetsEl=document.getElementById('presets');
+Object.keys(PRESETS).forEach(name=>{
+ const b=document.createElement('button');
+ b.type='button';
+ b.textContent=name;
+ b.addEventListener('click',()=>fillForm(PRESETS[name]));
+ presetsEl.appendChild(b);
+});
+
+ids.forEach(id=>{
+ document.getElementById(id).addEventListener('input',updateUrl);
+ document.getElementById(id).addEventListener('change',updateUrl);
+});
+
+document.getElementById('copyBtn').addEventListener('click',async()=>{
+ const text=urlOut.textContent;
+ try{
+  await navigator.clipboard.writeText(text);
+ }catch(e){
+  const ta=document.createElement('textarea');
+  ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+ }
+ copiedMsg.classList.add('show');
+ setTimeout(()=>copiedMsg.classList.remove('show'),2000);
+});
+
+loadFromPageQuery();
+</script>
+</body>
+</html>
