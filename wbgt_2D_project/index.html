@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:42 -->
+<!-- LAYOUT_VER:43 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -16,9 +16,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 /* ===== サイネージ（LED解像度固定） ===== */
 #signage-root{position:fixed;inset:0;width:100%;height:100%;}
 html.signage #signage-root{position:relative;inset:auto;overflow:hidden;flex-shrink:0;}
-html.signage-preview,html.signage-preview body{overflow:hidden;}
-html.signage-preview body{display:flex;align-items:center;justify-content:center;min-height:100%;min-width:100%;background:#000;}
-html.signage-preview #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;}
+html.signage-preview,html.signage-preview body{overflow:hidden;width:100%;height:100%;height:100dvh;margin:0;padding:0;}
+html.signage-preview body{display:flex;align-items:center;justify-content:center;background:#000;}
+html.signage-preview #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;}
 html.signage-1to1,html.signage-1to1 body{overflow:auto!important;height:auto!important;min-height:100%;}
 html.signage-1to1 body{display:flex;align-items:flex-start;justify-content:center;padding:16px;background:#111;min-width:100%;}
 html.signage-1to1 #signage-root{box-shadow:0 0 0 2px #333;flex-shrink:0;}
@@ -1061,6 +1061,7 @@ const CONFIG = {
   SIGNAGE_W:      0,          // 任意解像度（pitch/inchより優先）。0=テーブル参照
   SIGNAGE_H:      0,
   SIGNAGE_PREVIEW_FIT: true,  // true=画面に自動フィット(本番推奨) / false=1:1実解像度。URL ?fit=0 で1:1
+  SIGNAGE_FIT_MODE:  'cover', // 'cover'=黒帯なしで画面全体に表示 / 'contain'=比率維持・黒帯あり
   PIN_MODE:       '',        // URL ?mode=rain|wbgt で表示ループを固定
   /* --- WBGT顔アイコン（位置・大きさ）---
      サイネージ: キャンバス幅に対する比率 / PC: vw・% */
@@ -1086,11 +1087,12 @@ function applyConfigFromUrl(){
  if(q.has('loop')) CONFIG.LOOP_SEC=Math.max(1,+q.get('loop')||8);
  if(q.has('fetch')) CONFIG.FETCH_MIN=Math.max(1,+q.get('fetch')||15);
  if(q.has('fit')) CONFIG.SIGNAGE_PREVIEW_FIT=!['0','false','no'].includes((q.get('fit')||'').toLowerCase());
+ if(q.has('fitmode')) CONFIG.SIGNAGE_FIT_MODE=q.get('fitmode').toLowerCase()==='contain'?'contain':'cover';
 }
 applyConfigFromUrl();
 /* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
    75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
-const LAYOUT_VER=42;
+const LAYOUT_VER=43;
 const SG_REF_75_W=432;
 const SG_REF_75_H=288;
 const FACE_REF_75_W=SG_REF_75_W;
@@ -1175,7 +1177,7 @@ function initSignage(){
  }
  function fit(){
   if(!shouldPreviewFit()){
-   document.documentElement.classList.remove('signage-preview');
+   document.documentElement.classList.remove('signage-preview','signage-cover','signage-contain');
    document.documentElement.classList.add('signage-1to1');
    document.documentElement.style.removeProperty('--signage-scale');
    updateViewport();
@@ -1183,7 +1185,11 @@ function initSignage(){
   }
   document.documentElement.classList.remove('signage-1to1');
   document.documentElement.classList.add('signage-preview');
-  const s=Math.min(window.innerWidth/w,window.innerHeight/h);
+  const mode=(CONFIG.SIGNAGE_FIT_MODE==='contain')?'contain':'cover';
+  document.documentElement.classList.toggle('signage-cover',mode==='cover');
+  document.documentElement.classList.toggle('signage-contain',mode==='contain');
+  const sw=window.innerWidth/w,sh=window.innerHeight/h;
+  const s=mode==='cover'?Math.max(sw,sh):Math.min(sw,sh);
   document.documentElement.style.setProperty('--signage-scale',String(s));
   updateViewport();
  }
