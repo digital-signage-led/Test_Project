@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:40 -->
+<!-- LAYOUT_VER:41 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -31,23 +31,26 @@ html.signage #signage-credit{position:absolute;}
 
 /* サイネージ: vw/vh はブラウザ全体を参照するため、LEDキャンバス(px)基準で固定 */
 /* P3.47·75インチ（432×288）基準の比率 → 実キャンバス(--signage-w/h)で全解像度を比例スケール */
+/* P3.47·75インチ（432×288）基準 · アスペクト比自動補正: min(幅基準, 高さ基準) */
 html.signage{
   --sg-h-ratio:calc(var(--signage-h) / 288px);
   --sg-w-ratio:calc(var(--signage-w) / 432px);
-  --sg-hdr-t:calc(var(--signage-w) * 0.036);
-  --sg-hdr-d:calc(var(--signage-w) * 0.028);
-  --sg-hdr-c:calc(var(--signage-w) * 0.061);
-  --sg-name:min(calc(var(--signage-w) * 0.14), calc(var(--signage-h) * 0.17));
+  --sg-fit:min(var(--sg-w-ratio), var(--sg-h-ratio));
+  --sg-ar-k:1;
+  --sg-hdr-t:calc(min(calc(var(--signage-w) * 0.036), calc(var(--signage-h) * 0.054)) * var(--sg-ar-k));
+  --sg-hdr-d:calc(min(calc(var(--signage-w) * 0.028), calc(var(--signage-h) * 0.042)) * var(--sg-ar-k));
+  --sg-hdr-c:calc(min(calc(var(--signage-w) * 0.061), calc(var(--signage-h) * 0.092)) * var(--sg-ar-k));
+  --sg-name:calc(min(calc(var(--signage-w) * 0.14), calc(var(--signage-h) * 0.17)) * var(--sg-ar-k));
   --sg-msg:calc(var(--sg-name) * 0.36);
-  --sg-card-lbl:calc(var(--signage-w) * 0.022);
-  --sg-card-ic:calc(var(--signage-w) * 0.029);
-  --sg-card-v:calc(var(--signage-w) * 0.043);
-  --sg-card-u:calc(var(--signage-w) * 0.022);
-  --sg-badge:calc(var(--signage-w) * 0.026);
+  --sg-card-lbl:min(calc(var(--signage-w) * 0.022), calc(var(--signage-h) * 0.033));
+  --sg-card-ic:min(calc(var(--signage-w) * 0.029), calc(var(--signage-h) * 0.0435));
+  --sg-card-v:min(calc(var(--signage-w) * 0.043), calc(var(--signage-h) * 0.0645));
+  --sg-card-u:min(calc(var(--signage-w) * 0.022), calc(var(--signage-h) * 0.033));
+  --sg-badge:min(calc(var(--signage-w) * 0.026), calc(var(--signage-h) * 0.039));
   --sg-card-loupe:1.42;
   --sg-bar-h:calc(var(--signage-h) * 30 / 288);
-  --sg-wbar-n:calc(var(--signage-w) * 0.043);
-  --sg-wbar-rg:calc(var(--signage-w) * 0.032);
+  --sg-wbar-n:min(calc(var(--signage-w) * 0.043), calc(var(--signage-h) * 0.0645));
+  --sg-wbar-rg:min(calc(var(--signage-w) * 0.032), calc(var(--signage-h) * 0.048));
   --sg-wbar-rg-mt:calc(var(--sg-wbar-n) * 0.08);
   --sg-bar-pad-y:calc(var(--signage-h) * 5 / 288);
   --sg-wbar-tri-w:calc(var(--signage-w) * 0.022);
@@ -352,8 +355,8 @@ html.demo-active:not(.tune-active) #tune-launcher{display:block;}
 html.signage[data-tier="xs"] .wbgt-hdr .t-l1{display:none;}
 html.signage[data-tier="xs"] .wbgt-hdr .t-xs{display:flex;}
 .wbgt-hdr .r{text-align:right;line-height:1.05;align-self:center;flex-shrink:0;}
-.wbgt-hdr .d{font-size:clamp(10px,1.35vw,20px);font-weight:800;color:#111;}
-.wbgt-hdr .c{font-size:clamp(22px,4.6vw,68px);font-weight:900;color:#111;}
+.wbgt-hdr .d{font-size:clamp(10px,min(1.35vw,2.25vh),20px);font-weight:800;color:#111;}
+.wbgt-hdr .c{font-size:clamp(22px,min(4.6vw,7.7vh),68px);font-weight:900;color:#111;}
 
 .wbgt-body{
   flex:1;min-height:0;display:grid;grid-template-rows:50fr 23fr 12fr auto;
@@ -635,8 +638,8 @@ html.tune-active #signage-credit{bottom:calc(var(--tune-credit-bottom) * 1px)!im
   text-align:right;line-height:1.05;color:var(--rain-txt);min-width:0;
 }
 .rain-hdr .d,.rain-hdr .c{line-height:1;font-variant-numeric:tabular-nums;}
-.rain-hdr .d{font-size:clamp(10px,1.35vw,20px);font-weight:800;white-space:nowrap;}
-.rain-hdr .c{font-size:clamp(22px,4.6vw,68px);font-weight:900;white-space:nowrap;}
+.rain-hdr .d{font-size:clamp(10px,min(1.35vw,2.25vh),20px);font-weight:800;white-space:nowrap;}
+.rain-hdr .c{font-size:clamp(22px,min(4.6vw,7.7vh),68px);font-weight:900;white-space:nowrap;}
 
 .rain-mid{
   min-height:0;overflow:hidden;
@@ -758,12 +761,12 @@ html.signage .rain{
   --rain-pad-y:calc(var(--signage-h) * 0.016);
   --rain-left-w:27%;
   --rain-face-share:30%;
-  --rain-title-size:min(calc(var(--signage-w) * 0.083), calc(var(--signage-h) * 0.17));
-  --rain-name-size:min(calc(var(--signage-w) * 0.108), calc(var(--signage-h) * 0.152));
-  --rain-msg-size:min(calc(var(--signage-w) * 0.055), calc(var(--signage-h) * 0.087));
-  --rain-sub-size:calc(var(--signage-w) * 0.032);
-  --rain-pub-size:calc(var(--signage-w) * 0.022);
-  --rain-pub-upd-size:calc(var(--signage-w) * 0.030);
+  --rain-title-size:calc(min(calc(var(--signage-w) * 0.083), calc(var(--signage-h) * 0.17)) * var(--sg-ar-k));
+  --rain-name-size:calc(min(calc(var(--signage-w) * 0.108), calc(var(--signage-h) * 0.152)) * var(--sg-ar-k));
+  --rain-msg-size:calc(min(calc(var(--signage-w) * 0.055), calc(var(--signage-h) * 0.087)) * var(--sg-ar-k));
+  --rain-sub-size:calc(min(calc(var(--signage-w) * 0.032), calc(var(--signage-h) * 0.048)) * var(--sg-ar-k));
+  --rain-pub-size:calc(min(calc(var(--signage-w) * 0.022), calc(var(--signage-h) * 0.033)) * var(--sg-ar-k));
+  --rain-pub-upd-size:calc(min(calc(var(--signage-w) * 0.030), calc(var(--signage-h) * 0.045)) * var(--sg-ar-k));
   --rain-bar-n-size:min(calc(var(--signage-w) * 0.023), 22cqi);
   --rain-bar-nm-size:min(calc(var(--signage-w) * 0.019), 18cqi);
   --rain-bar-n-active:min(calc(var(--signage-w) * 0.039), 33cqi);
@@ -807,14 +810,14 @@ html.signage .rain-lv-card{
   border-radius:calc(var(--signage-w) * 0.028)!important;
 }
 html.signage .rain-lvbox .cap{
-  font-size:calc(var(--signage-w) * 0.021)!important;
+  font-size:min(calc(var(--signage-w) * 0.021), calc(var(--signage-h) * 0.0315))!important;
   padding:calc(var(--signage-h) * 0.007) calc(var(--signage-w) * 0.008)!important;
 }
 html.signage .rain-lvbox .lvwrap{
   gap:calc(var(--signage-h) * 0.001)!important;
   padding:calc(var(--signage-h) * 0.005) calc(var(--signage-w) * 0.003)!important;
 }
-html.signage .rain-lvbox .lv{font-size:calc(var(--signage-w) * 0.026)!important;}
+html.signage .rain-lvbox .lv{font-size:min(calc(var(--signage-w) * 0.026), calc(var(--signage-h) * 0.039))!important;}
 html.signage .rain-lvbox .num{font-size:min(calc(var(--signage-w) * 0.17), calc(var(--signage-h) * 0.35))!important;}
 
 html.signage .rain-mid{
@@ -1055,6 +1058,8 @@ const CONFIG = {
      空にするとPCフル画面レイアウト（サイネージプレビューと不一致） */
   SIGNAGE_PITCH:  'P3.47',    // 'P3.47' | 'P2.87' ★現場のLEDに合わせる
   SIGNAGE_INCH:   100,        // 75 | 100 | 125 ★現場のLEDに合わせる
+  SIGNAGE_W:      0,          // 任意解像度（pitch/inchより優先）。0=テーブル参照
+  SIGNAGE_H:      0,
   SIGNAGE_PREVIEW_FIT: false, // false=1:1実解像度（6解像度プレビューと同じ）/ true=PC画面に収める
   PIN_MODE:       '',        // URL ?mode=rain|wbgt で表示ループを固定
   /* --- WBGT顔アイコン（位置・大きさ）---
@@ -1070,6 +1075,8 @@ function applyConfigFromUrl(){
  if(q.has('site')) CONFIG.SITE_NAME=decodeURIComponent(q.get('site'));
  if(q.has('pitch')) CONFIG.SIGNAGE_PITCH=q.get('pitch');
  if(q.has('inch')) CONFIG.SIGNAGE_INCH=+q.get('inch');
+ if(q.has('w')) CONFIG.SIGNAGE_W=+q.get('w');
+ if(q.has('h')) CONFIG.SIGNAGE_H=+q.get('h');
  if(q.has('point')) CONFIG.WBGT_POINT=q.get('point');
  else if(q.has('wbgt')) CONFIG.WBGT_POINT=q.get('wbgt');
  if(q.has('area')) CONFIG.RAIN_AREA=q.get('area');
@@ -1082,7 +1089,7 @@ function applyConfigFromUrl(){
 applyConfigFromUrl();
 /* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
    75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
-const LAYOUT_VER=40;
+const LAYOUT_VER=41;
 const SG_REF_75_W=432;
 const SG_REF_75_H=288;
 const FACE_REF_75_W=SG_REF_75_W;
@@ -1112,14 +1119,24 @@ const SIGNAGE_RES={
  'P2.87':{75:[528,352],100:[704,528],125:[880,704]}
 };
 let signageFitFn=null;
+function applySignageAspectCorr(w,h,pitch,inch){
+ const row=pitch&&SIGNAGE_RES[pitch];
+ const ref=row&&inch&&row[inch]?row[inch]:[SG_REF_75_W,SG_REF_75_H];
+ const refAr=ref[0]/ref[1];
+ const ar=w/h;
+ const k=(Math.abs(ar-refAr)<0.002||ar>=refAr)?1:Math.sqrt(ar/refAr);
+ document.documentElement.style.setProperty('--sg-ar',String(ar));
+ document.documentElement.style.setProperty('--sg-ar-k',String(k));
+}
 function initSignage(){
  const q=new URLSearchParams(location.search);
  const pitch=q.get('pitch')||CONFIG.SIGNAGE_PITCH||'';
  const inch=+(q.get('inch')||CONFIG.SIGNAGE_INCH||0);
- const row=pitch&&SIGNAGE_RES[pitch];
- const pair=row&&row[inch];
- if(!pair) return null;
- const [w,h]=pair;
+ const cw=+(q.get('w')||CONFIG.SIGNAGE_W||0);
+ const ch=+(q.get('h')||CONFIG.SIGNAGE_H||0);
+ let w,h;
+ if(cw>0&&ch>0){ w=cw; h=ch; }
+ else { const row=pitch&&SIGNAGE_RES[pitch]; const pair=row&&row[inch]; if(!pair) return null; [w,h]=pair; }
  CONFIG._signage={pitch,inch,w,h};
  document.documentElement.classList.add('signage');
  if(q.get('embed')==='1') document.documentElement.classList.add('embed');
@@ -1131,6 +1148,7 @@ function initSignage(){
  document.documentElement.style.setProperty('--signage-h',h+'px');
  document.documentElement.style.setProperty('--sg-scale-w',String(w/SG_REF_75_W));
  document.documentElement.style.setProperty('--sg-scale-h',String(h/SG_REF_75_H));
+ applySignageAspectCorr(w,h,pitch,inch);
  const root=document.getElementById('signage-root');
  root.style.width=w+'px';
  root.style.height=h+'px';
@@ -1139,7 +1157,6 @@ function initSignage(){
   const fit=q.get('fit');
   if(fit==='0'||fit==='false'||fit==='no') return false;
   if(fit==='1'||fit==='true'||fit==='yes') return true;
-  if(CONFIG._signage&&!CONFIG.DEMO_MODE) return false;
   return CONFIG.SIGNAGE_PREVIEW_FIT;
  }
  function updateViewport(){
