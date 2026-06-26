@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:49 -->
+<!-- LAYOUT_VER:50 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -103,7 +103,9 @@ html.signage .wbgt-msg{
 html.signage .wbgt-face{
   position:absolute!important;right:var(--face-right)!important;top:var(--face-top)!important;
   transform:translateY(-50%)!important;
-  width:var(--face-w)!important;max-width:55%;padding-right:0!important;
+  width:var(--face-w)!important;
+  max-width:min(55%, calc(var(--signage-h) * 0.46))!important;
+  padding-right:0!important;
 }
 html.signage .wbgt-face img{
   width:100%!important;transform:scale(var(--face-img-scale,1))!important;transform-origin:center center!important;
@@ -848,6 +850,15 @@ html.signage .rain-main{
   height:100%!important;gap:var(--rain-main-gap)!important;
   padding-top:calc(var(--signage-h) * 0.004)!important;
 }
+html.signage-fill .rain-main{
+  --rain-main-gap:calc(var(--signage-h) * 0.014)!important;
+}
+html.signage-fill .rain-name{
+  margin-bottom:calc(var(--signage-h) * 0.01)!important;
+}
+html.signage-fill .rain-body{
+  padding-top:calc(var(--signage-h) * 0.004)!important;
+}
 html.signage .rain-body{
   min-width:0!important;min-height:0!important;
   display:grid!important;grid-template-rows:minmax(0,1fr) auto!important;
@@ -1105,7 +1116,7 @@ function applyConfigFromUrl(){
 applyConfigFromUrl();
 /* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
    75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
-const LAYOUT_VER=49;
+const LAYOUT_VER=50;
 const SG_REF_75_W=432;
 const SG_REF_75_H=288;
 const FACE_REF_75_W=SG_REF_75_W;
@@ -1113,17 +1124,25 @@ const FACE_REF_75_RATIO=0.31; /* P3.47·75" = 432×0.31 ≈ 134px */
 const FACE_P287_75_SIZE=158;  /* P2.87·75"のみ（150→少し大きく） */
 const SG_CAUTION_MSG_P287_75=28; /* P2.87·75" 注意メッセージ基準(px) */
 const P287_75_H=352;
-function calcSignageFaceLayout(w,h,inch,pitch){
- const p287_75=inch===75&&pitch==='P2.87';
- const ratio=p287_75?(FACE_P287_75_SIZE/528):FACE_REF_75_RATIO;
- const faceSize=Math.round(w*ratio);
- const faceRight=Math.round(w*CONFIG.FACE_RIGHT_RATIO);
- return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad:faceSize+faceRight+Math.round(w*0.02)};
-}
 const SIGNAGE_RES={
  'P3.47':{75:[432,288],100:[576,432],125:[720,576]},
  'P2.87':{75:[528,352],100:[704,528],125:[880,704]}
 };
+function calcSignageFaceLayout(w,h,inch,pitch){
+ const p287_75=inch===75&&pitch==='P2.87';
+ const ratio=p287_75?(FACE_P287_75_SIZE/528):FACE_REF_75_RATIO;
+ const row=pitch&&SIGNAGE_RES[pitch];
+ const ref=row&&inch&&row[inch]?row[inch]:[SG_REF_75_W,SG_REF_75_H];
+ const refAr=ref[0]/ref[1];
+ const ar=w/h;
+ let faceSize=Math.round(Math.min(w*ratio,h*0.48));
+ if(Math.abs(ar-refAr)>=0.002&&ar>refAr){
+  faceSize=Math.round(faceSize*Math.sqrt(refAr/ar));
+ }
+ const faceRight=Math.round(w*CONFIG.FACE_RIGHT_RATIO);
+ const gap=Math.round(w*0.025);
+ return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad:faceSize+faceRight+gap};
+}
 let signageFitFn=null;
 function getViewportSize(){
  const doc=document.documentElement;
