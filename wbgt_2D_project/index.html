@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:45 -->
+<!-- LAYOUT_VER:46 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -16,7 +16,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 /* ===== サイネージ（LED解像度固定） ===== */
 #signage-root{position:fixed;inset:0;width:100%;height:100%;}
 html.signage:not(.signage-fill) #signage-root{position:relative;inset:auto;overflow:hidden;flex-shrink:0;}
-html.signage-fill #signage-root{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:none!important;}
+html.signage-fill #signage-root{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:scale(var(--signage-fit-scale,1))!important;transform-origin:center center!important;}
 html.signage-preview,html.signage-preview body{overflow:hidden;width:100%;height:100%;height:100dvh;margin:0;padding:0;}
 html.signage-preview body{display:flex;align-items:center;justify-content:center;background:#000;}
 html.signage-preview #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;}
@@ -67,6 +67,7 @@ html.signage[data-tier="lg"]{
 }
 html.signage .wbgt-hdr{min-height:12%!important;padding:calc(var(--signage-h) * 0.018) calc(var(--signage-w) * 0.022)!important;}
 html.signage .wbgt-hdr .t{font-size:var(--sg-hdr-t)!important;font-weight:900!important;line-height:1.15;max-width:62%;}
+html.signage-fill .wbgt-hdr .t{max-width:78%!important;}
 html.signage .wbgt-hdr .t-l1{white-space:normal;word-break:keep-all;}
 html.signage .wbgt-hdr .d{font-size:var(--sg-hdr-d)!important;font-weight:800!important;}
 html.signage .wbgt-hdr .c{font-size:var(--sg-hdr-c)!important;font-weight:900!important;}
@@ -199,8 +200,9 @@ html.signage .wbgt-bar-wrap{
 }
 html.signage .wbgt-bar{
   display:flex!important;gap:0!important;
-  overflow:visible!important;
+  overflow:clip!important;
   min-height:var(--bar-h)!important;
+  max-width:100%!important;
 }
 html.signage .wbar.active{padding-top:calc(var(--signage-h) * 0.011)!important;padding-bottom:calc(var(--signage-h) * 0.011)!important;}
 html.signage .wbar{
@@ -210,9 +212,10 @@ html.signage .wbar{
 }
 html.signage .wbar[data-idx="0"]{border-radius:var(--card-r) 0 0 var(--card-r)!important;z-index:1;}
 html.signage .wbar[data-idx="4"]{
-  border-radius:var(--card-r)!important;
+  border-radius:0 var(--card-r) var(--card-r) 0!important;
   margin-left:calc(var(--card-r) * -1)!important;
   z-index:5;
+  border:none!important;outline:none!important;box-shadow:none!important;
 }
 html.signage .wbar[data-idx="1"],
 html.signage .wbar[data-idx="2"],
@@ -506,9 +509,10 @@ html.face-edit .wbgt-face.face-dragging{
 .wbar[data-idx="2"]{z-index:3;}
 .wbar[data-idx="3"]{z-index:4;}
 .wbar[data-idx="4"]{
-  border-radius:var(--card-r);
+  border-radius:0 var(--card-r) var(--card-r) 0;
   margin-left:calc(var(--card-r) * -1);
   z-index:5;
+  border:none;outline:none;box-shadow:none;
 }
 .wbar .n,.wbar .rg{display:block;width:100%;text-align:center;}
 .wbar .n{font-size:clamp(10px,21cqi,17px);line-height:1.12;font-weight:900;white-space:nowrap;}
@@ -591,7 +595,7 @@ html.tune-active .wbgt-bar-wrap{
 html.tune-active .wbgt-bar{overflow:visible!important;}
 html.tune-active .wbar[data-idx="0"]{border-radius:var(--card-r) 0 0 var(--card-r)!important;}
 html.tune-active .wbar[data-idx="4"]{
-  border-radius:var(--card-r)!important;
+  border-radius:0 var(--card-r) var(--card-r) 0!important;
   margin-left:calc(var(--card-r) * -1)!important;
 }
 html.tune-active .wbar[data-idx="1"],
@@ -1089,7 +1093,7 @@ function applyConfigFromUrl(){
 applyConfigFromUrl();
 /* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
    75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
-const LAYOUT_VER=45;
+const LAYOUT_VER=46;
 const SG_REF_75_W=432;
 const SG_REF_75_H=288;
 const FACE_REF_75_W=SG_REF_75_W;
@@ -1135,23 +1139,43 @@ function signageTier(h){
 }
 function guardSignageOverflow(){
  const root=document.getElementById('signage-root');
- if(!root||!document.documentElement.classList.contains('signage-fill')) return;
- root.style.transform='';
- root.style.transformOrigin='';
- const cw=root.clientWidth,ch=root.clientHeight;
- if(!cw||!ch) return;
- const sw=root.scrollWidth,sh=root.scrollHeight;
- if(sw<=cw+1&&sh<=ch+1) return;
- const s=Math.min(cw/sw,ch/sh,1);
- root.style.transform='scale('+s+')';
- root.style.transformOrigin='center center';
+ const doc=document.documentElement;
+ if(!root||!doc.classList.contains('signage-fill')) return;
+ doc.style.setProperty('--signage-fit-scale','1');
+ void root.offsetHeight;
+ const vw=window.innerWidth,vh=window.innerHeight;
+ let maxL=vw,maxR=0,maxT=vh,maxB=0;
+ root.querySelectorAll('.board:not(.hide)').forEach(board=>{
+  board.querySelectorAll('.wbgt-hdr,.wbgt-body,.wbgt-bar-wrap,.wbgt-foot,.rain-hdr,.rain-main,.rain-bar,.rain-foot').forEach(el=>{
+   const r=el.getBoundingClientRect();
+   if(r.width<1&&r.height<1) return;
+   maxL=Math.min(maxL,r.left);
+   maxR=Math.max(maxR,r.right);
+   maxT=Math.min(maxT,r.top);
+   maxB=Math.max(maxB,r.bottom);
+  });
+  board.querySelectorAll('.wbar.active,.rbar.active').forEach(el=>{
+   const r=el.getBoundingClientRect();
+   const tri=parseFloat(getComputedStyle(doc).getPropertyValue('--sg-wbar-tri-h'))||parseFloat(getComputedStyle(doc).getPropertyValue('--wbar-tri-h'))||0;
+   if(tri>0) maxT=Math.min(maxT,r.top-tri);
+  });
+ });
+ const pad=2;
+ const cw=Math.max(maxR-maxL,root.scrollWidth,root.clientWidth);
+ const ch=Math.max(maxB-maxT,root.scrollHeight,root.clientHeight);
+ if(cw<=vw+pad&&ch<=vh+pad) return;
+ const s=Math.min(vw/cw,vh/ch,1);
+ if(s<0.999) doc.style.setProperty('--signage-fit-scale',String(s));
 }
 function applySignageAspectCorr(w,h,pitch,inch){
  const row=pitch&&SIGNAGE_RES[pitch];
  const ref=row&&inch&&row[inch]?row[inch]:[SG_REF_75_W,SG_REF_75_H];
  const refAr=ref[0]/ref[1];
  const ar=w/h;
- const k=(Math.abs(ar-refAr)<0.002||ar>=refAr)?1:Math.sqrt(ar/refAr);
+ let k=1;
+ if(Math.abs(ar-refAr)>=0.002){
+  k=ar>refAr?Math.sqrt(refAr/ar):Math.sqrt(ar/refAr);
+ }
  document.documentElement.style.setProperty('--sg-ar',String(ar));
  document.documentElement.style.setProperty('--sg-ar-k',String(k));
 }
@@ -1192,7 +1216,7 @@ function applySignageLayout(){
  if(viewportFill){
   root.style.width='';
   root.style.height='';
-  root.style.transform='';
+  document.documentElement.style.setProperty('--signage-fit-scale','1');
   document.documentElement.style.removeProperty('--signage-scale');
  }else{
   root.style.width=w+'px';
@@ -1699,6 +1723,7 @@ function renderWBGT(t,h,w,timeStr){
  const f=document.getElementById('wFace');f.src=FACES[L.face];f.className=L.anim;f.style.display='';
  applyWbgtBars(i);
  if(timeStr){document.getElementById('wUpd').textContent=timeStr;}
+ requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
 }
 // 取得失敗時：推定値を一切出さず「取得不可」のみ（熱中症事故防止の絶対ルール）
 function renderWBGTUnavailable(){
@@ -2012,6 +2037,7 @@ function rUpdate(){
   b.style.color=p.t;
  });
  ensureRainUpdated();
+ requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
 }
 // 取得失敗時：警戒レベルを推定せず「取得不可」のみ
 function renderRainUnavailable(){
@@ -2061,6 +2087,7 @@ function setMode(m){const w=(m==='wbgt');
  document.getElementById('modeRain').classList.toggle('on',!w);
  updateLocBadge(m);
  if(!w) rUpdate();
+ requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
 }
 function stopDisplayLoop(){
  if(loopTimer){clearTimeout(loopTimer);loopTimer=null;}
