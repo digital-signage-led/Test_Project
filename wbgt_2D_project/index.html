@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:62 -->
+<!-- LAYOUT_VER:63 -->
 <script>
 /* Live Preview（Show Preview）: パラメータ無しで index.html を開いたとき LED 固定解像度デモへ */
 (function(){
@@ -16,7 +16,7 @@
  if(h!=='127.0.0.1'&&h!=='localhost') return;
  if(!/\/index\.html$/i.test(location.pathname)&&location.pathname.slice(-1)!=='/') return;
  if(p&&p!=='3000'&&p!=='3001'&&p!=='3002'&&p!=='3003'&&p!=='3007') return;
- location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=62');
+ location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=63');
 })();
 </script>
 <style>
@@ -1160,7 +1160,7 @@ const CONFIG = {
   FACE_SIZE_VW:     32,      // PCフル画面時の幅(vw)
   FACE_RIGHT_VW:    5.5,     // PCフル画面時の右余白(vw)
 };
-const LAYOUT_VER=62;
+const LAYOUT_VER=63;
 const SIGNAGE_FIT_TOL=4;
 function normalizePitch(p){
  const s=String(p||'').trim().toUpperCase();
@@ -1324,39 +1324,50 @@ function applySignageCardFit(w,h){
  document.documentElement.style.setProperty('--sg-card-font-k','1');
 }
 function cardContentOverflows(card){
- const inner=card.querySelector('.wcard-in');
- if(!inner||card.clientWidth<4||card.clientHeight<4) return false;
+ if(card.clientWidth<4||card.clientHeight<4) return false;
  const cr=card.getBoundingClientRect();
- const ir=inner.getBoundingClientRect();
- return ir.width>cr.width+2||ir.height>cr.height+2;
+ const pad=Math.max(3,Math.min(cr.width,cr.height)*0.025);
+ const L=cr.left+pad, R=cr.right-pad, T=cr.top+pad, B=cr.bottom-pad;
+ let bad=false;
+ card.querySelectorAll('.lbl,.val,.wbgt-badge,.v,.u,.ic').forEach(el=>{
+  const r=el.getBoundingClientRect();
+  if(r.width<0.5&&r.height<0.5) return;
+  if(r.left<L-0.5||r.right>R+0.5||r.top<T-0.5||r.bottom>B+0.5) bad=true;
+ });
+ return bad;
 }
 function guardSignageCardFit(){
  if(!document.documentElement.classList.contains('signage')) return;
- const dm=document.documentElement.dataset.displayMode||'';
- const cs=document.documentElement.dataset.canvasSource||'';
- if(dm==='native'||cs==='viewport'||cs==='explicit') return;
- /* transform拡大時は縮小しない */
- const scale=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--signage-scale'))||1;
- if(document.documentElement.classList.contains('signage-preview')&&scale>1.02) return;
- if(document.documentElement.classList.contains('signage-auto-fit')&&scale>1.02) return;
  const board=document.getElementById('wbgtBoard');
  if(!board||board.classList.contains('hide')) return;
  const cards=board.querySelectorAll('.wbgt-cards .wcard');
  if(!cards.length) return;
- let k=1, loupe=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sg-card-loupe'))||1.36;
- const kMin=0.74, loupeMin=1.14;
- for(let i=0;i<12;i++){
+ const tier=document.documentElement.dataset.tier||'md';
+ const kMin=tier==='xl'?0.88:0.74;
+ const kStep=tier==='xl'?0.02:0.04;
+ const loupeMin=tier==='xl'?1.18:1.14;
+ let k=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sg-card-font-k'))||1;
+ let loupe=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sg-card-loupe'))||1.36;
+ for(let i=0;i<16;i++){
   let bad=false;
   cards.forEach(c=>{if(cardContentOverflows(c)) bad=true;});
   if(!bad) break;
   if(k>kMin){
-   k=Math.max(kMin,Math.round((k-0.04)*100)/100);
+   k=Math.max(kMin,Math.round((k-kStep)*100)/100);
    document.documentElement.style.setProperty('--sg-card-font-k',String(k));
   }else if(loupe>loupeMin){
    loupe=Math.max(loupeMin,Math.round((loupe-0.03)*100)/100);
    document.documentElement.style.setProperty('--sg-card-loupe',String(loupe));
   }else break;
  }
+}
+function scheduleGuardSignageOverflow(){
+ requestAnimationFrame(()=>{
+  requestAnimationFrame(()=>{
+   guardSignageOverflow();
+   requestAnimationFrame(guardSignageOverflow);
+  });
+ });
 }
 function guardSignageOverflow(){ guardSignageCardFit(); }
 function applySignageAspectCorr(w,h,pitch,inch){
@@ -1429,7 +1440,7 @@ function applySignageLayout(){
  if(!meta){meta=document.createElement('meta');meta.name='viewport';document.head.appendChild(meta);}
  meta.content=viewportStretch?'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no':'width=device-width, initial-scale=1';
  applyFaceLayout();
- requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
+ scheduleGuardSignageOverflow();
  return CONFIG._signage;
 }
 function initSignage(){
@@ -1984,7 +1995,7 @@ function renderWBGT(t,h,w,timeStr){
  const f=document.getElementById('wFace');f.src=FACES[L.face];f.className=L.anim;f.style.display='';
  applyWbgtBars(i);
  if(timeStr){document.getElementById('wUpd').textContent=timeStr;}
- requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
+ scheduleGuardSignageOverflow();
 }
 // 取得失敗時：推定値を一切出さず「取得不可」のみ（熱中症事故防止の絶対ルール）
 function renderWBGTUnavailable(){
@@ -2271,7 +2282,7 @@ function rUpdate(){
   b.style.color=p.t;
  });
  ensureRainUpdated();
- requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
+ scheduleGuardSignageOverflow();
 }
 // 取得失敗時：警戒レベルを推定せず「取得不可」のみ
 function renderRainUnavailable(){
@@ -2321,7 +2332,7 @@ function setMode(m){const w=(m==='wbgt');
  document.getElementById('modeRain').classList.toggle('on',!w);
  updateLocBadge(m);
  if(!w) rUpdate();
- requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
+ scheduleGuardSignageOverflow();
 }
 function stopDisplayLoop(){
  if(loopTimer){clearTimeout(loopTimer);loopTimer=null;}
