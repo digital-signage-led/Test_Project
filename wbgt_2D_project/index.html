@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:60 -->
+<!-- LAYOUT_VER:61 -->
 <script>
 /* Live Preview（Show Preview）: パラメータ無しで index.html を開いたとき LED 固定解像度デモへ */
 (function(){
@@ -16,7 +16,7 @@
  if(h!=='127.0.0.1'&&h!=='localhost') return;
  if(!/\/index\.html$/i.test(location.pathname)&&location.pathname.slice(-1)!=='/') return;
  if(p&&p!=='3000'&&p!=='3001'&&p!=='3002'&&p!=='3003'&&p!=='3007') return;
- location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=60');
+ location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=61');
 })();
 </script>
 <style>
@@ -1148,8 +1148,14 @@ const CONFIG = {
   FACE_SIZE_VW:     32,      // PCフル画面時の幅(vw)
   FACE_RIGHT_VW:    5.5,     // PCフル画面時の右余白(vw)
 };
-const LAYOUT_VER=60;
+const LAYOUT_VER=61;
 const SIGNAGE_FIT_TOL=4;
+function normalizePitch(p){
+ const s=String(p||'').trim().toUpperCase();
+ if(s==='P2.87'||s==='2.87') return 'P2.87';
+ if(s==='P3.47'||s==='3.47') return 'P3.47';
+ return 'P3.47';
+}
 function bootstrapSignageUrl(){
  const q=new URLSearchParams(location.search);
  if(q.has('tune')) return;
@@ -1160,10 +1166,13 @@ function bootstrapSignageUrl(){
  ensure('fit','0');
  ensure('viewport','0');
  ensure('embed','1');
- if(!q.has('w')&&!q.has('h')){
+ if(q.has('pitch')){
+  const np=normalizePitch(q.get('pitch'));
+  if(q.get('pitch')!==np){q.set('pitch',np);changed=true;}
+ }else if(!q.has('w')&&!q.has('h')){
   ensure('pitch',CONFIG.SIGNAGE_PITCH||'P3.47');
-  ensure('inch',String(CONFIG.SIGNAGE_INCH||100));
  }
+ if(!q.has('w')&&!q.has('h')) ensure('inch',String(CONFIG.SIGNAGE_INCH||100));
  ensure('v',String(LAYOUT_VER));
  if(changed){
   const qs=q.toString();
@@ -1174,7 +1183,7 @@ bootstrapSignageUrl();
 function applyConfigFromUrl(){
  const q=new URLSearchParams(location.search);
  if(q.has('site')) CONFIG.SITE_NAME=decodeURIComponent(q.get('site'));
- if(q.has('pitch')) CONFIG.SIGNAGE_PITCH=q.get('pitch');
+ if(q.has('pitch')) CONFIG.SIGNAGE_PITCH=normalizePitch(q.get('pitch'));
  if(q.has('inch')) CONFIG.SIGNAGE_INCH=+q.get('inch');
  if(q.has('w')) CONFIG.SIGNAGE_W=+q.get('w');
  if(q.has('h')) CONFIG.SIGNAGE_H=+q.get('h');
@@ -1243,15 +1252,13 @@ function getSignageCanvasSize(q,pitch,inch,cw,ch){
  const pair=row&&row[inch];
  return {w:pair?pair[0]:SG_REF_75_W,h:pair?pair[1]:SG_REF_75_H};
 }
-/** キャンバス解像度: URLの w/h → HTML埋め込み(LED Cloud)の実表示領域 → pitch/inch テーブル */
+/** キャンバス解像度: URLの w/h → embed時は表示領域いっぱい → pitch/inch テーブル */
 function resolveCanvasSize(q,pitch,inch,cw,ch,vp){
  const ew=+(q.get('w')||0)||cw;
  const eh=+(q.get('h')||0)||ch;
  if(ew>0&&eh>0) return {w:ew,h:eh,source:'explicit'};
- const embed=q.get('embed')==='1';
- const inFrame=window.self!==window.top;
- if(embed&&(inFrame||q.get('ledcloud')==='1')&&vp.w>=400&&vp.h>=300){
-  return {w:vp.w,h:vp.h,source:'embed'};
+ if(q.get('embed')==='1'&&q.get('table')!=='1'&&vp.w>=320&&vp.h>=240){
+  return {w:vp.w,h:vp.h,source:'viewport'};
  }
  const t=getSignageCanvasSize(q,pitch,inch,0,0);
  return {w:t.w,h:t.h,source:'table'};
@@ -1350,7 +1357,7 @@ function applySignageAspectCorr(w,h,pitch,inch){
 }
 function applySignageLayout(){
  const q=new URLSearchParams(location.search);
- const pitch=q.get('pitch')||CONFIG.SIGNAGE_PITCH||'P3.47';
+ const pitch=normalizePitch(q.get('pitch')||CONFIG.SIGNAGE_PITCH||'P3.47');
  const inch=+(q.get('inch')||CONFIG.SIGNAGE_INCH||100);
  const cw=+(q.get('w')||CONFIG.SIGNAGE_W||0);
  const ch=+(q.get('h')||CONFIG.SIGNAGE_H||0);
