@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:54 -->
+<!-- LAYOUT_VER:58 -->
 <script>
 /* Live Preview（Show Preview）: パラメータ無しで index.html を開いたとき LED 固定解像度デモへ */
 (function(){
@@ -16,7 +16,7 @@
  if(h!=='127.0.0.1'&&h!=='localhost') return;
  if(!/\/index\.html$/i.test(location.pathname)&&location.pathname.slice(-1)!=='/') return;
  if(p&&p!=='3000'&&p!=='3001'&&p!=='3002'&&p!=='3003'&&p!=='3007') return;
- location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=53');
+ location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=58');
 })();
 </script>
 <style>
@@ -32,6 +32,10 @@ html.signage-fill #signage-root{position:fixed!important;inset:0!important;width
 html.signage-preview,html.signage-preview body{overflow:hidden;width:100%;height:100%;height:100dvh;margin:0;padding:0;}
 html.signage-preview body{display:flex;align-items:center;justify-content:center;background:#000;}
 html.signage-preview #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;}
+/* 自動フィット必須: LED設計解像度キャンバスを端末解像度に合わせて拡大縮小（画角維持） */
+html.signage-auto-fit,html.signage-auto-fit body{overflow:hidden;width:100%;height:100%;height:100dvh;margin:0;padding:0;}
+html.signage-auto-fit body{display:flex;align-items:center;justify-content:center;background:#000;}
+html.signage-auto-fit #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;}
 html.signage-1to1,html.signage-1to1 body{overflow:auto!important;height:auto!important;min-height:100%;}
 html.signage-1to1 body{display:flex;align-items:flex-start;justify-content:center;padding:16px;background:#111;min-width:100%;}
 html.signage-1to1 #signage-root{box-shadow:0 0 0 2px #333;flex-shrink:0;}
@@ -60,7 +64,8 @@ html.signage{
   --sg-card-v:min(calc(var(--signage-w) * 0.043), calc(var(--signage-h) * 0.0645));
   --sg-card-u:min(calc(var(--signage-w) * 0.022), calc(var(--signage-h) * 0.033));
   --sg-badge:min(calc(var(--signage-w) * 0.026), calc(var(--signage-h) * 0.039));
-  --sg-card-loupe:1.42;
+  --sg-card-loupe:1.36;
+  --sg-card-font-k:1;
   --sg-bar-h:calc(var(--signage-h) * 30 / 288);
   --sg-wbar-n:min(calc(var(--signage-w) * 0.043), calc(var(--signage-h) * 0.0645));
   --sg-wbar-rg:min(calc(var(--signage-w) * 0.032), calc(var(--signage-h) * 0.048));
@@ -70,12 +75,21 @@ html.signage{
   --sg-wbar-tri-h:calc(var(--signage-h) * 0.022);
   --sg-wbar-tri-clear:calc(var(--signage-h) * 0.006);
 }
+html.signage[data-tier="xs"]{
+  --sg-bar-h:calc(var(--signage-h) * 30 / 288);
+  --sg-card-loupe:1.24;
+}
 html.signage[data-tier="sm"]{
   --sg-bar-h:calc(var(--signage-h) * 36 / 288);
+  --sg-card-loupe:1.30;
 }
-html.signage[data-tier="md"],
+html.signage[data-tier="md"]{
+  --sg-bar-h:calc(var(--signage-h) * 40 / 288);
+  --sg-card-loupe:1.36;
+}
 html.signage[data-tier="lg"]{
   --sg-bar-h:calc(var(--signage-h) * 40 / 288);
+  --sg-card-loupe:1.42;
 }
 html.signage .wbgt-hdr{min-height:12%!important;padding:calc(var(--signage-h) * 0.018) calc(var(--signage-w) * 0.022)!important;}
 html.signage .wbgt-hdr .t{font-size:var(--sg-hdr-t)!important;font-weight:900!important;line-height:1.15;max-width:62%;}
@@ -150,64 +164,37 @@ html.signage .wcard-in{
 }
 html.signage .wcard .val{display:flex!important;justify-content:center!important;align-items:baseline!important;width:100%!important;max-width:100%!important;}
 html.signage .wcard .lbl{
-  font-size:min(calc(var(--sg-card-lbl) * 1.2), 34cqh)!important;font-weight:700!important;
+  font-size:min(calc(var(--sg-card-lbl) * 1.2 * var(--sg-card-font-k)), 34cqh)!important;font-weight:700!important;
   white-space:nowrap!important;line-height:1.05!important;
 }
-html.signage .wcard .ic{font-size:min(calc(var(--sg-card-ic) * 1.15), 1.15em)!important;}
+html.signage .wcard .ic{font-size:min(calc(var(--sg-card-ic) * 1.15 * var(--sg-card-font-k)), 1.15em)!important;}
 html.signage .wcard .ic-thermo svg{height:1.35em!important;}
 html.signage .wcard .v{
-  font-size:min(calc(var(--sg-card-v) * 1.2), 54cqh, calc(96cqw / 5.5))!important;
+  font-size:min(calc(var(--sg-card-v) * 1.2 * var(--sg-card-font-k)), 54cqh, calc(96cqw / 5.5))!important;
   font-weight:900!important;line-height:1!important;
 }
 html.signage .wcard .u{
-  font-size:min(calc(var(--sg-card-u) * 1.15), 28cqh)!important;font-weight:700!important;
+  font-size:min(calc(var(--sg-card-u) * 1.15 * var(--sg-card-font-k)), 28cqh)!important;font-weight:700!important;
 }
 html.signage .wbgt-badge{
-  font-size:min(calc(var(--sg-badge) * 1.2), 34cqh)!important;font-weight:900!important;
+  font-size:min(calc(var(--sg-badge) * 1.2 * var(--sg-card-font-k)), 34cqh)!important;font-weight:900!important;
   padding:2px calc(var(--signage-w) * 0.016)!important;white-space:nowrap!important;line-height:1.05!important;
 }
 /* 温度/湿度/更新時刻は行間を詰めてカード内に収める */
 html.signage .wcard-metric .wcard-in{gap:calc(var(--signage-h) * 0.002)!important;}
 
-/* P3.47·75": WBGTカードのみ少し小さく */
-html.signage[data-pitch="P3.47"][data-inch="75"] .wcard-wbgt .wbgt-badge{
-  font-size:min(calc(var(--sg-badge) * 1.05), 30cqh)!important;
-  padding:2px calc(var(--signage-w) * 0.014)!important;
-}
-html.signage[data-pitch="P3.47"][data-inch="75"] .wcard-wbgt .v{
-  font-size:min(calc(var(--sg-card-v) * 1.05), 46cqh, calc(96cqw / 5.5))!important;
-}
-
-/* P3.47·125": 数値は432×288比例で拡大 / 白カード上の文言は少し小さく */
-html.signage[data-pitch="P3.47"][data-inch="125"]{
-  --sg-card-loupe:1.48;
-}
-html.signage[data-pitch="P3.47"][data-inch="125"] .wcard .lbl{
-  font-size:min(calc(var(--sg-card-lbl) * 1.1), 30cqh)!important;
-}
-html.signage[data-pitch="P3.47"][data-inch="125"] .wcard .ic{
-  font-size:min(calc(var(--sg-card-ic) * 1.05), 1.08em)!important;
-}
-html.signage[data-pitch="P3.47"][data-inch="125"] .wbgt-badge{
-  font-size:min(calc(var(--sg-badge) * 1.1), 30cqh)!important;
-}
-html.signage[data-pitch="P3.47"][data-inch="125"] .wcard .v{
-  font-size:min(calc(var(--sg-card-v) * 1.28), 58cqh, calc(96cqw / 5.5))!important;
-}
-html.signage[data-pitch="P3.47"][data-inch="125"] .wcard .u{
-  font-size:min(calc(var(--sg-card-u) * 1.22), 32cqh)!important;
-}
-
-/* P2.87·75": 白カード上の文言を少し小さく */
-html.signage[data-pitch="P2.87"][data-inch="75"] .wcard .lbl{
-  font-size:min(calc(var(--sg-card-lbl) * 1.06), 30cqh)!important;
-}
-html.signage[data-pitch="P2.87"][data-inch="75"] .wcard .ic{
-  font-size:min(calc(var(--sg-card-ic) * 1.02), 1.05em)!important;
-}
-html.signage[data-pitch="P2.87"][data-inch="75"] .wbgt-badge{
-  font-size:min(calc(var(--sg-badge) * 1.06), 30cqh)!important;
-}
+/* 解像度ティア別: カード内 cqh 上限（はみ出し防止） */
+html.signage[data-tier="xs"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.06 * var(--sg-card-font-k)), 28cqh)!important;}
+html.signage[data-tier="xs"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.05 * var(--sg-card-font-k)), 44cqh, calc(96cqw / 5.5))!important;}
+html.signage[data-tier="xs"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.05 * var(--sg-card-font-k)), 24cqh)!important;}
+html.signage[data-tier="xs"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.05 * var(--sg-card-font-k)), 28cqh)!important;padding:2px calc(var(--signage-w) * 0.014)!important;}
+html.signage[data-tier="sm"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.08 * var(--sg-card-font-k)), 30cqh)!important;}
+html.signage[data-tier="sm"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.1 * var(--sg-card-font-k)), 48cqh, calc(96cqw / 5.5))!important;}
+html.signage[data-tier="md"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.15 * var(--sg-card-font-k)), 52cqh, calc(96cqw / 5.5))!important;}
+html.signage[data-tier="lg"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.1 * var(--sg-card-font-k)), 30cqh)!important;}
+html.signage[data-tier="lg"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.22 * var(--sg-card-font-k)), 56cqh, calc(96cqw / 5.5))!important;}
+html.signage[data-tier="lg"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.15 * var(--sg-card-font-k)), 30cqh)!important;}
+html.signage[data-tier="lg"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.1 * var(--sg-card-font-k)), 30cqh)!important;}
 
 html.signage .wbgt-body{--card-r:calc(var(--signage-w) * 0.016);--bar-r:calc(var(--signage-w) * 0.028);--bar-h:var(--sg-bar-h);}
 html.signage .wbgt-bar-wrap{
@@ -267,22 +254,42 @@ html.signage .wbgt-foot{height:max(4px, calc(var(--signage-h) * 0.016))!importan
 /* 432×288（P3.47·75インチ / xs）向け */
 html.signage[data-tier="xs"] .wbgt-hdr .t{max-width:58%;}
 
-/* WBGT 5段階: 注意と同一サイズ（1行目・2行目とも 98px/23px 基準×高さ比） */
+/* WBGT 5段階: 注意と同一サイズ（98px/23px 基準×高さ比 · 幅不足時も下限を確保） */
 html.signage .wbgt-body{
-  --sg-status-pad:calc(var(--signage-w) - var(--face-text-pad) - var(--signage-w) * 0.044);
+  --sg-status-text-w:max(
+    calc(var(--signage-w) * 0.50),
+    calc(var(--signage-w) - var(--face-text-pad) - var(--signage-w) * 0.04)
+  );
   --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio)), calc(var(--signage-h) * 0.34));
-  --sg-status-msg-fit:calc(var(--sg-status-pad) / 11.5);
-  --sg-status-name:min(
+  --sg-status-name-min:calc(70px * var(--sg-h-ratio));
+  --sg-status-msg-min:calc(17px * var(--sg-h-ratio));
+  --sg-status-msg-fit:calc(var(--sg-status-text-w) / 10);
+  --sg-status-name-fit:min(
     var(--sg-status-name-ideal),
-    calc(var(--sg-status-pad) / 2),
+    calc(var(--sg-status-text-w) / 2),
     calc(var(--sg-status-msg-fit) * 98 / 23)
   );
-  --sg-status-msg:calc(var(--sg-status-name) * 23 / 98);
+  --sg-status-name:clamp(
+    var(--sg-status-name-min),
+    var(--sg-status-name-fit),
+    calc(110px * var(--sg-h-ratio))
+  );
+  --sg-status-msg:clamp(
+    var(--sg-status-msg-min),
+    calc(var(--sg-status-name) * 23 / 98),
+    calc(28px * var(--sg-h-ratio))
+  );
+}
+html.signage[data-tier="xs"] .wbgt-body{
+  --sg-status-name-min:calc(64px * var(--sg-h-ratio));
+  --sg-status-msg-min:calc(16px * var(--sg-h-ratio));
+}
+html.signage[data-tier="xs"] .wbgt-face{
+  max-width:min(50%, calc(var(--signage-h) * 0.40))!important;
 }
 /* PC全画面（16:10等）: 横長で縦が足りないとき文字・カード拡大を抑える */
 html.signage-fill .wbgt-body{
   --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio) * var(--sg-ar-k)), calc(var(--signage-h) * 0.30));
-  --sg-card-loupe:min(1.42, calc(1.42 * var(--sg-h-ratio) / var(--sg-w-ratio)));
 }
 html.signage .wbgt-body .wbgt-name{
   font-size:var(--sg-status-name)!important;
@@ -295,10 +302,10 @@ html.signage .wbgt-body .wbgt-msg{
 }
 /* はみ出す長い文言のみ注意サイズから縮小 */
 html.signage .wbgt-body.wbgt-lv3 .wbgt-name{
-  font-size:min(var(--sg-status-name), calc(var(--sg-status-pad) / 4))!important;
+  font-size:min(var(--sg-status-name), calc(var(--sg-status-text-w) / 4))!important;
 }
 html.signage .wbgt-body.wbgt-lv4 .wbgt-msg{
-  font-size:min(var(--sg-status-msg), calc(var(--sg-status-pad) / 15))!important;
+  font-size:min(var(--sg-status-msg), calc(var(--sg-status-text-w) / 14))!important;
 }
 
 /* 75インチなど低解像度（PCフル画面時のみ vw 微調整） */
@@ -1128,7 +1135,7 @@ const CONFIG = {
   SIGNAGE_INCH:   100,        // 75 | 100 | 125 ★現場のLEDに合わせる
   SIGNAGE_W:      0,          // 任意解像度（pitch/inchより優先）。0=テーブル参照
   SIGNAGE_H:      0,
-  SIGNAGE_VIEWPORT_FILL: false, // true=PC画面pxに合わせる（端末ごとにレイアウトが変わる）★本番はfalse
+  SIGNAGE_VIEWPORT_FILL: false, // ★常にfalse（自動フィット必須）。引き伸ばしは ?viewport=stretch のみ
   PIN_MODE:       '',        // URL ?mode=rain|wbgt で表示ループを固定
   /* --- WBGT顔アイコン（位置・大きさ）---
      サイネージ: キャンバス幅に対する比率 / PC: vw・% */
@@ -1154,7 +1161,10 @@ function applyConfigFromUrl(){
  if(q.has('loop')) CONFIG.LOOP_SEC=Math.max(1,+q.get('loop')||8);
  if(q.has('fetch')) CONFIG.FETCH_MIN=Math.max(1,+q.get('fetch')||15);
  if(q.has('timeout')) CONFIG.FETCH_TIMEOUT_MS=Math.max(3000,Math.min(30000,+q.get('timeout')||8000));
- if(q.has('viewport')) CONFIG.SIGNAGE_VIEWPORT_FILL=!['0','false','no'].includes((q.get('viewport')||'').toLowerCase());
+ if(q.has('viewport')){
+  const vp=(q.get('viewport')||'').toLowerCase();
+  CONFIG.SIGNAGE_VIEWPORT_FILL=vp==='stretch'||vp==='fill';
+ }
  if(q.has('fit')){
   const fit=(q.get('fit')||'').toLowerCase();
   if(['0','false','no'].includes(fit)) CONFIG.SIGNAGE_VIEWPORT_FILL=false;
@@ -1163,7 +1173,8 @@ function applyConfigFromUrl(){
 applyConfigFromUrl();
 /* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
    75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
-const LAYOUT_VER=54;
+const LAYOUT_VER=58;
+const SIGNAGE_FIT_TOL=4;
 const SG_REF_75_W=432;
 const SG_REF_75_H=288;
 const FACE_REF_75_W=SG_REF_75_W;
@@ -1186,9 +1197,13 @@ function calcSignageFaceLayout(w,h,inch,pitch){
  if(Math.abs(ar-refAr)>=0.002&&ar>refAr){
   faceSize=Math.round(faceSize*Math.sqrt(refAr/ar));
  }
+ if(h<=300) faceSize=Math.round(faceSize*0.92);
+ faceSize=Math.min(faceSize,Math.round(w*0.40));
  const faceRight=Math.round(w*CONFIG.FACE_RIGHT_RATIO);
  const gap=Math.round(w*0.025);
- return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad:faceSize+faceRight+gap};
+ let faceTextPad=faceSize+faceRight+gap;
+ faceTextPad=Math.min(faceTextPad,Math.round(w*0.44));
+ return {faceSize,faceRight,faceTop:CONFIG.FACE_TOP_PCT,faceTextPad};
 }
 let signageFitFn=null;
 function getViewportSize(){
@@ -1197,6 +1212,24 @@ function getViewportSize(){
  return {
   w:Math.max(1,Math.round(vv?vv.width:doc.clientWidth||window.innerWidth)),
   h:Math.max(1,Math.round(vv?vv.height:doc.clientHeight||window.innerHeight))
+ };
+}
+function getSignageCanvasSize(q,pitch,inch,cw,ch){
+ if(cw>0&&ch>0) return {w:cw,h:ch};
+ const row=SIGNAGE_RES[pitch];
+ const pair=row&&row[inch];
+ return {w:pair?pair[0]:SG_REF_75_W,h:pair?pair[1]:SG_REF_75_H};
+}
+function resolveSignageAutoFit(canvasW,canvasH,vpW,vpH){
+ const tol=SIGNAGE_FIT_TOL;
+ const native=Math.abs(vpW-canvasW)<=tol&&Math.abs(vpH-canvasH)<=tol;
+ const scale=native?1:Math.min(vpW/canvasW,vpH/canvasH);
+ return {
+  mode:native?'native':'fit',
+  scale:Math.max(0.05,scale),
+  vpW,vpH,
+  fittedW:Math.round(canvasW*scale),
+  fittedH:Math.round(canvasH*scale)
  };
 }
 function isTuneMode(){
@@ -1217,25 +1250,56 @@ function shouldUseFixedCanvas(q){
  if(!isDemoPreview()) return true; /* 本番は常にLED解像度テーブル固定 */
  return false;
 }
-function shouldUseViewportFill(q){
- if(shouldUseFixedCanvas(q)) return false;
+function shouldUseViewportStretch(q){
  const vp=(q.get('viewport')||'').toLowerCase();
- if(['1','true','yes'].includes(vp)) return true;
- if(['0','false','no'].includes(vp)) return false;
- return CONFIG.SIGNAGE_VIEWPORT_FILL!==false;
-}
-function getDisplaySize(){
- const doc=document.documentElement;
- const vv=window.visualViewport;
- return {
-  w:Math.max(1,Math.round(vv?vv.width:doc.clientWidth||window.innerWidth)),
-  h:Math.max(1,Math.round(vv?vv.height:doc.clientHeight||window.innerHeight))
- };
+ return vp==='stretch'||vp==='fill';
 }
 function signageTier(h){
  return h<=300?'xs':h<=380?'sm':h<=460?'md':'lg';
 }
-function guardSignageOverflow(){/* 縮小スケールは黒帯の原因になるため廃止。グリッド auto 行で実寸に合わせる */}
+function applySignageCardFit(w,h){
+ const tier=signageTier(h);
+ const base={xs:1.24,sm:1.30,md:1.36,lg:1.42}[tier]||1.36;
+ const ar=w/h, refAr=4/3;
+ let loupe=base;
+ if(tier==='lg'&&h/SG_REF_75_H>=1.9) loupe=Math.min(1.46,base+0.04);
+ if(ar>refAr+0.02) loupe=Math.max(1.16,loupe-0.05);
+ document.documentElement.style.setProperty('--sg-card-loupe',String(Math.round(loupe*1000)/1000));
+ document.documentElement.style.setProperty('--sg-card-font-k','1');
+}
+function cardContentOverflows(card){
+ const inner=card.querySelector('.wcard-in');
+ if(!inner||card.clientWidth<4||card.clientHeight<4) return false;
+ const cr=card.getBoundingClientRect();
+ const ir=inner.getBoundingClientRect();
+ return ir.width>cr.width+2||ir.height>cr.height+2;
+}
+function guardSignageCardFit(){
+ if(!document.documentElement.classList.contains('signage')) return;
+ /* モニター投影（transform拡大）時は文字を縮めない — 拡大率で実サイズが決まる */
+ const scale=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--signage-scale'))||1;
+ if(document.documentElement.classList.contains('signage-preview')&&scale>1.02) return;
+ if(document.documentElement.classList.contains('signage-auto-fit')&&scale>1.02) return;
+ const board=document.getElementById('wbgtBoard');
+ if(!board||board.classList.contains('hide')) return;
+ const cards=board.querySelectorAll('.wbgt-cards .wcard');
+ if(!cards.length) return;
+ let k=1, loupe=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sg-card-loupe'))||1.36;
+ const kMin=0.74, loupeMin=1.14;
+ for(let i=0;i<12;i++){
+  let bad=false;
+  cards.forEach(c=>{if(cardContentOverflows(c)) bad=true;});
+  if(!bad) break;
+  if(k>kMin){
+   k=Math.max(kMin,Math.round((k-0.04)*100)/100);
+   document.documentElement.style.setProperty('--sg-card-font-k',String(k));
+  }else if(loupe>loupeMin){
+   loupe=Math.max(loupeMin,Math.round((loupe-0.03)*100)/100);
+   document.documentElement.style.setProperty('--sg-card-loupe',String(loupe));
+  }else break;
+ }
+}
+function guardSignageOverflow(){ guardSignageCardFit(); }
 function applySignageAspectCorr(w,h,pitch,inch){
  const row=pitch&&SIGNAGE_RES[pitch];
  const ref=row&&inch&&row[inch]?row[inch]:[SG_REF_75_W,SG_REF_75_H];
@@ -1255,54 +1319,52 @@ function applySignageLayout(){
  const cw=+(q.get('w')||CONFIG.SIGNAGE_W||0);
  const ch=+(q.get('h')||CONFIG.SIGNAGE_H||0);
  const fixedCanvas=shouldUseFixedCanvas(q);
- const viewportFill=shouldUseViewportFill(q);
- let w,h;
- if(viewportFill){
-  ({w,h}=getViewportSize());
- }else if(cw>0&&ch>0){
-  w=cw; h=ch;
+ const viewportStretch=shouldUseViewportStretch(q);
+ const vp=getViewportSize();
+ let w,h,fit;
+ if(viewportStretch){
+  w=vp.w; h=vp.h;
+  fit={mode:'stretch',scale:1,vpW:vp.w,vpH:vp.h,fittedW:vp.w,fittedH:vp.h};
  }else{
-  const row=SIGNAGE_RES[pitch];
-  const pair=row&&row[inch];
-  w=pair?pair[0]:SG_REF_75_W;
-  h=pair?pair[1]:SG_REF_75_H;
+  ({w,h}=getSignageCanvasSize(q,pitch,inch,cw,ch));
+  fit=resolveSignageAutoFit(w,h,vp.w,vp.h);
  }
- CONFIG._signage={pitch,inch,w,h,viewportFill,fixedCanvas};
+ CONFIG._signage={pitch,inch,w,h,viewportFill:viewportStretch,fixedCanvas,fit};
  document.documentElement.classList.add('signage');
  if(q.get('embed')==='1') document.documentElement.classList.add('embed');
  document.documentElement.dataset.pitch=pitch;
  document.documentElement.dataset.inch=String(inch);
  document.documentElement.dataset.layoutVer=String(LAYOUT_VER);
- document.documentElement.dataset.canvasMode=viewportFill?'viewport':fixedCanvas?'fixed':'auto';
+ document.documentElement.dataset.canvasMode=viewportStretch?'stretch':fixedCanvas?'fixed':'auto';
+ document.documentElement.dataset.displayMode=fit.mode;
  document.documentElement.dataset.tier=signageTier(h);
  document.documentElement.style.setProperty('--signage-w',w+'px');
  document.documentElement.style.setProperty('--signage-h',h+'px');
  document.documentElement.style.setProperty('--sg-scale-w',String(w/SG_REF_75_W));
  document.documentElement.style.setProperty('--sg-scale-h',String(h/SG_REF_75_H));
  applySignageAspectCorr(w,h,pitch,inch);
+ applySignageCardFit(w,h);
  const root=document.getElementById('signage-root');
- document.documentElement.classList.toggle('signage-fill',viewportFill);
+ document.documentElement.classList.toggle('signage-fill',viewportStretch);
+ document.documentElement.classList.toggle('signage-auto-fit',!viewportStretch);
  document.documentElement.classList.remove('signage-preview','signage-contain','signage-1to1');
- if(viewportFill){
+ if(viewportStretch){
   root.style.width='';
   root.style.height='';
   document.documentElement.style.removeProperty('--signage-scale');
-  document.documentElement.style.removeProperty('--signage-fit-scale');
+  document.documentElement.style.removeProperty('--signage-fitted-w');
+  document.documentElement.style.removeProperty('--signage-fitted-h');
  }else{
   root.style.width=w+'px';
   root.style.height=h+'px';
-  if(q.get('embed')!=='1'){
-   document.documentElement.classList.add('signage-preview','signage-contain');
-   const {w:dw,h:dh}=getDisplaySize();
-   const s=Math.min(dw/w,dh/h);
-   document.documentElement.style.setProperty('--signage-scale',String(s));
-  }else{
-   document.documentElement.style.removeProperty('--signage-scale');
-  }
+  document.documentElement.classList.add('signage-preview','signage-contain');
+  document.documentElement.style.setProperty('--signage-scale',String(fit.scale));
+  document.documentElement.style.setProperty('--signage-fitted-w',fit.fittedW+'px');
+  document.documentElement.style.setProperty('--signage-fitted-h',fit.fittedH+'px');
  }
  let meta=document.querySelector('meta[name="viewport"]');
  if(!meta){meta=document.createElement('meta');meta.name='viewport';document.head.appendChild(meta);}
- meta.content=viewportFill?'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no':'width=device-width, initial-scale=1';
+ meta.content=viewportStretch?'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no':'width=device-width, initial-scale=1';
  applyFaceLayout();
  requestAnimationFrame(()=>requestAnimationFrame(guardSignageOverflow));
  return CONFIG._signage;
@@ -1311,7 +1373,11 @@ function initSignage(){
  signageFitFn=applySignageLayout;
  applySignageLayout();
  window.addEventListener('resize',applySignageLayout);
- if(window.visualViewport) window.visualViewport.addEventListener('resize',applySignageLayout);
+ window.addEventListener('orientationchange',applySignageLayout);
+ if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',applySignageLayout);
+  window.visualViewport.addEventListener('scroll',applySignageLayout);
+ }
  return CONFIG._signage;
 }
 function refitSignageView(){ if(signageFitFn) signageFitFn(); }
