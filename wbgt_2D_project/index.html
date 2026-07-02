@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:63 -->
+<!-- LAYOUT_VER:65 -->
 <script>
 /* Live Preview（Show Preview）: パラメータ無しで index.html を開いたとき LED 固定解像度デモへ */
 (function(){
@@ -16,7 +16,7 @@
  if(h!=='127.0.0.1'&&h!=='localhost') return;
  if(!/\/index\.html$/i.test(location.pathname)&&location.pathname.slice(-1)!=='/') return;
  if(p&&p!=='3000'&&p!=='3001'&&p!=='3002'&&p!=='3003'&&p!=='3007') return;
- location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=63');
+ location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=65');
 })();
 </script>
 <style>
@@ -275,36 +275,55 @@ html.signage .wbgt-body{
     calc(var(--signage-w) * 0.50),
     calc(var(--signage-w) - var(--face-text-pad) - var(--signage-w) * 0.04)
   );
-  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio)), calc(var(--signage-h) * 0.34));
+  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio)), calc(var(--signage-h) * 0.36));
   --sg-status-name-min:calc(70px * var(--sg-h-ratio));
+  --sg-status-name-max:calc(110px * var(--sg-h-ratio));
   --sg-status-msg-min:calc(17px * var(--sg-h-ratio));
-  --sg-status-msg-fit:calc(var(--sg-status-text-w) / 10);
+  --sg-status-msg-max:calc(28px * var(--sg-h-ratio));
   --sg-status-name-fit:min(
     var(--sg-status-name-ideal),
-    calc(var(--sg-status-text-w) / 2),
-    calc(var(--sg-status-msg-fit) * 98 / 23)
+    calc(var(--sg-status-text-w) / 2)
   );
   --sg-status-name:clamp(
     var(--sg-status-name-min),
     var(--sg-status-name-fit),
-    calc(110px * var(--sg-h-ratio))
+    var(--sg-status-name-max)
   );
   --sg-status-msg:clamp(
     var(--sg-status-msg-min),
-    calc(var(--sg-status-name) * 23 / 98),
-    calc(28px * var(--sg-h-ratio))
+    min(calc(var(--sg-status-name) * 23 / 98), calc(var(--sg-status-text-w) / 10.5)),
+    var(--sg-status-msg-max)
   );
 }
 html.signage[data-tier="xs"] .wbgt-body{
   --sg-status-name-min:calc(64px * var(--sg-h-ratio));
   --sg-status-msg-min:calc(16px * var(--sg-h-ratio));
 }
+html.signage[data-tier="md"] .wbgt-body{
+  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio) * 1.06), calc(var(--signage-h) * 0.37));
+  --sg-status-msg-max:calc(30px * var(--sg-h-ratio));
+}
+html.signage[data-tier="lg"] .wbgt-body{
+  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio) * 1.10), calc(var(--signage-h) * 0.38));
+  --sg-status-name-max:calc(118px * var(--sg-h-ratio));
+  --sg-status-msg-min:calc(18px * var(--sg-h-ratio));
+  --sg-status-msg-max:calc(32px * var(--sg-h-ratio));
+}
+html.signage[data-tier="xl"] .wbgt-body{
+  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio) * 1.14), calc(var(--signage-h) * 0.42));
+  --sg-status-name-max:calc(128px * var(--sg-h-ratio));
+  --sg-status-msg-min:calc(20px * var(--sg-h-ratio));
+  --sg-status-msg-max:calc(38px * var(--sg-h-ratio));
+}
 html.signage[data-tier="xs"] .wbgt-face{
   max-width:min(50%, calc(var(--signage-h) * 0.40))!important;
 }
-/* PC全画面（16:10等）: 横長で縦が足りないとき文字・カード拡大を抑える */
-html.signage-fill .wbgt-body{
-  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio) * var(--sg-ar-k)), calc(var(--signage-h) * 0.30));
+/* PC全画面（16:10等）: 横長で縦が足りないとき — xl 以外のみ縮小 */
+html.signage-fill:not([data-tier="xl"]) .wbgt-body{
+  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio) * var(--sg-ar-k)), calc(var(--signage-h) * 0.32));
+}
+html.signage-fill[data-tier="xl"] .wbgt-body{
+  --sg-status-name-ideal:min(calc(98px * var(--sg-h-ratio) * 1.10), calc(var(--signage-h) * 0.40));
 }
 html.signage .wbgt-body .wbgt-name{
   font-size:var(--sg-status-name)!important;
@@ -321,6 +340,14 @@ html.signage .wbgt-body.wbgt-lv3 .wbgt-name{
 }
 html.signage .wbgt-body.wbgt-lv4 .wbgt-msg{
   font-size:min(var(--sg-status-msg), calc(var(--sg-status-text-w) / 14))!important;
+}
+/* モニター全画面(viewport/explicit): プレビュー拡大と同じ比率でステータス文字をスケール */
+html.signage[data-status-fit="ref-scale"] .wbgt-body .wbgt-name{
+  font-size:var(--sg-status-name-js)!important;
+}
+html.signage[data-status-fit="ref-scale"] .wbgt-body .wbgt-msg{
+  font-size:var(--sg-status-msg-js)!important;
+  margin-top:calc(var(--sg-status-name-js) * 0.08)!important;
 }
 
 /* 75インチなど低解像度（PCフル画面時のみ vw 微調整） */
@@ -1160,7 +1187,7 @@ const CONFIG = {
   FACE_SIZE_VW:     32,      // PCフル画面時の幅(vw)
   FACE_RIGHT_VW:    5.5,     // PCフル画面時の右余白(vw)
 };
-const LAYOUT_VER=63;
+const LAYOUT_VER=65;
 const SIGNAGE_FIT_TOL=4;
 function normalizePitch(p){
  const s=String(p||'').trim().toUpperCase();
@@ -1323,6 +1350,41 @@ function applySignageCardFit(w,h){
  document.documentElement.style.setProperty('--sg-card-loupe',String(Math.round(loupe*1000)/1000));
  document.documentElement.style.setProperty('--sg-card-font-k','1');
 }
+/** pitch/inch 基準解像度のステータス文字サイズ（プレビュー拡大と同じ見え方） */
+function calcRefStatusTextSize(refW,refH,tier,faceTextPad){
+ const hr=refH/288;
+ const tierK=tier==='md'?1.06:tier==='lg'?1.10:tier==='xl'?1.14:1;
+ const ideal=Math.min(98*hr*tierK,refH*0.37);
+ const textW=Math.max(refW*0.5,refW-faceTextPad-refW*0.04);
+ const name=Math.min(ideal,textW/2,110*hr);
+ const msg=Math.min(name*23/98,textW/10.5,30*hr);
+ return {name,msg,textW};
+}
+function applySignageStatusFit(w,h,pitch,inch,canvasSource,nativeFill){
+ const row=SIGNAGE_RES[pitch];
+ const ref=row&&row[inch]?row[inch]:[SG_REF_75_W,SG_REF_75_H];
+ const refW=ref[0],refH=ref[1];
+ const useRefScale=nativeFill&&(canvasSource==='viewport'||canvasSource==='explicit');
+ if(!useRefScale){
+  delete document.documentElement.dataset.statusFit;
+  document.documentElement.style.removeProperty('--sg-status-name-js');
+  document.documentElement.style.removeProperty('--sg-status-msg-js');
+  return;
+ }
+ const refTier=signageTier(refH);
+ const refFace=calcSignageFaceLayout(refW,refH,inch,pitch);
+ const refText=calcRefStatusTextSize(refW,refH,refTier,refFace.faceTextPad);
+ const curFace=calcSignageFaceLayout(w,h,inch,pitch);
+ const curTextW=Math.max(w*0.5,w-curFace.faceTextPad-w*0.04);
+ const k=h/refH;
+ let namePx=Math.round(refText.name*k);
+ let msgPx=Math.round(refText.msg*k);
+ namePx=Math.min(namePx,Math.round(curTextW/2));
+ msgPx=Math.min(msgPx,Math.round(curTextW/10.5));
+ document.documentElement.dataset.statusFit='ref-scale';
+ document.documentElement.style.setProperty('--sg-status-name-js',namePx+'px');
+ document.documentElement.style.setProperty('--sg-status-msg-js',msgPx+'px');
+}
 function cardContentOverflows(card){
  if(card.clientWidth<4||card.clientHeight<4) return false;
  const cr=card.getBoundingClientRect();
@@ -1440,6 +1502,7 @@ function applySignageLayout(){
  if(!meta){meta=document.createElement('meta');meta.name='viewport';document.head.appendChild(meta);}
  meta.content=viewportStretch?'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no':'width=device-width, initial-scale=1';
  applyFaceLayout();
+ applySignageStatusFit(w,h,pitch,inch,canvasSource,nativeFill);
  scheduleGuardSignageOverflow();
  return CONFIG._signage;
 }
