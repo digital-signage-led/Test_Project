@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:58 -->
+<!-- LAYOUT_VER:60 -->
 <script>
 /* Live Preview（Show Preview）: パラメータ無しで index.html を開いたとき LED 固定解像度デモへ */
 (function(){
@@ -16,7 +16,7 @@
  if(h!=='127.0.0.1'&&h!=='localhost') return;
  if(!/\/index\.html$/i.test(location.pathname)&&location.pathname.slice(-1)!=='/') return;
  if(p&&p!=='3000'&&p!=='3001'&&p!=='3002'&&p!=='3003'&&p!=='3007') return;
- location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=58');
+ location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=60');
 })();
 </script>
 <style>
@@ -29,13 +29,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 html.signage:not(.signage-fill) #signage-root{position:relative;inset:auto;overflow:hidden;flex-shrink:0;}
 html.signage-fill,html.signage-fill body{width:100%;height:100%;height:100dvh;}
 html.signage-fill #signage-root{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;height:100dvh!important;overflow:hidden!important;}
-html.signage-preview,html.signage-preview body{overflow:hidden;width:100%;height:100%;height:100dvh;margin:0;padding:0;}
-html.signage-preview body{display:flex;align-items:center;justify-content:center;background:#000;}
-html.signage-preview #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;}
-/* 自動フィット必須: LED設計解像度キャンバスを端末解像度に合わせて拡大縮小（画角維持） */
-html.signage-auto-fit,html.signage-auto-fit body{overflow:hidden;width:100%;height:100%;height:100dvh;margin:0;padding:0;}
+html.signage-preview,html.signage-preview body,
+html.signage-auto-fit,html.signage-auto-fit body{
+  overflow:hidden;width:100%;height:100%;height:100dvh;min-height:100dvh;margin:0;padding:0;
+}
+html.signage-preview body,
 html.signage-auto-fit body{display:flex;align-items:center;justify-content:center;background:#000;}
-html.signage-auto-fit #signage-root{transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;}
+html.signage-preview #signage-root,
+html.signage-auto-fit #signage-root{
+  transform:scale(var(--signage-scale,1));transform-origin:center center;flex-shrink:0;
+}
 html.signage-1to1,html.signage-1to1 body{overflow:auto!important;height:auto!important;min-height:100%;}
 html.signage-1to1 body{display:flex;align-items:flex-start;justify-content:center;padding:16px;background:#111;min-width:100%;}
 html.signage-1to1 #signage-root{box-shadow:0 0 0 2px #333;flex-shrink:0;}
@@ -1145,6 +1148,29 @@ const CONFIG = {
   FACE_SIZE_VW:     32,      // PCフル画面時の幅(vw)
   FACE_RIGHT_VW:    5.5,     // PCフル画面時の右余白(vw)
 };
+const LAYOUT_VER=60;
+const SIGNAGE_FIT_TOL=4;
+function bootstrapSignageUrl(){
+ const q=new URLSearchParams(location.search);
+ if(q.has('tune')) return;
+ let changed=false;
+ function ensure(k,v){
+  if(!q.has(k)){q.set(k,v);changed=true;}
+ }
+ ensure('fit','0');
+ ensure('viewport','0');
+ ensure('embed','1');
+ if(!q.has('w')&&!q.has('h')){
+  ensure('pitch',CONFIG.SIGNAGE_PITCH||'P3.47');
+  ensure('inch',String(CONFIG.SIGNAGE_INCH||100));
+ }
+ ensure('v',String(LAYOUT_VER));
+ if(changed){
+  const qs=q.toString();
+  history.replaceState(null,'',location.pathname+(qs?'?'+qs:'')+location.hash);
+ }
+}
+bootstrapSignageUrl();
 function applyConfigFromUrl(){
  const q=new URLSearchParams(location.search);
  if(q.has('site')) CONFIG.SITE_NAME=decodeURIComponent(q.get('site'));
@@ -1173,8 +1199,6 @@ function applyConfigFromUrl(){
 applyConfigFromUrl();
 /* P3.47·75インチ（432×288）基準 — 432×288 の比率を実キャンバス幅/高さに直接適用
    75/100/125インチ・P2.87/P3.47 すべて同じ比例則でスケール */
-const LAYOUT_VER=58;
-const SIGNAGE_FIT_TOL=4;
 const SG_REF_75_W=432;
 const SG_REF_75_H=288;
 const FACE_REF_75_W=SG_REF_75_W;
@@ -1209,16 +1233,28 @@ let signageFitFn=null;
 function getViewportSize(){
  const doc=document.documentElement;
  const vv=window.visualViewport;
- return {
-  w:Math.max(1,Math.round(vv?vv.width:doc.clientWidth||window.innerWidth)),
-  h:Math.max(1,Math.round(vv?vv.height:doc.clientHeight||window.innerHeight))
- };
+ const w=vv&&vv.width?vv.width:(doc.clientWidth||window.innerWidth);
+ const h=vv&&vv.height?vv.height:(doc.clientHeight||window.innerHeight);
+ return {w:Math.max(1,Math.round(w)),h:Math.max(1,Math.round(h))};
 }
 function getSignageCanvasSize(q,pitch,inch,cw,ch){
  if(cw>0&&ch>0) return {w:cw,h:ch};
  const row=SIGNAGE_RES[pitch];
  const pair=row&&row[inch];
  return {w:pair?pair[0]:SG_REF_75_W,h:pair?pair[1]:SG_REF_75_H};
+}
+/** キャンバス解像度: URLの w/h → HTML埋め込み(LED Cloud)の実表示領域 → pitch/inch テーブル */
+function resolveCanvasSize(q,pitch,inch,cw,ch,vp){
+ const ew=+(q.get('w')||0)||cw;
+ const eh=+(q.get('h')||0)||ch;
+ if(ew>0&&eh>0) return {w:ew,h:eh,source:'explicit'};
+ const embed=q.get('embed')==='1';
+ const inFrame=window.self!==window.top;
+ if(embed&&(inFrame||q.get('ledcloud')==='1')&&vp.w>=400&&vp.h>=300){
+  return {w:vp.w,h:vp.h,source:'embed'};
+ }
+ const t=getSignageCanvasSize(q,pitch,inch,0,0);
+ return {w:t.w,h:t.h,source:'table'};
 }
 function resolveSignageAutoFit(canvasW,canvasH,vpW,vpH){
  const tol=SIGNAGE_FIT_TOL;
@@ -1321,15 +1357,18 @@ function applySignageLayout(){
  const fixedCanvas=shouldUseFixedCanvas(q);
  const viewportStretch=shouldUseViewportStretch(q);
  const vp=getViewportSize();
- let w,h,fit;
+ let w,h,fit,canvasSource='stretch';
  if(viewportStretch){
   w=vp.w; h=vp.h;
   fit={mode:'stretch',scale:1,vpW:vp.w,vpH:vp.h,fittedW:vp.w,fittedH:vp.h};
  }else{
-  ({w,h}=getSignageCanvasSize(q,pitch,inch,cw,ch));
+  const resolved=resolveCanvasSize(q,pitch,inch,cw,ch,vp);
+  w=resolved.w; h=resolved.h;
   fit=resolveSignageAutoFit(w,h,vp.w,vp.h);
+  canvasSource=resolved.source;
  }
- CONFIG._signage={pitch,inch,w,h,viewportFill:viewportStretch,fixedCanvas,fit};
+ const nativeFill=!viewportStretch&&fit.mode==='native';
+ CONFIG._signage={pitch,inch,w,h,viewportFill:viewportStretch,fixedCanvas,fit,canvasSource};
  document.documentElement.classList.add('signage');
  if(q.get('embed')==='1') document.documentElement.classList.add('embed');
  document.documentElement.dataset.pitch=pitch;
@@ -1337,6 +1376,7 @@ function applySignageLayout(){
  document.documentElement.dataset.layoutVer=String(LAYOUT_VER);
  document.documentElement.dataset.canvasMode=viewportStretch?'stretch':fixedCanvas?'fixed':'auto';
  document.documentElement.dataset.displayMode=fit.mode;
+ document.documentElement.dataset.canvasSource=canvasSource;
  document.documentElement.dataset.tier=signageTier(h);
  document.documentElement.style.setProperty('--signage-w',w+'px');
  document.documentElement.style.setProperty('--signage-h',h+'px');
@@ -1345,10 +1385,10 @@ function applySignageLayout(){
  applySignageAspectCorr(w,h,pitch,inch);
  applySignageCardFit(w,h);
  const root=document.getElementById('signage-root');
- document.documentElement.classList.toggle('signage-fill',viewportStretch);
- document.documentElement.classList.toggle('signage-auto-fit',!viewportStretch);
+ document.documentElement.classList.toggle('signage-fill',viewportStretch||nativeFill);
+ document.documentElement.classList.toggle('signage-auto-fit',!viewportStretch&&!nativeFill);
  document.documentElement.classList.remove('signage-preview','signage-contain','signage-1to1');
- if(viewportStretch){
+ if(viewportStretch||nativeFill){
   root.style.width='';
   root.style.height='';
   document.documentElement.style.removeProperty('--signage-scale');
@@ -1357,7 +1397,7 @@ function applySignageLayout(){
  }else{
   root.style.width=w+'px';
   root.style.height=h+'px';
-  document.documentElement.classList.add('signage-preview','signage-contain');
+  document.documentElement.classList.add('signage-preview','signage-contain','signage-auto-fit');
   document.documentElement.style.setProperty('--signage-scale',String(fit.scale));
   document.documentElement.style.setProperty('--signage-fitted-w',fit.fittedW+'px');
   document.documentElement.style.setProperty('--signage-fitted-h',fit.fittedH+'px');
@@ -1374,9 +1414,15 @@ function initSignage(){
  applySignageLayout();
  window.addEventListener('resize',applySignageLayout);
  window.addEventListener('orientationchange',applySignageLayout);
+ window.addEventListener('pageshow',e=>{if(e.persisted) applySignageLayout();});
  if(window.visualViewport){
   window.visualViewport.addEventListener('resize',applySignageLayout);
   window.visualViewport.addEventListener('scroll',applySignageLayout);
+ }
+ if(typeof ResizeObserver!=='undefined'){
+  const ro=new ResizeObserver(()=>applySignageLayout());
+  ro.observe(document.documentElement);
+  if(document.body) ro.observe(document.body);
  }
  return CONFIG._signage;
 }
