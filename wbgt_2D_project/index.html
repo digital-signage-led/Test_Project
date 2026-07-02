@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:61 -->
+<!-- LAYOUT_VER:62 -->
 <script>
 /* Live Preview（Show Preview）: パラメータ無しで index.html を開いたとき LED 固定解像度デモへ */
 (function(){
@@ -16,7 +16,7 @@
  if(h!=='127.0.0.1'&&h!=='localhost') return;
  if(!/\/index\.html$/i.test(location.pathname)&&location.pathname.slice(-1)!=='/') return;
  if(p&&p!=='3000'&&p!=='3001'&&p!=='3002'&&p!=='3003'&&p!=='3007') return;
- location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=61');
+ location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=62');
 })();
 </script>
 <style>
@@ -92,7 +92,15 @@ html.signage[data-tier="md"]{
 }
 html.signage[data-tier="lg"]{
   --sg-bar-h:calc(var(--signage-h) * 40 / 288);
-  --sg-card-loupe:1.42;
+  --sg-card-loupe:1.40;
+}
+html.signage[data-tier="xl"]{
+  --sg-bar-h:calc(var(--signage-h) * 40 / 288);
+  --sg-card-loupe:1.28;
+  --sg-card-lbl:min(calc(var(--signage-w) * 0.026), calc(var(--signage-h) * 0.04));
+  --sg-card-v:min(calc(var(--signage-w) * 0.052), calc(var(--signage-h) * 0.078));
+  --sg-card-u:min(calc(var(--signage-w) * 0.024), calc(var(--signage-h) * 0.036));
+  --sg-badge:min(calc(var(--signage-w) * 0.028), calc(var(--signage-h) * 0.042));
 }
 html.signage .wbgt-hdr{min-height:12%!important;padding:calc(var(--signage-h) * 0.018) calc(var(--signage-w) * 0.022)!important;}
 html.signage .wbgt-hdr .t{font-size:var(--sg-hdr-t)!important;font-weight:900!important;line-height:1.15;max-width:62%;}
@@ -198,6 +206,10 @@ html.signage[data-tier="lg"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) *
 html.signage[data-tier="lg"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.22 * var(--sg-card-font-k)), 56cqh, calc(96cqw / 5.5))!important;}
 html.signage[data-tier="lg"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.15 * var(--sg-card-font-k)), 30cqh)!important;}
 html.signage[data-tier="lg"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.1 * var(--sg-card-font-k)), 30cqh)!important;}
+html.signage[data-tier="xl"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.22 * var(--sg-card-font-k)), 38cqh)!important;}
+html.signage[data-tier="xl"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.34 * var(--sg-card-font-k)), 64cqh, calc(96cqw / 5))!important;}
+html.signage[data-tier="xl"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.2 * var(--sg-card-font-k)), 34cqh)!important;}
+html.signage[data-tier="xl"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.16 * var(--sg-card-font-k)), 36cqh)!important;}
 
 html.signage .wbgt-body{--card-r:calc(var(--signage-w) * 0.016);--bar-r:calc(var(--signage-w) * 0.028);--bar-h:var(--sg-bar-h);}
 html.signage .wbgt-bar-wrap{
@@ -1148,7 +1160,7 @@ const CONFIG = {
   FACE_SIZE_VW:     32,      // PCフル画面時の幅(vw)
   FACE_RIGHT_VW:    5.5,     // PCフル画面時の右余白(vw)
 };
-const LAYOUT_VER=61;
+const LAYOUT_VER=62;
 const SIGNAGE_FIT_TOL=4;
 function normalizePitch(p){
  const s=String(p||'').trim().toUpperCase();
@@ -1298,15 +1310,16 @@ function shouldUseViewportStretch(q){
  return vp==='stretch'||vp==='fill';
 }
 function signageTier(h){
- return h<=300?'xs':h<=380?'sm':h<=460?'md':'lg';
+ return h<=300?'xs':h<=380?'sm':h<=460?'md':h<=900?'lg':'xl';
 }
 function applySignageCardFit(w,h){
  const tier=signageTier(h);
- const base={xs:1.24,sm:1.30,md:1.36,lg:1.42}[tier]||1.36;
+ const base={xs:1.24,sm:1.30,md:1.36,lg:1.40,xl:1.28}[tier]||1.36;
  const ar=w/h, refAr=4/3;
  let loupe=base;
- if(tier==='lg'&&h/SG_REF_75_H>=1.9) loupe=Math.min(1.46,base+0.04);
- if(ar>refAr+0.02) loupe=Math.max(1.16,loupe-0.05);
+ if(tier==='lg'&&h/SG_REF_75_H>=1.9) loupe=Math.min(1.44,base+0.04);
+ if(tier==='xl'&&ar>1.55) loupe=1.24;
+ else if(ar>refAr+0.02) loupe=Math.max(1.14,loupe-0.04);
  document.documentElement.style.setProperty('--sg-card-loupe',String(Math.round(loupe*1000)/1000));
  document.documentElement.style.setProperty('--sg-card-font-k','1');
 }
@@ -1319,7 +1332,10 @@ function cardContentOverflows(card){
 }
 function guardSignageCardFit(){
  if(!document.documentElement.classList.contains('signage')) return;
- /* モニター投影（transform拡大）時は文字を縮めない — 拡大率で実サイズが決まる */
+ const dm=document.documentElement.dataset.displayMode||'';
+ const cs=document.documentElement.dataset.canvasSource||'';
+ if(dm==='native'||cs==='viewport'||cs==='explicit') return;
+ /* transform拡大時は縮小しない */
  const scale=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--signage-scale'))||1;
  if(document.documentElement.classList.contains('signage-preview')&&scale>1.02) return;
  if(document.documentElement.classList.contains('signage-auto-fit')&&scale>1.02) return;
