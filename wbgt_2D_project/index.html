@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:85 -->
+<!-- LAYOUT_VER:98 -->
 <script>
 /* Live Preview（Show Preview）: パラメータ無しで index.html を開いたとき LED 固定解像度デモへ */
 (function(){
@@ -16,7 +16,7 @@
  if(h!=='127.0.0.1'&&h!=='localhost') return;
  if(!/\/index\.html$/i.test(location.pathname)&&location.pathname.slice(-1)!=='/') return;
  if(p&&p!=='3000'&&p!=='3001'&&p!=='3002'&&p!=='3003'&&p!=='3007') return;
- location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=85');
+ location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=98');
 })();
 </script>
 <style>
@@ -62,12 +62,12 @@ html.signage{
   --sg-hdr-c:calc(min(calc(var(--signage-w) * 0.061), calc(var(--signage-h) * 0.092)) * var(--sg-ar-k));
   --sg-name:calc(min(calc(var(--signage-w) * 0.14), calc(var(--signage-h) * 0.17)) * var(--sg-ar-k));
   --sg-msg:calc(var(--sg-name) * 0.36);
-  --sg-card-lbl:min(calc(var(--signage-w) * 0.022), calc(var(--signage-h) * 0.033));
-  --sg-card-ic:min(calc(var(--signage-w) * 0.029), calc(var(--signage-h) * 0.0435));
-  --sg-card-v:min(calc(var(--signage-w) * 0.043), calc(var(--signage-h) * 0.0645));
-  --sg-card-u:min(calc(var(--signage-w) * 0.022), calc(var(--signage-h) * 0.033));
-  --sg-badge:min(calc(var(--signage-w) * 0.026), calc(var(--signage-h) * 0.039));
-  --sg-card-loupe:1.36;
+  --sg-card-lbl:min(calc(var(--signage-w) * 0.030), calc(var(--signage-h) * 0.045));
+  --sg-card-ic:min(calc(var(--signage-w) * 0.038), calc(var(--signage-h) * 0.057));
+  --sg-card-v:min(calc(var(--signage-w) * 0.050), calc(var(--signage-h) * 0.075));
+  --sg-card-u:min(calc(var(--signage-w) * 0.025), calc(var(--signage-h) * 0.038));
+  --sg-badge:min(calc(var(--signage-w) * 0.031), calc(var(--signage-h) * 0.047));
+  --sg-card-loupe:1.26;
   --sg-card-font-k:1;
   --sg-bar-h:calc(var(--signage-h) * 30 / 288);
   --sg-wbar-n:min(calc(var(--signage-w) * 0.043), calc(var(--signage-h) * 0.0645));
@@ -80,27 +80,27 @@ html.signage{
 }
 html.signage[data-tier="xs"]{
   --sg-bar-h:calc(var(--signage-h) * 30 / 288);
-  --sg-card-loupe:1.24;
+  --sg-card-loupe:1.18;
 }
 html.signage[data-tier="sm"]{
   --sg-bar-h:calc(var(--signage-h) * 36 / 288);
-  --sg-card-loupe:1.30;
+  --sg-card-loupe:1.22;
 }
 html.signage[data-tier="md"]{
   --sg-bar-h:calc(var(--signage-h) * 40 / 288);
-  --sg-card-loupe:1.36;
+  --sg-card-loupe:1.26;
 }
 html.signage[data-tier="lg"]{
   --sg-bar-h:calc(var(--signage-h) * 40 / 288);
-  --sg-card-loupe:1.40;
+  --sg-card-loupe:1.30;
 }
 html.signage[data-tier="xl"]{
   --sg-bar-h:calc(var(--signage-h) * 40 / 288);
-  --sg-card-loupe:1.28;
-  --sg-card-lbl:min(calc(var(--signage-w) * 0.026), calc(var(--signage-h) * 0.04));
-  --sg-card-v:min(calc(var(--signage-w) * 0.052), calc(var(--signage-h) * 0.078));
-  --sg-card-u:min(calc(var(--signage-w) * 0.024), calc(var(--signage-h) * 0.036));
-  --sg-badge:min(calc(var(--signage-w) * 0.028), calc(var(--signage-h) * 0.042));
+  --sg-card-loupe:1.24;
+  --sg-card-lbl:min(calc(var(--signage-w) * 0.032), calc(var(--signage-h) * 0.048));
+  --sg-card-v:min(calc(var(--signage-w) * 0.058), calc(var(--signage-h) * 0.086));
+  --sg-card-u:min(calc(var(--signage-w) * 0.027), calc(var(--signage-h) * 0.040));
+  --sg-badge:min(calc(var(--signage-w) * 0.033), calc(var(--signage-h) * 0.049));
 }
 html.signage .wbgt-hdr{min-height:12%!important;padding:calc(var(--signage-h) * 0.018) calc(var(--signage-w) * 0.022)!important;}
 html.signage .wbgt-hdr .t{font-size:var(--sg-hdr-t)!important;font-weight:900!important;line-height:1.15;max-width:62%;}
@@ -149,20 +149,20 @@ html.signage .wbgt-face{
 html.signage .wbgt-face img{
   width:100%!important;transform:scale(var(--face-img-scale,1))!important;transform-origin:center center!important;
 }
-/* P3.47·75": 安全の顔イラストのみ絵柄が大きく見えるため他レベルに合わせる */
-html.signage[data-pitch="P3.47"][data-inch="75"] .wbgt-body.wbgt-lv0{--face-img-scale:0.9;}
+/* ほぼ安全(safe.png 絵柄≈199px / 注意≈187px): 注意と同じ見え方に → 187/199≒0.94 */
+html.signage .wbgt-body.wbgt-lv0{--face-img-scale:0.94;}
+.wbgt-body.wbgt-lv0{--face-img-scale:0.94;}
+.wbgt-body.wbgt-lv0 .wbgt-face img{transform:scale(var(--face-img-scale));}
 
 html.signage .wbgt-cards{
   gap:calc(var(--signage-w) * 0.008)!important;
   margin:0 calc(var(--signage-w) * 0.02) calc(var(--sg-wbar-tri-h) + var(--sg-wbar-tri-clear))!important;
   align-self:stretch;min-height:0!important;flex:none!important;
   overflow:clip!important;
-  --sg-card-head-h:min(calc(var(--sg-card-lbl) * 1.48), 36cqh);
-  --sg-card-row-gap:calc(var(--signage-h) * 0.012);
 }
 html.signage .wcard{
   border-radius:var(--card-r)!important;
-  padding:calc(var(--signage-h) * 0.016) calc(var(--signage-w) * 0.008) calc(var(--signage-h) * 0.012)!important;
+  padding:calc(var(--signage-h) * 0.012) calc(var(--signage-w) * 0.010) calc(var(--signage-h) * 0.010)!important;
   display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;
   gap:0!important;overflow:hidden!important;position:relative!important;
   container-type:size;
@@ -171,71 +171,88 @@ html.signage .wcard{
 html.signage .wcard-in{
   --sg-card-loupe-eff:var(--sg-card-loupe);
   display:grid!important;
-  grid-template-rows:var(--sg-card-head-h) auto;
-  row-gap:var(--sg-card-row-gap)!important;
-  align-content:start!important;justify-items:center!important;
+  grid-template-rows:minmax(0,40fr) minmax(0,60fr)!important;
+  row-gap:calc(var(--signage-h) * 0.005)!important;
+  align-content:stretch!important;justify-items:center!important;
   width:calc(100% / var(--sg-card-loupe-eff))!important;
   height:calc(100% / var(--sg-card-loupe-eff))!important;
   transform:scale(var(--sg-card-loupe-eff))!important;
   transform-origin:top center!important;
   box-sizing:border-box!important;
+  overflow:hidden!important;
 }
 html.signage .wcard .lbl,
 html.signage .wbgt-badge{
   grid-row:1;
   display:flex!important;align-items:center!important;justify-content:center!important;
-  width:100%!important;
-  height:var(--sg-card-head-h)!important;
-  max-height:var(--sg-card-head-h)!important;
-  min-height:0!important;
-  margin:0!important;
-  box-sizing:border-box!important;
-  overflow:hidden!important;
+  width:100%!important;max-width:100%!important;
+  height:auto!important;min-height:0!important;max-height:100%!important;
+  margin:0!important;padding:0 calc(var(--signage-w) * 0.006)!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+  position:relative!important;z-index:1!important;
 }
 html.signage .wcard .val{
   grid-row:2;
   display:flex!important;justify-content:center!important;align-items:baseline!important;
-  width:100%!important;max-width:100%!important;
-  margin:0!important;align-self:center!important;
+  width:100%!important;max-width:100%!important;min-height:0!important;max-height:100%!important;
+  margin:0!important;padding:0 calc(var(--signage-w) * 0.004)!important;
+  align-self:center!important;overflow:hidden!important;box-sizing:border-box!important;
+  position:relative!important;z-index:1!important;
 }
 html.signage .wcard .lbl{
-  font-size:min(calc(var(--sg-card-lbl) * 1.2 * var(--sg-card-font-k)), 34cqh)!important;font-weight:700!important;
+  gap:0.18em!important;
+  font-size:min(calc(var(--sg-card-lbl) * 1.45 * var(--sg-card-font-k)), 34cqh, calc(96cqw / 5.8))!important;font-weight:700!important;
   white-space:nowrap!important;line-height:1.05!important;
 }
-html.signage .wcard .ic{font-size:min(calc(var(--sg-card-ic) * 1.15 * var(--sg-card-font-k)), 1.15em)!important;line-height:1!important;}
-html.signage .wcard .ic:not(.ic-thermo){
+html.signage .wcard .ic{font-size:min(calc(var(--sg-card-ic) * 1.32 * var(--sg-card-font-k)), 1.22em)!important;line-height:1!important;flex-shrink:0!important;}
+html.signage .wcard .ic:not(.ic-thermo):not(.ic-humid):not(.ic-time){
   display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  width:1.15em!important;min-height:1.15em!important;
+  width:1.22em!important;min-height:1.22em!important;
 }
-html.signage .wcard .ic-thermo svg{height:1.35em!important;}
+html.signage .wcard .ic-thermo,
+html.signage .wcard .ic-humid,
+html.signage .wcard .ic-time{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex-shrink:0!important;margin-right:0.06em!important;
+  position:relative!important;z-index:10!important;overflow:visible!important;
+}
+html.signage .wcard .ic-thermo svg{
+  height:1.18em!important;width:0.82em!important;display:block!important;
+  transform:rotate(-12deg)!important;transform-origin:50% 88%!important;
+  position:relative!important;z-index:10!important;
+}
+html.signage .wcard:has(.ic-thermo) .lbl,
+html.signage .wcard:has(.ic-humid) .lbl,
+html.signage .wcard:has(.ic-time) .lbl{overflow:visible!important;z-index:2!important;}
 html.signage .wcard .v{
-  font-size:min(calc(var(--sg-card-v) * 1.2 * var(--sg-card-font-k)), 54cqh, calc(96cqw / 5.5))!important;
-  font-weight:900!important;line-height:1!important;
+  font-size:min(calc(var(--sg-card-v) * 1.24 * var(--sg-card-font-k)), 50cqh, calc(96cqw / 4.8))!important;
+  font-weight:900!important;line-height:1!important;max-width:100%!important;
 }
 html.signage .wcard .u{
-  font-size:min(calc(var(--sg-card-u) * 1.15 * var(--sg-card-font-k)), 28cqh)!important;font-weight:700!important;
+  font-size:min(calc(var(--sg-card-u) * 1.15 * var(--sg-card-font-k)), 26cqh)!important;font-weight:700!important;
 }
 html.signage .wbgt-badge{
-  font-size:min(calc(var(--sg-badge) * 1.2 * var(--sg-card-font-k)), 34cqh)!important;font-weight:900!important;
-  padding:0 calc(var(--signage-w) * 0.016)!important;white-space:nowrap!important;line-height:1.05!important;
+  font-size:min(calc(var(--sg-badge) * 1.28 * var(--sg-card-font-k)), 34cqh, calc(96cqw / 4.5))!important;font-weight:900!important;
+  padding:calc(var(--signage-h) * 0.008) calc(var(--signage-w) * 0.016)!important;
+  border-radius:999px!important;white-space:nowrap!important;line-height:1.05!important;
 }
 
 /* 解像度ティア別: カード内 cqh 上限（はみ出し防止） */
-html.signage[data-tier="xs"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.06 * var(--sg-card-font-k)), 28cqh)!important;}
-html.signage[data-tier="xs"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.05 * var(--sg-card-font-k)), 44cqh, calc(96cqw / 5.5))!important;}
-html.signage[data-tier="xs"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.05 * var(--sg-card-font-k)), 24cqh)!important;}
-html.signage[data-tier="xs"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.05 * var(--sg-card-font-k)), 28cqh)!important;padding:0 calc(var(--signage-w) * 0.014)!important;}
-html.signage[data-tier="sm"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.08 * var(--sg-card-font-k)), 30cqh)!important;}
-html.signage[data-tier="sm"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.1 * var(--sg-card-font-k)), 48cqh, calc(96cqw / 5.5))!important;}
-html.signage[data-tier="md"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.15 * var(--sg-card-font-k)), 52cqh, calc(96cqw / 5.5))!important;}
-html.signage[data-tier="lg"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.1 * var(--sg-card-font-k)), 30cqh)!important;}
-html.signage[data-tier="lg"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.22 * var(--sg-card-font-k)), 56cqh, calc(96cqw / 5.5))!important;}
-html.signage[data-tier="lg"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.15 * var(--sg-card-font-k)), 30cqh)!important;}
-html.signage[data-tier="lg"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.1 * var(--sg-card-font-k)), 30cqh)!important;}
-html.signage[data-tier="xl"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.22 * var(--sg-card-font-k)), 38cqh)!important;}
-html.signage[data-tier="xl"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.34 * var(--sg-card-font-k)), 64cqh, calc(96cqw / 5))!important;}
-html.signage[data-tier="xl"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.2 * var(--sg-card-font-k)), 34cqh)!important;}
-html.signage[data-tier="xl"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.16 * var(--sg-card-font-k)), 36cqh)!important;}
+html.signage[data-tier="xs"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.28 * var(--sg-card-font-k)), 30cqh, calc(96cqw / 5.8))!important;}
+html.signage[data-tier="xs"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.08 * var(--sg-card-font-k)), 44cqh, calc(96cqw / 4.8))!important;}
+html.signage[data-tier="xs"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.05 * var(--sg-card-font-k)), 22cqh)!important;}
+html.signage[data-tier="xs"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.08 * var(--sg-card-font-k)), 28cqh)!important;padding:calc(var(--signage-h) * 0.007) calc(var(--signage-w) * 0.012)!important;}
+html.signage[data-tier="sm"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.32 * var(--sg-card-font-k)), 32cqh, calc(96cqw / 5.8))!important;}
+html.signage[data-tier="sm"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.12 * var(--sg-card-font-k)), 46cqh, calc(96cqw / 4.8))!important;}
+html.signage[data-tier="md"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.16 * var(--sg-card-font-k)), 48cqh, calc(96cqw / 4.8))!important;}
+html.signage[data-tier="lg"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.36 * var(--sg-card-font-k)), 33cqh, calc(96cqw / 5.8))!important;}
+html.signage[data-tier="lg"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.20 * var(--sg-card-font-k)), 50cqh, calc(96cqw / 4.8))!important;}
+html.signage[data-tier="lg"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.12 * var(--sg-card-font-k)), 24cqh)!important;}
+html.signage[data-tier="lg"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.14 * var(--sg-card-font-k)), 30cqh)!important;}
+html.signage[data-tier="xl"] .wcard .lbl{font-size:min(calc(var(--sg-card-lbl) * 1.42 * var(--sg-card-font-k)), 36cqh, calc(96cqw / 5.8))!important;}
+html.signage[data-tier="xl"] .wcard .v{font-size:min(calc(var(--sg-card-v) * 1.28 * var(--sg-card-font-k)), 54cqh, calc(96cqw / 4.6))!important;}
+html.signage[data-tier="xl"] .wcard .u{font-size:min(calc(var(--sg-card-u) * 1.18 * var(--sg-card-font-k)), 28cqh)!important;}
+html.signage[data-tier="xl"] .wbgt-badge{font-size:min(calc(var(--sg-badge) * 1.22 * var(--sg-card-font-k)), 36cqh)!important;}
 
 html.signage .wbgt-body{--card-r:calc(var(--signage-w) * 0.016);--bar-r:calc(var(--signage-w) * 0.028);--bar-h:var(--sg-bar-h);}
 html.signage .wbgt-bar-wrap{
@@ -528,7 +545,7 @@ html.signage[data-tier="xs"] .wbgt-hdr .t-xs{display:flex;}
   --face-text-pad:clamp(185px,36vw,490px);
   --status-name-size:clamp(52px,min(17.5vw,22vh),300px);
   --status-msg-size:calc(var(--status-name-size) * 0.36);
-  --card-loupe:1.42;
+  --card-loupe:1.28;
   --wbar-tri-w:clamp(10px,2.2vw,18px);
   --wbar-tri-h:clamp(12px,2.6vh,20px);
   --wbar-tri-clear:clamp(4px,0.8vh,8px);
@@ -612,53 +629,65 @@ html.face-edit .wbgt-face.face-dragging{
 .wbgt-cards{
   display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(5px,0.8vw,12px);
   margin:0 2vw calc(var(--wbar-tri-h) + var(--wbar-tri-clear));align-self:stretch;min-height:0;
-  --card-head-h:min(calc(clamp(12px,1.78vw,26px) * 1.48),36cqh);
-  --card-row-gap:clamp(4px,0.55vh,10px);
 }
 .wcard{
-  background:#fff;border-radius:var(--card-r);padding:0.85vh 0.8vw 0.7vh;min-width:0;height:100%;min-height:0;
+  background:#fff;border-radius:var(--card-r);padding:0.7vh 0.7vw 0.6vh;min-width:0;height:100%;min-height:0;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;
   gap:0;overflow:hidden;position:relative;container-type:size;
 }
 .wcard-in{
   display:grid;
-  grid-template-rows:var(--card-head-h) auto;
-  row-gap:var(--card-row-gap);
-  align-content:start;justify-items:center;
-  width:calc(100% / var(--card-loupe,1.34));height:calc(100% / var(--card-loupe,1.34));
-  transform:scale(var(--card-loupe,1.34));transform-origin:top center;box-sizing:border-box;
+  grid-template-rows:minmax(0,40fr) minmax(0,60fr);
+  row-gap:clamp(2px,0.35vh,6px);
+  align-content:stretch;justify-items:center;
+  width:calc(100% / var(--card-loupe,1.28));height:calc(100% / var(--card-loupe,1.28));
+  transform:scale(var(--card-loupe,1.28));transform-origin:top center;box-sizing:border-box;
+  overflow:hidden;
 }
 .wcard .lbl,
 .wbgt-badge{
   grid-row:1;
   display:flex;align-items:center;justify-content:center;
-  width:100%;
-  height:var(--card-head-h);
-  max-height:var(--card-head-h);
-  min-height:0;
-  margin:0;
-  box-sizing:border-box;
-  overflow:hidden;
+  width:100%;max-width:100%;
+  height:auto;min-height:0;max-height:100%;
+  margin:0;padding:0 0.15em;
+  box-sizing:border-box;overflow:hidden;
+  position:relative;z-index:1;
 }
-.wcard .lbl{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;font-size:min(calc(clamp(12px,1.78vw,26px) * 1.2),34cqh);font-weight:700;color:#222;white-space:nowrap;line-height:1.05;}
+.wcard .lbl{display:flex;align-items:center;justify-content:center;gap:0.18em;width:100%;font-size:min(calc(clamp(14px,2.1vw,32px) * 1.45),34cqh,calc(96cqw/5.8));font-weight:700;color:#222;white-space:nowrap;line-height:1.05;}
 .wcard .val{
   grid-row:2;
   display:flex;align-items:baseline;justify-content:center;width:100%;max-width:100%;
-  gap:0.12em;text-align:center;margin:0;align-self:center;
+  gap:0.12em;text-align:center;margin:0;padding:0 0.1em;
+  align-self:center;min-height:0;max-height:100%;overflow:hidden;box-sizing:border-box;
+  position:relative;z-index:1;
 }
-.wcard .ic{font-size:min(calc(clamp(14px,2.05vw,30px) * 1.15),1.15em);line-height:1;}
-.wcard .ic:not(.ic-thermo){
+.wcard .ic{font-size:min(calc(clamp(16px,2.35vw,36px) * 1.32),1.22em);line-height:1;flex-shrink:0;}
+.wcard .ic:not(.ic-thermo):not(.ic-humid):not(.ic-time){
   display:inline-flex;align-items:center;justify-content:center;
-  width:1.15em;min-height:1.15em;
+  width:1.22em;min-height:1.22em;
 }
-.wcard .ic-thermo{display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;}
-.wcard .ic-thermo svg{width:1em;height:1.35em;display:block;}
-.wcard .v{font-size:min(calc(clamp(20px,3.9vw,58px) * 1.2),54cqh,calc(96cqw/5.5));font-weight:900;color:#111;line-height:1;}
-.wcard .u{font-size:min(calc(clamp(12px,1.68vw,24px) * 1.15),28cqh);font-weight:700;color:#555;margin-left:0;}
+.wcard .ic-thermo,
+.wcard .ic-humid,
+.wcard .ic-time{
+  display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;
+  flex-shrink:0;margin-right:0.06em;
+  position:relative;z-index:10;overflow:visible;
+}
+.wcard .ic-thermo svg{
+  width:0.82em;height:1.18em;display:block;
+  transform:rotate(-12deg);transform-origin:50% 88%;
+  position:relative;z-index:10;
+}
+.wcard:has(.ic-thermo) .lbl,
+.wcard:has(.ic-humid) .lbl,
+.wcard:has(.ic-time) .lbl{overflow:visible;z-index:2;}
+.wcard .v{font-size:min(calc(clamp(20px,4vw,60px) * 1.24),50cqh,calc(96cqw/4.8));font-weight:900;color:#111;line-height:1;max-width:100%;}
+.wcard .u{font-size:min(calc(clamp(12px,1.75vw,25px) * 1.15),26cqh);font-weight:700;color:#555;margin-left:0;}
 .wbgt-badge{
   display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:min(calc(clamp(12px,1.9vw,28px) * 1.2),34cqh);font-weight:900;border-radius:999px;
-  padding:0 14px;transition:background 0.35s;align-self:center;white-space:nowrap;line-height:1.05;
+  color:#fff;font-size:min(calc(clamp(12px,2vw,30px) * 1.28),34cqh,calc(96cqw/4.5));font-weight:900;border-radius:999px;
+  padding:0.28em 14px;transition:background 0.35s;align-self:center;white-space:nowrap;line-height:1.05;
 }
 
 .wbgt-bar-wrap{
@@ -1239,9 +1268,9 @@ html.signage .rain[data-rain-lv="3"] .rbar.active{border-color:#111!important;}
     </div>
     <div class="wbgt-cards">
       <div class="wcard wcard-metric"><div class="wcard-in"><div class="lbl"><span class="ic ic-thermo" aria-hidden="true"><svg viewBox="0 0 20 32" xmlns="http://www.w3.org/2000/svg"><rect x="7.5" y="2" width="5" height="18" rx="2.5" fill="#f8bbd0" stroke="#bdbdbd" stroke-width="1"/><circle cx="10" cy="26" r="6" fill="#e53935" stroke="#bdbdbd" stroke-width="1"/><rect x="8.5" y="10" width="3" height="10" rx="1.5" fill="#e53935"/></svg></span>温度</div><div class="val"><span class="v" id="wT">26.0</span><span class="u">℃</span></div></div></div>
-      <div class="wcard wcard-metric"><div class="wcard-in"><div class="lbl"><span class="ic">💧</span>湿度</div><div class="val"><span class="v" id="wH">50</span><span class="u">%</span></div></div></div>
+      <div class="wcard wcard-metric"><div class="wcard-in"><div class="lbl"><span class="ic ic-humid" aria-hidden="true">💧</span>湿度</div><div class="val"><span class="v" id="wH">50</span><span class="u">%</span></div></div></div>
       <div class="wcard wcard-wbgt"><div class="wcard-in"><span class="wbgt-badge" id="wBadge">WBGT</span><div class="val"><span class="v" id="wW">23.0</span></div></div></div>
-      <div class="wcard wcard-metric"><div class="wcard-in"><div class="lbl"><span class="ic">🕐</span>更新時刻</div><div class="val"><span class="v" id="wUpd">--:--</span></div></div></div>
+      <div class="wcard wcard-metric"><div class="wcard-in"><div class="lbl"><span class="ic ic-time" aria-hidden="true">🕐</span>更新時刻</div><div class="val"><span class="v" id="wUpd">--:--</span></div></div></div>
     </div>
     <div class="wbgt-bar-wrap">
       <div class="wbgt-bar" id="wBar"></div>
@@ -1354,7 +1383,7 @@ const CONFIG = {
   FACE_SIZE_VW:     32,      // PCフル画面時の幅(vw)
   FACE_RIGHT_VW:    5.5,     // PCフル画面時の右余白(vw)
 };
-const LAYOUT_VER=85;
+const LAYOUT_VER=98;
 /** 環境省実況値: 毎時〜30分・〜45分頃に更新 → その直後に取得 */
 const WBGT_FETCH_SLOTS_MIN=[33,48];
 let fetchTimer=null;
@@ -1516,12 +1545,12 @@ function signageTier(h){
 }
 function applySignageCardFit(w,h){
  const tier=signageTier(h);
- const base={xs:1.24,sm:1.30,md:1.36,lg:1.40,xl:1.28}[tier]||1.36;
+ const base={xs:1.18,sm:1.22,md:1.26,lg:1.30,xl:1.24}[tier]||1.26;
  const ar=w/h, refAr=4/3;
  let loupe=base;
- if(tier==='lg'&&h/SG_REF_75_H>=1.9) loupe=Math.min(1.44,base+0.04);
- if(tier==='xl'&&ar>1.55) loupe=1.24;
- else if(ar>refAr+0.02) loupe=Math.max(1.14,loupe-0.04);
+ if(tier==='lg'&&h/SG_REF_75_H>=1.9) loupe=Math.min(1.36,base+0.04);
+ if(tier==='xl'&&ar>1.55) loupe=1.20;
+ else if(ar>refAr+0.02) loupe=Math.max(1.08,loupe-0.03);
  document.documentElement.style.setProperty('--sg-card-loupe',String(Math.round(loupe*1000)/1000));
  document.documentElement.style.setProperty('--sg-card-font-k','1');
 }
@@ -1623,10 +1652,10 @@ function guardSignageStatusFit(){
 function cardContentOverflows(card){
  if(card.clientWidth<4||card.clientHeight<4) return false;
  const cr=card.getBoundingClientRect();
- const pad=Math.max(3,Math.min(cr.width,cr.height)*0.025);
+ const pad=Math.max(3,Math.min(cr.width,cr.height)*0.04);
  const L=cr.left+pad, R=cr.right-pad, T=cr.top+pad, B=cr.bottom-pad;
  let bad=false;
- card.querySelectorAll('.lbl,.val,.wbgt-badge,.v,.u,.ic').forEach(el=>{
+ card.querySelectorAll('.wcard-in,.lbl,.val,.wbgt-badge,.v,.u,.ic').forEach(el=>{
   const r=el.getBoundingClientRect();
   if(r.width<0.5&&r.height<0.5) return;
   if(r.left<L-0.5||r.right>R+0.5||r.top<T-0.5||r.bottom>B+0.5) bad=true;
@@ -1640,12 +1669,12 @@ function guardSignageCardFit(){
  const cards=board.querySelectorAll('.wbgt-cards .wcard');
  if(!cards.length) return;
  const tier=document.documentElement.dataset.tier||'md';
- const kMin=tier==='xl'?0.88:0.74;
- const kStep=tier==='xl'?0.02:0.04;
- const loupeMin=tier==='xl'?1.18:1.14;
+ const kMin=tier==='xl'?0.72:0.62;
+ const kStep=0.02;
+ const loupeMin=1.0;
  let k=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sg-card-font-k'))||1;
- let loupe=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sg-card-loupe'))||1.36;
- for(let i=0;i<16;i++){
+ let loupe=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sg-card-loupe'))||1.26;
+ for(let i=0;i<32;i++){
   let bad=false;
   cards.forEach(c=>{if(cardContentOverflows(c)) bad=true;});
   if(!bad) break;
@@ -1653,7 +1682,7 @@ function guardSignageCardFit(){
    k=Math.max(kMin,Math.round((k-kStep)*100)/100);
    document.documentElement.style.setProperty('--sg-card-font-k',String(k));
   }else if(loupe>loupeMin){
-   loupe=Math.max(loupeMin,Math.round((loupe-0.03)*100)/100);
+   loupe=Math.max(loupeMin,Math.round((loupe-0.02)*100)/100);
    document.documentElement.style.setProperty('--sg-card-loupe',String(loupe));
   }else break;
  }
@@ -1662,6 +1691,7 @@ function scheduleGuardSignageOverflow(){
  if(signageGuardLocked) return;
  requestAnimationFrame(()=>{
   guardSignageOverflow();
+  requestAnimationFrame(guardSignageOverflow);
   signageGuardLocked=true;
  });
 }
