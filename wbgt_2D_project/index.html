@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>防災モニタリングシステム（WBGT / 大雨情報）</title>
-<!-- LAYOUT_VER:99 -->
+<!-- LAYOUT_VER:100 -->
 <script>
 /* Live Preview（Show Preview）: パラメータ無しで index.html を開いたとき LED 固定解像度デモへ */
 (function(){
@@ -16,7 +16,7 @@
  if(h!=='127.0.0.1'&&h!=='localhost') return;
  if(!/\/index\.html$/i.test(location.pathname)&&location.pathname.slice(-1)!=='/') return;
  if(p&&p!=='3000'&&p!=='3001'&&p!=='3002'&&p!=='3003'&&p!=='3007') return;
- location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=99');
+ location.replace('index.html?demo=1&mode=wbgt&fit=0&pitch=P3.47&inch=100&v=100');
 })();
 </script>
 <style>
@@ -209,26 +209,28 @@ html.signage .wcard .ic:not(.ic-thermo):not(.ic-humid):not(.ic-time){
   display:inline-flex!important;align-items:center!important;justify-content:center!important;
   width:1.22em!important;min-height:1.22em!important;
 }
-html.signage .wcard .ic-thermo,
+html.signage .wcard .ic-thermo{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex-shrink:0!important;margin-right:0.06em!important;
+  position:relative!important;z-index:10!important;overflow:visible!important;
+  padding-top:0.06em!important;
+}
+html.signage .wcard .ic-thermo svg{
+  height:1.12em!important;width:0.78em!important;display:block!important;
+  transform:rotate(-10deg) translateY(0.04em)!important;transform-origin:50% 88%!important;
+  position:relative!important;z-index:10!important;
+}
 html.signage .wcard .ic-humid,
 html.signage .wcard .ic-time{
   display:inline-flex!important;align-items:center!important;justify-content:center!important;
   flex-shrink:0!important;margin-right:0.06em!important;
   position:relative!important;z-index:10!important;overflow:visible!important;
 }
-html.signage .wcard .ic-thermo svg{
-  height:1.14em!important;width:0.80em!important;display:block!important;
-  transform:rotate(-12deg) translateY(0.1em)!important;transform-origin:50% 88%!important;
-  position:relative!important;z-index:10!important;
-}
 html.signage .wcard:has(.ic-humid) .lbl,
 html.signage .wcard:has(.ic-time) .lbl{overflow:visible!important;z-index:2!important;}
 html.signage .wcard:has(.ic-thermo) .lbl{
   overflow:visible!important;z-index:2!important;
-  padding-top:0.14em!important;align-items:flex-end!important;
-}
-html.signage .wcard:has(.ic-thermo){
-  padding-top:calc(var(--signage-h) * 0.016)!important;
+  align-items:center!important;padding-top:0!important;
 }
 html.signage .wcard .v{
   font-size:min(calc(var(--sg-card-v) * 1.24 * var(--sg-card-font-k)), 50cqh, calc(96cqw / 4.8))!important;
@@ -673,25 +675,29 @@ html.face-edit .wbgt-face.face-dragging{
   display:inline-flex;align-items:center;justify-content:center;
   width:1.22em;min-height:1.22em;
 }
-.wcard .ic-thermo,
+.wcard .ic-thermo{
+  display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;
+  flex-shrink:0;margin-right:0.06em;
+  position:relative;z-index:10;overflow:visible;
+  padding-top:0.06em;
+}
+.wcard .ic-thermo svg{
+  width:0.78em;height:1.12em;display:block;
+  transform:rotate(-10deg) translateY(0.04em);transform-origin:50% 88%;
+  position:relative;z-index:10;
+}
 .wcard .ic-humid,
 .wcard .ic-time{
   display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;
   flex-shrink:0;margin-right:0.06em;
   position:relative;z-index:10;overflow:visible;
 }
-.wcard .ic-thermo svg{
-  width:0.80em;height:1.14em;display:block;
-  transform:rotate(-12deg) translateY(0.1em);transform-origin:50% 88%;
-  position:relative;z-index:10;
-}
 .wcard:has(.ic-humid) .lbl,
 .wcard:has(.ic-time) .lbl{overflow:visible;z-index:2;}
 .wcard:has(.ic-thermo) .lbl{
   overflow:visible;z-index:2;
-  padding-top:0.14em;align-items:flex-end;
+  align-items:center;padding-top:0;
 }
-.wcard:has(.ic-thermo){padding-top:0.75vh;}
 .wcard .v{font-size:min(calc(clamp(20px,4vw,60px) * 1.24),50cqh,calc(96cqw/4.8));font-weight:900;color:#111;line-height:1;max-width:100%;}
 .wcard .u{font-size:min(calc(clamp(12px,1.75vw,25px) * 1.15),26cqh);font-weight:700;color:#555;margin-left:0;}
 .wbgt-badge{
@@ -1393,7 +1399,7 @@ const CONFIG = {
   FACE_SIZE_VW:     32,      // PCフル画面時の幅(vw)
   FACE_RIGHT_VW:    5.5,     // PCフル画面時の右余白(vw)
 };
-const LAYOUT_VER=99;
+const LAYOUT_VER=100;
 /** 環境省実況値: 毎時〜30分・〜45分頃に更新 → その直後に取得 */
 const WBGT_FETCH_SLOTS_MIN=[33,48];
 let fetchTimer=null;
@@ -1553,14 +1559,18 @@ function shouldUseViewportStretch(q){
 function signageTier(h){
  return h<=300?'xs':h<=380?'sm':h<=460?'md':h<=900?'lg':'xl';
 }
-function applySignageCardFit(w,h){
+function applySignageCardFit(w,h,pitch,inch){
  const tier=signageTier(h);
  const base={xs:1.18,sm:1.22,md:1.26,lg:1.30,xl:1.24}[tier]||1.26;
- const ar=w/h, refAr=4/3;
+ pitch=pitch||document.documentElement.dataset.pitch;
+ inch=inch?+inch:+(document.documentElement.dataset.inch||100);
+ const row=pitch&&SIGNAGE_RES[pitch];
+ const ref=row&&row[inch]?row[inch]:[SG_REF_75_W,SG_REF_75_H];
+ const ar=w/h, refAr=ref[0]/ref[1];
  let loupe=base;
  if(tier==='lg'&&h/SG_REF_75_H>=1.9) loupe=Math.min(1.36,base+0.04);
  if(tier==='xl'&&ar>1.55) loupe=1.20;
- else if(ar>refAr+0.02) loupe=Math.max(1.08,loupe-0.03);
+ else if(ar>refAr+0.02) loupe=Math.max(1.14,loupe-Math.min(0.03,(ar-refAr)*0.12));
  document.documentElement.style.setProperty('--sg-card-loupe',String(Math.round(loupe*1000)/1000));
  document.documentElement.style.setProperty('--sg-card-font-k','1');
 }
@@ -1760,7 +1770,7 @@ function applySignageLayout(){
  document.documentElement.style.setProperty('--sg-scale-w',String(w/SG_REF_75_W));
  document.documentElement.style.setProperty('--sg-scale-h',String(h/SG_REF_75_H));
  applySignageAspectCorr(w,h,pitch,inch);
- applySignageCardFit(w,h);
+ applySignageCardFit(w,h,pitch,inch);
  const root=document.getElementById('signage-root');
  document.documentElement.classList.toggle('signage-fill',viewportStretch||nativeFill);
  document.documentElement.classList.toggle('signage-auto-fit',!viewportStretch&&!nativeFill);
