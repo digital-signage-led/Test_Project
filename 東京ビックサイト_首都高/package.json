@@ -1,0 +1,13 @@
+{
+  "name": "tokyo-bigsite-shuto",
+  "version": "1.0.0",
+  "description": "首都高速道路 WBGT サイネージ（東京ビッグサイト・有明 / 5面 640×128）",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs"
+}
