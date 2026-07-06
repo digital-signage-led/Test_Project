@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- wbgt-cube-greencross-5face / 株式会社グリーンクロス WBGT サイネージ（本番 5面 640×128・ロゴ列128） -->
 <!-- 同階層: assets/greencross_logo.png（右端ロゴ列 x≥512・下帯） -->
 <!-- 会場: 〒135-0063 東京都江東区有明３丁目１１−１（東京ビッグサイト） -->
@@ -107,6 +107,11 @@
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
             flex-shrink: 0; background: #55A5E6; order: 2; overflow: hidden; position: relative;
             transition: background-color 0.6s ease;
+        }
+        /* 初回読み込み: キャッシュ復元まで背景遷移を抑え、左右の色ズレを目立たせない */
+        body.signage-bg-boot .logo-panel,
+        body.signage-bg-boot .content-area {
+            transition: none !important;
         }
         .logo-rotator {
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
@@ -1580,6 +1585,53 @@
         </div>
     </div>
     <div class="content-area">
+<script>
+(function () {
+    try {
+        document.body.classList.add('signage-bg-boot');
+        var q = new URLSearchParams(location.search);
+        var cfg = window.SignageConfig;
+        var pt = q.get('moePoint') || (cfg && cfg.moe && cfg.moe.point) || '44132';
+        var KEY = 'cspi2026_signage_state_v1';
+        var MAX = 7 * 24 * 60 * 60 * 1000;
+        var PAL = [
+            { i: 0, bg: '#308DD8', bar: '#55A5E6' },
+            { i: 1, bg: '#FFD92D', bar: '#FEE968' },
+            { i: 2, bg: '#FFBE2D', bar: '#FECD58' },
+            { i: 3, bg: '#FF7E00', bar: '#FF9A38' },
+            { i: 4, bg: '#D61914', bar: '#E94540' }
+        ];
+        var OFF = { bg: '#484848', bar: '#585858' };
+        function wbgtLevel(w) {
+            return w >= 31 ? 4 : w >= 28 ? 3 : w >= 25 ? 2 : w >= 21 ? 1 : 0;
+        }
+        var raw = localStorage.getItem(KEY);
+        var colors = PAL[0];
+        if (raw) {
+            var data = JSON.parse(raw);
+            if (data && String(data.point) === String(pt) && Date.now() - (data.savedAt || 0) <= MAX) {
+                if (data.wbgtOffSeason) {
+                    colors = OFF;
+                } else {
+                    var lv = 0;
+                    if (data.slots && data.slots.length >= 4 && data.slots[0] && data.slots[0].wbgt != null) {
+                        var row = data.slots[0];
+                        lv = typeof row.levelIdx === 'number' ? row.levelIdx : wbgtLevel(row.wbgt);
+                    } else if (typeof data.level === 'number' && data.level >= 0) {
+                        lv = data.level;
+                    }
+                    lv = Math.max(0, Math.min(4, lv | 0));
+                    colors = PAL.find(function (p) { return p.i === lv; }) || PAL[0];
+                }
+            }
+        }
+        var content = document.querySelector('.content-area');
+        var panel = document.querySelector('.logo-panel');
+        if (content) content.style.backgroundColor = colors.bg;
+        if (panel) panel.style.backgroundColor = colors.bar;
+    } catch (_) {}
+})();
+</script>
     <div class="scene" id="sceneAlert">
         <div class="ha-pair ha-warning" id="ha-pair">
             <div class="ha-unit">
@@ -2004,8 +2056,6 @@
         if (!img || !cfg) return;
         img.src = cfg.logoSrc;
         img.alt = cfg.logoAlt;
-        const panel = document.querySelector('.logo-panel');
-        if (panel && cfg.logoPanelBg) panel.style.backgroundColor = cfg.logoPanelBg;
     }
     function refreshLogoPanel(levelIdx, displayMode) {
         const panel = document.querySelector('.logo-panel');
@@ -2033,8 +2083,7 @@
 
     function initHosts() {
         initSignageLogo_();
-        refreshLogoPanel(0, 'normal');
-        /* 背景レイヤーは strip しない（更新のたびに黒/灰が見えるのを防ぐ） */
+        /* 背景色は refreshSignageBg で content-area と logo-panel を同時に塗る */
     }
 
     global.SignageBg = {
@@ -2587,6 +2636,7 @@
     }
     function refreshSignageBg() {
         if (typeof SignageBg === 'undefined') return;
+        document.body.classList.remove('signage-bg-boot');
         const rawMode = getSignageDisplayMode_();
         const rawLv = rawMode === 'normal' ? getSignageBgLevel_() : -1;
         const paint = resolveSignageBgPaint_(rawMode, rawLv);
@@ -7295,7 +7345,6 @@
 
     window.onload = async function() {
         restoreSignageStateCache_();
-        if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         applySiteLocationLabels_();
         try {
             syncWbgtSlotsToDomIfReady_();
@@ -7303,6 +7352,7 @@
         } catch (err) {
             console.warn('Init bg paint:', err);
         }
+        if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         const logoEl = document.getElementById('signage-logo');
         const logoCfg = window.SIGNAGE_CONFIG;
         if (logoEl && logoCfg && logoCfg.logoSrc) {
