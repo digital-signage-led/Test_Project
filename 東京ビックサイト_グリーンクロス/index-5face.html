@@ -1,6 +1,6 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- wbgt-cube-greencross-5face / 株式会社グリーンクロス WBGT サイネージ（本番 5面 640×128・ロゴ列128） -->
-<!-- 同階層: assets/greencross_logo.png（右端ロゴ列 x≥512・下帯） -->
+<!-- 同階層: assets/logo.png（右端ロゴ列）・assets/foot-banner.png（下帯） -->
 <!-- 会場: 〒135-0063 東京都江東区有明３丁目１１−１（東京ビッグサイト） -->
 <!-- WBGT・AMeDAS 44132（東京・気象庁/環境省） -->
 <html lang="ja">
@@ -10,6 +10,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>WBGT Signage 5面 - 株式会社グリーンクロス</title>
+    <link rel="preload" href="./assets/logo.png" as="image">
     <script>
 /** 5面 640×128 本番用（512 コンテンツ + 128 ロゴ列・native640）。localhost は PC 確認用に拡大表示 */
 (function () {
@@ -102,10 +103,10 @@
             body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
         }
         body.layout-512.native-640 .canvas { transform: none !important; }
-        /* 右端 128×128（x≥512）: 上バー色で塗りつぶし・ロゴ中央 */
+        /* 右端 128×128（x≥512）: 左512pxと同じ本体色（bgColor）・ロゴ中央 */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; background: #55A5E6; order: 2; overflow: hidden; position: relative;
+            flex-shrink: 0; background: #308DD8; order: 2; overflow: hidden; position: relative;
             transition: background-color 0.6s ease;
         }
         /* 初回読み込み: キャッシュ復元まで背景遷移を抑え、左右の色ズレを目立たせない */
@@ -117,10 +118,11 @@
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
             display: flex; align-items: center; justify-content: center;
             transform-origin: center center;
-            transition: transform 0.6s ease-in-out;
+            transition: none;
         }
         .logo-img {
-            display: block; max-width: 100px; max-height: 100px; width: auto; height: auto;
+            display: block; width: 112px; height: 112px;
+            max-width: 112px; max-height: 112px;
             object-fit: contain; object-position: center center; margin: 0;
         }
         .content-area { width: 512px; height: 128px; position: relative; overflow: hidden; flex-shrink: 0; order: 1; background: #308DD8; }
@@ -396,10 +398,10 @@
         }
         .s1-wbgt-logo-wrap {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 28px; height: 16px; background: transparent; flex-shrink: 0; overflow: hidden;
+            width: 32px; height: 18px; background: transparent; flex-shrink: 0; overflow: hidden;
         }
         .s1-wbgt-logo {
-            height: 15px; width: auto; max-width: 28px; flex-shrink: 0;
+            height: 17px; width: auto; max-width: 32px; flex-shrink: 0;
             display: block; object-fit: contain;
         }
         .s1-wbgt-site-label {
@@ -1562,11 +1564,11 @@
   global.SignageConfig = cfg;
 
   global.SIGNAGE_CONFIG = {
-    logoSrc: './assets/greencross_logo.png',
+    logoSrc: './assets/logo.png',
     logoAlt: '株式会社グリーンクロス',
-    logoPanelBg: '#55A5E6',
-    footLogoSrc: './assets/greencross_logo.png',
-    footBannerSrc: './assets/greencross_foot_name.svg'
+    logoPanelBg: '#308DD8',
+    footLogoSrc: '',
+    footBannerSrc: './assets/foot-banner.png'
   };
 })(typeof window !== 'undefined' ? window : global);
 
@@ -1581,7 +1583,7 @@
 <div class="canvas">
     <div class="logo-panel">
         <div class="logo-rotator" id="logo-rotator">
-            <img class="logo-img" id="signage-logo" src="./assets/greencross_logo.png" alt="株式会社グリーンクロス">
+            <img class="logo-img" id="signage-logo" src="./assets/logo.png" alt="株式会社グリーンクロス" width="112" height="112" fetchpriority="high" decoding="async">
         </div>
     </div>
     <div class="content-area">
@@ -1628,7 +1630,7 @@
         var content = document.querySelector('.content-area');
         var panel = document.querySelector('.logo-panel');
         if (content) content.style.backgroundColor = colors.bg;
-        if (panel) panel.style.backgroundColor = colors.bar;
+        if (panel) panel.style.backgroundColor = colors.bg;
     } catch (_) {}
 })();
 </script>
@@ -1735,6 +1737,28 @@
         </div>
         <div class="s1-wbgt-bar"><div class="s1-wbgt-track" id="s1-wbgt-track"></div></div>
     </div>
+<script>
+(function () {
+    try {
+        var now = new Date();
+        var dateStr = new Intl.DateTimeFormat('ja-JP', {
+            timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', weekday: 'short'
+        }).format(now);
+        var h = '00';
+        var m = '00';
+        new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false
+        }).formatToParts(now).forEach(function (p) {
+            if (p.type === 'hour') h = p.value;
+            if (p.type === 'minute') m = p.value;
+        });
+        document.querySelectorAll('#scene1 .s1-bar-label').forEach(function (el) { el.textContent = dateStr; });
+        document.querySelectorAll('#scene1 .clock-hm').forEach(function (el) {
+            el.innerHTML = '<span class="clock-h">' + h + '</span><span class="clock-colon" aria-hidden="true">:</span><span class="clock-m">' + m + '</span>';
+        });
+    } catch (_) {}
+})();
+</script>
 
     <div class="scene" id="scene2">
         <div class="s2-scroll-wrap">
@@ -2049,7 +2073,7 @@
         applySceneStripBg(content, levelIdx, displayMode);
     }
 
-    /** 右端 128×128 ロゴ列: WBGT段階の上バー色（barColor）で塗りつぶし */
+    /** 右端 128×128 ロゴ列: 左512pxと同じ本体色（bgColor）で塗りつぶし */
     function initSignageLogo_() {
         const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
         const cfg = global.SIGNAGE_CONFIG;
@@ -2060,7 +2084,7 @@
     function refreshLogoPanel(levelIdx, displayMode) {
         const panel = document.querySelector('.logo-panel');
         if (!panel) return;
-        panel.style.backgroundColor = colorsForDisplay(levelIdx, displayMode).barColor;
+        panel.style.backgroundColor = colorsForDisplay(levelIdx, displayMode).bgColor;
     }
 
     function refreshAll(currentLevelIdx, displayMode) {
@@ -6056,7 +6080,7 @@
     function buildS1FootBannerSvgHtml_(siteName) {
         const alt = escapeS1Html(siteName || '株式会社グリーンクロス');
         const cfg = (typeof window !== 'undefined' && window.SIGNAGE_CONFIG) || {};
-        const logoSrc = escapeS1Html(cfg.logoSrc || cfg.footLogoSrc || './assets/greencross_logo.png');
+        const logoSrc = escapeS1Html(cfg.logoSrc || cfg.footLogoSrc || './assets/logo.png');
         return `<div class="s1-wbgt-slot s1-wbgt-site-slot"><svg class="s1-wbgt-banner s1-wbgt-banner-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 32" role="img" aria-label="${alt}">
   <image href="${logoSrc}" x="0" y="5" width="22" height="22" preserveAspectRatio="xMidYMid meet"/>
   <text x="26" y="16" dominant-baseline="central" font-family="'M PLUS Rounded 1c','Hiragino Maru Gothic ProN','Rounded Mplus 1c',sans-serif" font-weight="700" font-size="15" fill="#231815">株式会社グリーンクロス</text>
@@ -7368,10 +7392,10 @@
             return;
         }
         if (DEMO_SIGNAGE_ACTIVE) {
-            await syncTimeFromNetwork().catch(function () {});
             if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'demo-local');
             updateClock();
             startClockTicker();
+            syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
             applyDemoWeatherStatic();
             if (DEMO_PREVIEW === 's1' || DEMO_PREVIEW === 's3') {
                 startPreviewDemo_(DEMO_PREVIEW);
@@ -7385,9 +7409,10 @@
             setTimeout(startSequence, 500);
             return;
         }
-        await syncTimeFromNetwork().catch(function () {});
+        if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'local-boot');
         updateClock();
         startClockTicker();
+        syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
         /* 初回取得完了まで「取得不可」は出さない。色はキャッシュ復元または pending（誤った level 0 を出さない） */
         if (!wbgtOffSeason) wbgtUnavailable = false;
         try {
@@ -7402,7 +7427,6 @@
         setInterval(function () {
             syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
         }, CLOCK_SYNC_INTERVAL_MS);
-        /* 初回取得を待ってからループ開始（濃い灰の時間を短く・更新の重なりを防ぐ） */
         var mainLoopStartedLocal_ = false;
         function beginMainLoop_() {
             if (mainLoopStartedLocal_) return;
@@ -7429,10 +7453,10 @@
             s1.classList.add('active');
             updateClock();
         }
-        Promise.race([
-            runScheduledFetch({ jma: true, moe: true, nowc: false, forecast: true, labels: ['起動'] }),
-            new Promise(function (resolve) { setTimeout(resolve, 3500); })
-        ]).finally(beginMainLoop_);
+        beginMainLoop_();
+        runScheduledFetch({ jma: true, moe: true, nowc: false, forecast: true, labels: ['起動'] }).catch(function (err) {
+            console.warn('Init fetch:', err);
+        });
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
                 syncTimeFromNetwork().then(function() { updateClock(); startClockTicker(); }).catch(function() { startClockTicker(); });
