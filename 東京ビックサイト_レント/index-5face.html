@@ -1,6 +1,6 @@
-﻿<!DOCTYPE html>
-<!-- wbgt-cube-rent-5face / 株式会社レント WBGT サイネージ（本番 5面 640×128・ロゴ列128） -->
-<!-- 同階層: assets/rent_logo_white.png（右端ロゴ列） / rent_logo_banner.png（時刻シーン下帯・流れるRENTロゴ） -->
+<!DOCTYPE html>
+<!-- wbgt-cube-rent-5face / 株式会社レント WBGT サイネージ（本番 5面 640×128・5列目128ロゴ） -->
+<!-- 同階層: rent_logo_banner.png（右端ロゴ列） / rent_foot_wordmark.png（時刻下帯・RENT＋WBGT流し） -->
 <!-- 会場: 〒135-0063 東京都江東区有明３丁目１１−１（東京ビッグサイト） -->
 <!-- WBGT・AMeDAS 44132（東京・気象庁/環境省） -->
 <html lang="ja">
@@ -35,6 +35,7 @@
     }
     function addBody_() {
         if (!document.body) return;
+        document.body.classList.add('signage-boot');
         if (forceNative) document.body.classList.add('native-640');
         else document.body.classList.add('browser-preview');
     }
@@ -54,6 +55,7 @@
             --led-foot-site-font: 15px;
         }
         body { margin: 0; padding: 0; background-color: #308DD8; overflow: hidden; font-family: "Inter", "Noto Sans JP", sans-serif; }
+        body.signage-boot .canvas { visibility: hidden; }
         .demo-badge {
             position: fixed; top: 0; left: 0; z-index: 9999;
             padding: 4px 10px; background: rgba(0,0,0,0.75); color: #fff;
@@ -102,11 +104,10 @@
             body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
         }
         body.layout-512.native-640 .canvas { transform: none !important; }
-        /* 右端 128×128（x≥512）: 上バー色で塗りつぶし・ロゴ中央 */
+        /* 右端 128×128（x≥512）: 上段（上バー）と同じ barColor で全面塗り（遷移なしで即時同期） */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; background: #3a3a3a; order: 2; overflow: hidden; position: relative;
-            transition: background-color 0.6s ease;
+            flex-shrink: 0; background: transparent; order: 2; overflow: hidden; position: relative;
         }
         .logo-rotator {
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
@@ -115,7 +116,7 @@
             transition: transform 0.6s ease-in-out;
         }
         .logo-img {
-            display: block; max-width: 100px; max-height: 100px; width: auto; height: auto;
+            display: block; max-width: 108px; max-height: 108px; width: auto; height: auto;
             object-fit: contain; object-position: center center; margin: 0;
         }
         .content-area { width: 512px; height: 128px; position: relative; overflow: hidden; flex-shrink: 0; order: 1; background: #308DD8; }
@@ -273,7 +274,7 @@
             transform: translateY(-0.07em);
         }
         #scene1, #scene4 { overflow: hidden; position: relative; }
-        #scene1.active { display: block; }
+        #scene1.active { display: block; overflow: visible; }
         .fc-scroll-wrap {
             width: 512px; height: var(--led-col-main-h); flex-shrink: 0;
             overflow: hidden; position: relative; z-index: 1;
@@ -290,6 +291,10 @@
         .s1-wbgt-bar, .fc-lv-bar, .s2-meta-bar {
             position: absolute; left: 0; bottom: 0; width: 512px; height: var(--led-foot-bar-h);
             background: var(--led-foot-bar-bg); overflow: hidden; z-index: 12; box-sizing: border-box;
+        }
+        #scene1 .s1-wbgt-bar {
+            overflow: visible;
+            z-index: 20;
         }
         .s1-wbgt-track, .fc-lv-track, .s2-meta-track {
             display: flex; flex-direction: row; align-items: stretch; height: var(--led-foot-bar-h);
@@ -357,12 +362,24 @@
             display: flex; align-items: center; justify-content: center;
             padding: 0 4px; box-sizing: border-box;
         }
+        #scene1 .s1-wbgt-slot-banner {
+            overflow: visible;
+        }
         #scene1 .s1-wbgt-site-slot .s1-wbgt-banner,
         #scene1 .s1-wbgt-slot-banner .s1-wbgt-banner {
             display: block; margin: 0 auto;
             height: 22px; width: auto; max-width: 234px;
             object-fit: contain; object-position: center center;
             background: transparent;
+        }
+        #scene1 .s1-wbgt-slot-banner .s1-wbgt-banner {
+            height: 22px; max-width: 248px;
+        }
+        #scene1 .s1-wbgt-slot-banner .s1-wbgt-banner-wordmark {
+            height: 40px;
+            max-width: 480px;
+            position: relative;
+            z-index: 2;
         }
         #scene1 .s1-wbgt-site-slot .s1-wbgt-banner-svg {
             height: 26px; max-width: 252px;
@@ -1558,12 +1575,12 @@
   global.SignageConfig = cfg;
 
   global.SIGNAGE_CONFIG = {
-    logoSrc: './assets/rent_logo_white.png',
-    logoSrcDark: './assets/rent_logo_dark.png',
+    logoSrc: './assets/rent_logo_banner.png?v=5',
+    logoSrcDark: './assets/rent_logo_banner.png?v=5',
     logoAlt: '株式会社レント',
     logoPanelBg: '#3a3a3a',
-    footLogoSrc: './assets/rent_logo_dark.png',
-    footBannerSrc: './assets/rent_logo_banner.png'
+    footLogoSrc: './assets/rent_logo_banner.png?v=5',
+    footBannerSrc: './assets/rent_foot_wordmark.png?v=6'
   };
 })(typeof window !== 'undefined' ? window : global);
 
@@ -1578,7 +1595,7 @@
 <div class="canvas">
     <div class="logo-panel">
         <div class="logo-rotator" id="logo-rotator">
-            <img class="logo-img" id="signage-logo" src="./assets/rent_logo_white.png" alt="株式会社レント">
+            <img class="logo-img" id="signage-logo" src="./assets/rent_logo_banner.png?v=5" alt="株式会社レント">
         </div>
     </div>
     <div class="content-area">
@@ -1845,8 +1862,10 @@
         if (!layer) return;
         const top = layer.querySelector('.col-bg-top');
         const body = layer.querySelector('.col-bg-body');
+        const foot = layer.querySelector('.col-bg-foot');
         if (top) top.style.backgroundColor = colors.barColor;
         if (body) body.style.backgroundColor = colors.bgColor;
+        if (foot) foot.style.backgroundColor = LED_FOOT_BAR_BG;
     }
 
     /** シーン4モジュール: 上バーは t3-scene-top-bar 側。列背景は本体72px+下帯24pxのみ */
@@ -1943,6 +1962,11 @@
             }
             applyColorsToLayer(layer, colors, KIND.STRIP);
         });
+        const logoPanel = document.querySelector('.logo-panel');
+        if (logoPanel) {
+            logoPanel.style.backgroundColor = colors.barColor;
+            logoPanel.style.setProperty('background-color', colors.barColor, 'important');
+        }
         applyT3TopBar(document.querySelector('#scene3 .t3-scene-top-bar'), levelIdx, displayMode);
     }
 
@@ -1999,7 +2023,7 @@
         applySceneStripBg(content, levelIdx, displayMode);
     }
 
-    /** 右端 128×128 ロゴ列: WBGT段階の上バー色（barColor）で塗りつぶし */
+    /** 右端 128×128 ロゴ列: 上段（上バー）と同じ barColor で全面塗り */
     function initSignageLogo_() {
         const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
         const cfg = global.SIGNAGE_CONFIG;
@@ -2012,13 +2036,16 @@
         if (!panel) return;
         const colors = colorsForDisplay(levelIdx, displayMode);
         panel.style.backgroundColor = colors.barColor;
+        panel.style.setProperty('background-color', colors.barColor, 'important');
         const dark = isDarkTextForDisplay(levelIdx, displayMode);
         panel.classList.toggle('logo-dark-text', dark);
+        panel.classList.toggle('wbgt-off-season', displayMode === 'offseason');
+        panel.classList.toggle('wbgt-unavailable', displayMode === 'unavailable');
         const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
         const cfg = global.SIGNAGE_CONFIG;
         if (!img || !cfg) return;
         const src = dark ? (cfg.logoSrcDark || cfg.logoSrc) : cfg.logoSrc;
-        if (src && img.getAttribute('src') !== src) img.src = src;
+        if (src) img.src = src;
     }
 
     function refreshAll(currentLevelIdx, displayMode) {
@@ -2362,6 +2389,8 @@
     let pendingSignageBgRefresh_ = false;
     let pendingSignageBgLv_ = null;
     let pendingSignageBgMode_ = '';
+    /** 並列取得中は背景色の部分更新を抑止し、完了後に一括反映 */
+    let signageBgBatchLock_ = 0;
     let pendingForecastSlotsRefresh_ = false;
     let lastAmedasSnapshot_ = null;
     const SIGNAGE_STATE_CACHE_KEY = 'cspi2026_signage_state_v1';
@@ -2592,6 +2621,76 @@
     function formatScheduleJst(ms) {
         return new Date(ms).toLocaleString('ja-JP', { timeZone: CLOCK_TZ, hour12: false });
     }
+    /** 512px側の上バー（col-bg-top）と同じ色を 513px以降ロゴ列に即時反映 */
+    function probeContentTopBarColor_() {
+        const selectors = [
+            '#scene1.active .panel-clock .col-bg-top',
+            '#scene2.active .s2-panel .col-bg-top',
+            '#scene2.active .s2-panel-data .col-bg-top',
+            '#scene4.active .fc-panel .col-bg-top',
+            '#scene5.active .d5-panel .col-bg-top',
+            '#scene3.active .t3-scene-top-bar',
+            '.content-area .scene-strip-bg .col-bg-top',
+            '#scene1 .panel-clock .col-bg-top',
+            '.content-area .col-bg-top'
+        ];
+        for (let i = 0; i < selectors.length; i++) {
+            const el = document.querySelector(selectors[i]);
+            if (!el) continue;
+            const bg = getComputedStyle(el).backgroundColor;
+            if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') return bg;
+        }
+        return null;
+    }
+    function syncLogoPanelToContentTopBar_() {
+        const logoPanel = document.querySelector('.logo-panel');
+        if (!logoPanel) return;
+        const fromDom = probeContentTopBarColor_();
+        if (fromDom) {
+            logoPanel.style.setProperty('background-color', fromDom, 'important');
+            return;
+        }
+        if (typeof SignageBg === 'undefined') return;
+        const rawMode = getSignageDisplayMode_();
+        const rawLv = rawMode === 'normal' ? getSignageBgLevel_() : -1;
+        const paint = resolveSignageBgPaint_(rawMode, rawLv);
+        SignageBg.refreshLogoPanel(paint.lv, paint.mode);
+    }
+    function repaintSignageBgForce_() {
+        if (typeof SignageBg === 'undefined') return;
+        const rawMode = getSignageDisplayMode_();
+        const rawLv = rawMode === 'normal' ? getSignageBgLevel_() : -1;
+        const paint = resolveSignageBgPaint_(rawMode, rawLv);
+        const mode = paint.mode;
+        const lv = paint.lv;
+        pendingSignageBgRefresh_ = false;
+        lastSignageBgLv_ = lv;
+        lastSignageBgMode_ = mode;
+        refreshSignageBg();
+        syncLogoPanelToContentTopBar_();
+    }
+    function bootstrapSignageDisplay_(opt) {
+        opt = opt || {};
+        if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
+        if (!wbgtOffSeason) {
+            const slots = (lastGoodWbgtSlots_ && hasFull4Slots(lastGoodWbgtSlots_))
+                ? lastGoodWbgtSlots_
+                : (lastWbgtSlots && hasFull4Slots(lastWbgtSlots) ? lastWbgtSlots : null);
+            if (slots) {
+                syncWbgtLevelFromSlots(slots);
+                if (opt.updateForecast !== false) updateForecastSlotsIfAllowed_(slots);
+            }
+        }
+        if (opt.buildTracks !== false) {
+            buildTicker();
+            buildS1WbgtTrack(false);
+            buildFcLvTrack(false);
+        }
+        refreshS1WbgtFootBar_(false);
+        repaintSignageBgForce_();
+        paintBootClock_();
+        if (document.body) document.body.classList.remove('signage-boot');
+    }
     function refreshSignageBg() {
         if (typeof SignageBg === 'undefined') return;
         const rawMode = getSignageDisplayMode_();
@@ -2621,6 +2720,25 @@
             : (lastWbgtSlots || (DEMO_SIGNAGE_ACTIVE ? mockSlotsForDemoLevel(lv) : null));
         if (slots) SignageBg.refreshForecast(slots, mode);
         if (typeof SignageBg.repaintStripHosts_ === 'function') SignageBg.repaintStripHosts_(lv, mode);
+        syncLogoPanelToContentTopBar_();
+    }
+    function syncSignageBgNow_() {
+        const rawMode = getSignageDisplayMode_();
+        const rawLv = rawMode === 'normal' ? getSignageBgLevel_() : -1;
+        const paint = resolveSignageBgPaint_(rawMode, rawLv);
+        const mode = paint.mode;
+        const lv = paint.lv;
+        pendingSignageBgRefresh_ = false;
+        if (lv === lastSignageBgLv_ && mode === lastSignageBgMode_) {
+            syncLogoPanelToContentTopBar_();
+            return;
+        }
+        lastSignageBgLv_ = lv;
+        lastSignageBgMode_ = mode;
+        refreshSignageBg();
+    }
+    function applyPendingSignageBgAtScene_() {
+        syncSignageBgNow_();
     }
     function refreshSignageBgIfChanged_(force) {
         const rawMode = getSignageDisplayMode_();
@@ -2629,7 +2747,7 @@
         const mode = paint.mode;
         const lv = paint.lv;
         if (!force && lv === lastSignageBgLv_ && mode === lastSignageBgMode_) return;
-        if (shouldDeferDisplayRefresh_()) {
+        if (signageBgBatchLock_ > 0 || (!force && shouldDeferDisplayRefresh_())) {
             pendingSignageBgRefresh_ = true;
             pendingSignageBgLv_ = lv;
             pendingSignageBgMode_ = mode;
@@ -2639,19 +2757,6 @@
         lastSignageBgMode_ = mode;
         pendingSignageBgRefresh_ = false;
         refreshSignageBg();
-    }
-    function applyPendingSignageBgAtScene_() {
-        if (pendingSignageBgRefresh_) {
-            const lv = pendingSignageBgLv_;
-            const mode = pendingSignageBgMode_;
-            pendingSignageBgRefresh_ = false;
-            if (lv === lastSignageBgLv_ && mode === lastSignageBgMode_) return;
-            lastSignageBgLv_ = lv;
-            lastSignageBgMode_ = mode;
-            refreshSignageBg();
-            return;
-        }
-        refreshSignageBgIfChanged_(false);
     }
     function wbgtSlotsEqual_(a, b) {
         if (!a || !b || a.length < 4 || b.length < 4) return false;
@@ -2730,7 +2835,6 @@
                 wbgtOffSeason = false;
                 wbgtUnavailable = false;
                 syncWbgtLevelFromSlots(lastGoodWbgtSlots_);
-                syncWbgtSlotsToDomIfReady_();
             } else if (Number.isInteger(data.level) && data.level >= 0) {
                 currentWbgtLevel = data.level;
             }
@@ -2754,11 +2858,18 @@
     const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
 
-    /** ロゴパネル: 現在の WBGT 段階色に同期 */
+    /** ロゴパネル＋表示中シーンの列色を WBGT 段階で一括同期 */
     function applySignageLogoPanel_() {
-        if (typeof SignageBg !== 'undefined' && SignageBg.refreshLogoPanel) {
-            SignageBg.refreshLogoPanel(getSignageBgLevel_(), getSignageDisplayMode_());
-        }
+        if (typeof SignageBg === 'undefined') return;
+        const rawMode = getSignageDisplayMode_();
+        const rawLv = rawMode === 'normal' ? getSignageBgLevel_() : -1;
+        const paint = resolveSignageBgPaint_(rawMode, rawLv);
+        const mode = paint.mode;
+        const lv = paint.lv;
+        SignageBg.refreshAll(lv, mode);
+        if (s1 && s1.classList.contains('active')) SignageBg.refreshScene1(lv, mode);
+        if (s2 && s2.classList.contains('active')) SignageBg.refreshScene2(lv, mode);
+        syncLogoPanelToContentTopBar_();
     }
 
     /* ===== 熱中症アラート（警戒=WBGT33予測 / 特別警戒=WBGT35予測 で発表） ===== */
@@ -4647,6 +4758,11 @@
         if (el.querySelector('.clock-h') && !el.querySelector('.clock-colon-wrap')) return;
         el.innerHTML = '<span class="clock-h">--</span><span class="clock-colon" aria-hidden="true">:</span><span class="clock-m">--</span>';
     }
+    /** 初回表示: ネットワーク同期を待たず PC 時計で即時描画（signage-boot 解除前に呼ぶ） */
+    function paintBootClock_() {
+        if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
+        try { updateClock(); } catch (err) { console.warn('Boot clock:', err); }
+    }
     function updateClock() {
         let ms = getSyncedUtcMs();
         if (ms == null) { applySyncedUtcMs(Date.now(), 'local-fallback'); ms = getSyncedUtcMs(); }
@@ -4817,7 +4933,7 @@
         if (wbgtUnavailable || (slots && slots[0] && slots[0].wbgt != null)) {
             syncWbgtLevelFromSlots(slots);
         }
-        refreshSignageBgIfChanged_();
+        refreshSignageBgIfChanged_(true);
     }
     function compactScene4Panels() {
         if (!fcConveyor) return;
@@ -4986,7 +5102,7 @@
         syncWbgtLevelFromSlots(slots);
         updateForecastSlotsIfAllowed_(slots);
         queueOrRefreshS1FootBar_();
-        refreshSignageBgIfChanged_();
+        refreshSignageBgIfChanged_(true);
         return true;
     }
     function applyWbgtSlotsToDom(wbgtSlots) {
@@ -5001,7 +5117,7 @@
             syncWbgtLevelFromSlots(wbgtSlots);
             updateForecastSlotsIfAllowed_(wbgtSlots);
             queueOrRefreshS1FootBar_();
-            refreshSignageBgIfChanged_();
+            refreshSignageBgIfChanged_(true);
             queueDisplayRefresh_();
             return true;
         }
@@ -5015,7 +5131,7 @@
             syncWbgtLevelFromSlots(lastGoodWbgtSlots_);
             updateForecastSlotsIfAllowed_(lastGoodWbgtSlots_);
             queueOrRefreshS1FootBar_();
-            refreshSignageBgIfChanged_();
+            refreshSignageBgIfChanged_(true);
             queueDisplayRefresh_();
         }
         return false;
@@ -5085,7 +5201,9 @@
     function applyDisplayRefreshAtSceneEntry_() {
         sceneEntryRefreshAllowed_ = true;
         try {
+            syncSignageBgNow_();
             flushDisplayRefresh_(true);
+            syncLogoPanelToContentTopBar_();
         } finally {
             sceneEntryRefreshAllowed_ = false;
         }
@@ -5096,6 +5214,7 @@
             return !lastFetchFail;
         }
         scheduledFetchInFlight_ = true;
+        signageBgBatchLock_ += 1;
         try {
         const plan = Object.assign(
             { jma: true, moe: true, nowc: true, forecast: true, labels: ['fetch'] },
@@ -5174,11 +5293,13 @@
         const tag = (plan.labels || []).join(', ');
         const deferNote = shouldDeferDisplayRefresh_() ? ' · ループ中のため表示組み替えは保留' : '';
         console.log('[取得] ' + tag + ' 合計 ' + total + 'ms', timings, deferNote.trim());
+        repaintSignageBgForce_();
         queueDisplayRefresh_();
         if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(false);
         lastFetchFail = (plan.jma && !jmaOk) || (plan.moe && !moeOk);
         return !lastFetchFail;
         } finally {
+            signageBgBatchLock_ = Math.max(0, signageBgBatchLock_ - 1);
             scheduledFetchInFlight_ = false;
         }
     }
@@ -6028,7 +6149,8 @@
             return '<div class="s1-wbgt-slot s1-wbgt-slot-left s1-wbgt-slot-banner s1-wbgt-site-slot"><svg class="s1-wbgt-banner s1-wbgt-banner-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 215 32" role="img" aria-label="' + alt + '"><text x="0" y="16" dominant-baseline="central" font-family="\'M PLUS Rounded 1c\',\'Hiragino Maru Gothic ProN\',\'Rounded Mplus 1c\',sans-serif" font-weight="700" font-size="18" fill="#231815">' + escapeS1Html(siteName || '株式会社レント') + '</text></svg></div>';
         }
         const alt = escapeS1Html(siteName || '株式会社レント');
-        return '<div class="s1-wbgt-slot s1-wbgt-slot-left s1-wbgt-slot-banner s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="' + escapeS1Html(bannerSrc) + '" alt="' + alt + '" decoding="async"></div>';
+        const wordmarkCls = /foot_wordmark/i.test(bannerSrc) ? ' s1-wbgt-banner-wordmark' : '';
+        return '<div class="s1-wbgt-slot s1-wbgt-slot-left s1-wbgt-slot-banner s1-wbgt-site-slot"><img class="s1-wbgt-banner' + wordmarkCls + '" src="' + escapeS1Html(bannerSrc) + '" alt="' + alt + '" decoding="async"></div>';
     }
     function buildS1SiteSlotHtml_(siteName) {
         const bannerSrc = getS1FootBannerSrc_();
@@ -6537,9 +6659,7 @@
         t3Messages_ = getT3Messages_();
         if (typeof SignageBg !== 'undefined') {
             SignageBg.refreshTicker(lv, mode);
-            if (SignageBg.refreshLogoPanel) {
-                SignageBg.refreshLogoPanel(lv, mode);
-            }
+            SignageBg.refreshAll(lv, mode);
         }
         const staticTopBar = document.querySelector('#scene3 .t3-static-top-bar');
         const alertTop = getT3HeatAlertTopForDisplay_();
@@ -6891,7 +7011,6 @@
         }
         applyDisplayRefreshAtSceneEntry_();
         buildTicker();
-        applyPendingSignageBgAtScene_();
         t3Messages_ = getT3Messages_();
         buildT3GuideTrack();
         const guidTrack = document.getElementById('t3-guid-track');
@@ -6950,10 +7069,10 @@
     function playScene1() {
         const advanceToken = scene1AdvanceToken + 1;
         applyDisplayRefreshAtSceneEntry_();
+        syncLogoPanelToContentTopBar_();
         clearScene1WbgtTimers();
         clearDemoStepTimer_();
         refreshS1WbgtFootBar_(true);
-        applyPendingSignageBgAtScene_();
         updateClock();
         stepLogo90(420, true);
         const s1WbgtBar = document.querySelector('#scene1 .s1-wbgt-bar');
@@ -7023,7 +7142,6 @@
     }
     function playScene2() {
         applyDisplayRefreshAtSceneEntry_();
-        applyPendingSignageBgAtScene_();
         compactScene2Panels();
         buildScene2MetaTrack(lastAmedasObsTime);
         fitScene2BodyText();
@@ -7080,7 +7198,7 @@
         }
         buildFcLvTrack(false);
         compactScene4Panels();
-        applyPendingSignageBgAtScene_();
+        syncSignageBgNow_();
         fitFcBarLabelFontSize_();
         fitFcWbgtFontSize();
         stepLogo90(420, true);
@@ -7122,7 +7240,6 @@
         fitD5PanelText_();
         applyD5TodayFrame_();
         applyD5ForecastTextColors_();
-        applyPendingSignageBgAtScene_();
         stepLogo90(420, true);
         if (isFullDemoStep_()) {
             scheduleDemoStep_(gotoSceneAfterScene5_);
@@ -7321,19 +7438,13 @@
 
     window.onload = async function() {
         restoreSignageStateCache_();
-        if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         applySiteLocationLabels_();
         try {
-            syncWbgtSlotsToDomIfReady_();
-            refreshSignageBgIfChanged_(true);
+            bootstrapSignageDisplay_({ buildTracks: true });
         } catch (err) {
-            console.warn('Init bg paint:', err);
-        }
-        const logoEl = document.getElementById('signage-logo');
-        const logoCfg = window.SIGNAGE_CONFIG;
-        if (logoEl && logoCfg && logoCfg.logoSrc) {
-            logoEl.src = logoCfg.logoSrc;
-            logoEl.alt = logoCfg.logoAlt || '';
+            console.warn('Init display:', err);
+            paintBootClock_();
+            if (document.body) document.body.classList.remove('signage-boot');
         }
         if (DEMO_ALERT_ONLY && !NO_HEAT_ALERT) {
             setTimeout(startAlertOnlyDemo_, 300);
@@ -7344,10 +7455,10 @@
             return;
         }
         if (DEMO_SIGNAGE_ACTIVE) {
-            await syncTimeFromNetwork().catch(function () {});
+            startClockTicker();
+            syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
             if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'demo-local');
             updateClock();
-            startClockTicker();
             applyDemoWeatherStatic();
             if (DEMO_PREVIEW === 's1' || DEMO_PREVIEW === 's3') {
                 startPreviewDemo_(DEMO_PREVIEW);
@@ -7361,20 +7472,10 @@
             setTimeout(startSequence, 500);
             return;
         }
-        await syncTimeFromNetwork().catch(function () {});
-        updateClock();
         startClockTicker();
-        /* 初回取得完了まで「取得不可」は出さない。色はキャッシュ復元または pending（誤った level 0 を出さない） */
+        syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
+        /* 初回取得完了まで「取得不可」は出さない。色はキャッシュ復元後に一括反映済み */
         if (!wbgtOffSeason) wbgtUnavailable = false;
-        try {
-            syncWbgtSlotsToDomIfReady_();
-            refreshSignageBgIfChanged_(true);
-            buildTicker();
-            buildS1WbgtTrack(false);
-            buildFcLvTrack(false);
-        } catch (err) {
-            console.error('Init display:', err);
-        }
         setInterval(function () {
             syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
         }, CLOCK_SYNC_INTERVAL_MS);
@@ -7384,6 +7485,7 @@
             if (mainLoopStartedLocal_) return;
             mainLoopStartedLocal_ = true;
             mainLoopStarted_ = true;
+            repaintSignageBgForce_();
             scheduleDataRefresh();
             const active = getActiveScene();
             const midPlay = !!(scene1AnimId || scene2AnimId || scene4AnimId || scene5AnimId ||
