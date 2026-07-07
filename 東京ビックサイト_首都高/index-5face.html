@@ -10,6 +10,17 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>WBGT Signage 5面 - 首都高速道路</title>
+    <link rel="preload" as="image" href="./assets/shuto_mark.png">
+    <link rel="preload" as="image" href="./assets/shuto_logo.png">
+    <script>
+    (function () {
+        ['./assets/shuto_mark.png', './assets/shuto_logo.png'].forEach(function (u) {
+            var img = new Image();
+            img.decoding = 'sync';
+            img.src = u;
+        });
+    })();
+    </script>
     <script>
 /** 5面 640×128 本番用（512 コンテンツ + 128 ロゴ列・native640）。localhost は PC 確認用に拡大表示 */
 (function () {
@@ -25,6 +36,7 @@
             history.replaceState(null, '', location.pathname + '?' + qs);
         }
         document.documentElement.classList.add('native-640');
+        document.documentElement.classList.remove('browser-preview');
     } else {
         if (q.get('native640') === '1') {
             q.delete('native640');
@@ -32,11 +44,17 @@
             history.replaceState(null, '', location.pathname + (qsOff ? '?' + qsOff : ''));
         }
         document.documentElement.classList.add('browser-preview');
+        document.documentElement.classList.remove('native-640');
     }
     function addBody_() {
         if (!document.body) return;
-        if (forceNative) document.body.classList.add('native-640');
-        else document.body.classList.add('browser-preview');
+        if (forceNative) {
+            document.body.classList.add('native-640');
+            document.body.classList.remove('browser-preview');
+        } else {
+            document.body.classList.add('browser-preview');
+            document.body.classList.remove('native-640');
+        }
     }
     if (document.body) addBody_();
     else document.addEventListener('DOMContentLoaded', addBody_);
@@ -53,7 +71,7 @@
             --led-foot-font: 15px;
             --led-foot-site-font: 15px;
         }
-        body { margin: 0; padding: 0; background-color: #308DD8; overflow: hidden; font-family: "Inter", "Noto Sans JP", sans-serif; }
+        body { margin: 0; padding: 0; background-color: #1a1a1a; overflow: hidden; font-family: "Inter", "Noto Sans JP", sans-serif; }
         .demo-badge {
             position: fixed; top: 0; left: 0; z-index: 9999;
             padding: 4px 10px; background: rgba(0,0,0,0.75); color: #fff;
@@ -68,18 +86,18 @@
             max-width: 640px; max-height: 128px;
             margin: 0 !important; padding: 0 !important;
             overflow: hidden !important;
+            background: #000;
         }
         /* ?native640=1 / ?embed=1 — 640×128 ネイティブ（拡大なし・原点0,0） */
         body.native-640 {
             display: block;
-            background: #000;
         }
         body.native-640 .canvas {
             transform: none !important;
             position: absolute; top: 0; left: 0;
             margin: 0; padding: 0;
         }
-        .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; transform-origin: top left; }
+        .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0; transform-origin: top left; }
         @media screen and (min-width: 641px) {
             .canvas { transform: scale(calc(100vw / 640)); }
         }
@@ -90,6 +108,7 @@
             display: flex;
             align-items: flex-start;
             justify-content: flex-start;
+            background: #1a1a1a;
         }
         body.browser-preview .canvas {
             transform: scale(min(calc(100vw / 640), calc(100vh / 128))) !important;
@@ -102,11 +121,11 @@
             body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
         }
         body.layout-512.native-640 .canvas { transform: none !important; }
-        /* 右端 128×128（x≥512）: 上バー色で塗りつぶし・ロゴ中央 */
+        /* 右端 128×128（513以降）: 上バー色で全面塗り・ロゴ中央 */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; background: #3a3a3a; order: 2; overflow: hidden; position: relative;
-            transition: background-color 0.6s ease;
+            flex: 0 0 128px; flex-shrink: 0; overflow: hidden; position: relative;
+            background: #55A5E6;
         }
         .logo-rotator {
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
@@ -115,10 +134,12 @@
             transition: transform 0.6s ease-in-out;
         }
         .logo-img {
-            display: block; max-width: 88px; max-height: 88px; width: auto; height: auto;
+            display: block; max-width: 104px; max-height: 104px; width: auto; height: auto;
             object-fit: contain; object-position: center center; margin: 0;
         }
-        .content-area { width: 512px; height: 128px; position: relative; overflow: hidden; flex-shrink: 0; order: 1; background: #308DD8; }
+        /* 黒背景PNG: 上バー色パネルに馴染ませる（マークのシアンはそのまま） */
+        .logo-panel .logo-img { mix-blend-mode: screen; }
+        .content-area { width: 512px; height: 128px; position: relative; overflow: hidden; flex: 0 0 512px; flex-shrink: 0; background: #308DD8; }
         .content-area > .scene-strip-bg { z-index: 0; }
         .content-area > .scene { z-index: 1; will-change: transform; }
         .scene {
@@ -291,6 +312,7 @@
             position: absolute; left: 0; bottom: 0; width: 512px; height: var(--led-foot-bar-h);
             background: var(--led-foot-bar-bg); overflow: hidden; z-index: 12; box-sizing: border-box;
         }
+        #scene1.active .s1-wbgt-bar { display: block; }
         .s1-wbgt-track, .fc-lv-track, .s2-meta-track {
             display: flex; flex-direction: row; align-items: stretch; height: var(--led-foot-bar-h);
             position: absolute; top: 0; left: 0; will-change: transform;
@@ -1506,7 +1528,7 @@
         .ra-pair.ra-white-mode::after { display: none; }
     </style>
 </head>
-<body class="native-640">
+<body>
 <script>
 /**
  * 現場ごとの設定（GAS は 1 本共通・地点は moe.point で切替）
@@ -1575,11 +1597,6 @@
 </svg>
 
 <div class="canvas">
-    <div class="logo-panel">
-        <div class="logo-rotator" id="logo-rotator">
-            <img class="logo-img" id="signage-logo" src="./assets/shuto_mark.png" alt="首都高速道路">
-        </div>
-    </div>
     <div class="content-area">
     <div class="scene" id="sceneAlert">
         <div class="ha-pair ha-warning" id="ha-pair">
@@ -1682,7 +1699,7 @@
             <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
             <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
         </div>
-        <div class="s1-wbgt-bar"><div class="s1-wbgt-track" id="s1-wbgt-track"></div></div>
+        <div class="s1-wbgt-bar"><div class="s1-wbgt-track" id="s1-wbgt-track"><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高速道路" decoding="sync" fetchpriority="high"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高速道路" decoding="sync"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高速道路" decoding="sync"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div></div></div>
     </div>
 
     <div class="scene" id="scene2">
@@ -1775,6 +1792,11 @@
             <div class="t3-guid-bar s2-meta-bar"><div class="t3-guid-track s2-meta-track" id="t3-guid-track"></div></div>
         </div>
     </div>
+    </div>
+    <div class="logo-panel">
+        <div class="logo-rotator" id="logo-rotator">
+            <img class="logo-img" id="signage-logo" src="./assets/shuto_mark.png" alt="首都高速道路" decoding="sync" fetchpriority="high">
+        </div>
     </div>
 
 <script>
@@ -1943,6 +1965,7 @@
             applyColorsToLayer(layer, colors, KIND.STRIP);
         });
         applyT3TopBar(document.querySelector('#scene3 .t3-scene-top-bar'), levelIdx, displayMode);
+        refreshLogoPanel(levelIdx, displayMode);
     }
 
     function refreshScene2(levelIdx, displayMode) {
@@ -1998,18 +2021,23 @@
         applySceneStripBg(content, levelIdx, displayMode);
     }
 
-    /** 右端 128×128 ロゴ列: WBGT段階の上バー色（barColor）で塗りつぶし */
+    /** 右端 128×128（513以降）: 上バー色（barColor）で全面塗り */
     function initSignageLogo_() {
         const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
         const cfg = global.SIGNAGE_CONFIG;
         if (!img || !cfg) return;
-        img.src = cfg.logoSrc;
-        img.alt = cfg.logoAlt;
+        if (cfg.logoSrc && img.getAttribute('src') !== cfg.logoSrc) img.src = cfg.logoSrc;
+        if (cfg.logoAlt) img.alt = cfg.logoAlt;
     }
     function refreshLogoPanel(levelIdx, displayMode) {
         const panel = document.querySelector('.logo-panel');
         if (!panel) return;
-        panel.style.backgroundColor = colorsForDisplay(levelIdx, displayMode).barColor;
+        panel.querySelectorAll('.col-bg-layer').forEach(function (el) { el.remove(); });
+        panel.classList.remove('col-bg-host', 'col-bg-dark-text', 'wbgt-off-season', 'wbgt-unavailable');
+        let lv = levelIdx;
+        let mode = displayMode;
+        if (mode === 'normal' && (lv == null || lv < 0)) lv = 0;
+        panel.style.backgroundColor = colorsForDisplay(lv, mode).barColor;
     }
 
     function refreshAll(currentLevelIdx, displayMode) {
@@ -2106,7 +2134,9 @@
         || (DEMO_SIGNAGE && !DEMO_ONLY && query.get('native640') !== '0');
     if (NATIVE_640) {
         document.documentElement.classList.add('native-640');
+        document.documentElement.classList.remove('browser-preview');
         document.body.classList.add('native-640');
+        document.body.classList.remove('browser-preview');
     }
     function shouldShowDemoBadge_() {
         return !DEMO_EMBED && !NATIVE_640;
@@ -2342,6 +2372,8 @@
     /** シーン切替直後のみ表示組み替えを許可（取得中は現在シーンを維持） */
     let sceneEntryRefreshAllowed_ = false;
     let mainLoopStarted_ = false;
+    /** 起動直後: 初回取得完了まで表示組み替えを一括保留 */
+    let bootDisplayHold_ = false;
     let lastS1FootMsg_ = '';
     let lastFcLvText_ = '';
     let lastT3GuideText_ = '';
@@ -2609,6 +2641,9 @@
             : (lastWbgtSlots || (DEMO_SIGNAGE_ACTIVE ? mockSlotsForDemoLevel(lv) : null));
         if (slots) SignageBg.refreshForecast(slots, mode);
         if (typeof SignageBg.repaintStripHosts_ === 'function') SignageBg.repaintStripHosts_(lv, mode);
+        lastSignageBgLv_ = lv;
+        lastSignageBgMode_ = mode;
+        pendingSignageBgRefresh_ = false;
     }
     function refreshSignageBgIfChanged_(force) {
         const rawMode = getSignageDisplayMode_();
@@ -2617,28 +2652,16 @@
         const mode = paint.mode;
         const lv = paint.lv;
         if (!force && lv === lastSignageBgLv_ && mode === lastSignageBgMode_) return;
-        if (shouldDeferDisplayRefresh_()) {
+        if (shouldDeferDisplayRefresh_() && !force) {
             pendingSignageBgRefresh_ = true;
             pendingSignageBgLv_ = lv;
             pendingSignageBgMode_ = mode;
             return;
         }
-        lastSignageBgLv_ = lv;
-        lastSignageBgMode_ = mode;
-        pendingSignageBgRefresh_ = false;
         refreshSignageBg();
     }
     function applyPendingSignageBgAtScene_() {
-        if (pendingSignageBgRefresh_) {
-            const lv = pendingSignageBgLv_;
-            const mode = pendingSignageBgMode_;
-            pendingSignageBgRefresh_ = false;
-            if (lv === lastSignageBgLv_ && mode === lastSignageBgMode_) return;
-            lastSignageBgLv_ = lv;
-            lastSignageBgMode_ = mode;
-            refreshSignageBg();
-            return;
-        }
+        pendingSignageBgRefresh_ = false;
         refreshSignageBgIfChanged_(false);
     }
     function wbgtSlotsEqual_(a, b) {
@@ -4748,7 +4771,7 @@
         });
     }
     function updateForecastSlotsIfAllowed_(slots) {
-        if (mainLoopStarted_ && shouldDeferDisplayRefresh_()) {
+        if (bootDisplayHold_ || (mainLoopStarted_ && shouldDeferDisplayRefresh_())) {
             pendingForecastSlotsRefresh_ = true;
             return;
         }
@@ -4963,8 +4986,10 @@
         if (!slots || wbgtOffSeason) return false;
         syncWbgtLevelFromSlots(slots);
         updateForecastSlotsIfAllowed_(slots);
-        queueOrRefreshS1FootBar_();
-        refreshSignageBgIfChanged_();
+        if (!bootDisplayHold_) {
+            queueOrRefreshS1FootBar_();
+            refreshSignageBgIfChanged_(false);
+        }
         return true;
     }
     function applyWbgtSlotsToDom(wbgtSlots) {
@@ -5030,8 +5055,31 @@
         return !!getActiveScene();
     }
     function shouldDeferDisplayRefresh_() {
+        if (bootDisplayHold_) return true;
         if (!isMainLoopPlaying_()) return false;
         return !sceneEntryRefreshAllowed_;
+    }
+    function flushInitialDisplay_() {
+        bootDisplayHold_ = false;
+        updateClock();
+        if (!wbgtOffSeason) wbgtUnavailable = false;
+        syncWbgtSlotsToDomIfReady_();
+        refreshSignageBgIfChanged_(false);
+        buildTicker();
+        refreshS1WbgtFootBar_(false);
+        buildFcLvTrack(false);
+    }
+    /** 起動直後: キャッシュ済みの時刻・背景・下帯をすぐ描画（取得完了まで黒/暗くしない） */
+    function paintBootSplash_() {
+        if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
+        updateClock();
+        if (s1) {
+            s1.style.display = sceneDisplayMode(s1);
+            s1.classList.add('active');
+        }
+        syncWbgtSlotsToDomIfReady_();
+        if (typeof SignageBg !== 'undefined') refreshSignageBg();
+        refreshS1WbgtFootBar_(false);
     }
     function queueDisplayRefresh_() {
         pendingDisplayRefresh = true;
@@ -5921,6 +5969,7 @@
     }
     function hasS1WbgtFootMessage_() {
         if (wbgtOffSeason) return false;
+        if (String(getS1FootBannerSrc_() || '').trim()) return true;
         return !!String(getS1WbgtMessageJp() || '').trim();
     }
     /* 下帯: WBGT取得不可時は「取得不可」。提供期間外は地点名で白帯を維持 */
@@ -5930,6 +5979,11 @@
     function getS1SiteCustomerName_() {
         const site = SITE_CFG.site || {};
         return site.rental || site.customer || '';
+    }
+    /** 下帯ロゴ・表示名（株式会社なし） */
+    function getS1SiteFootName_() {
+        const site = SITE_CFG.site || {};
+        return site.label || site.rental || getS1SiteCustomerName_();
     }
     function buildS1FootCompanyHtml_() {
         const name = getS1SiteCustomerName_();
@@ -6035,8 +6089,14 @@
         return `<div class="${slotClass}">${msgHtml}</div>`;
     }
     function buildS1WbgtSetHtml(text) {
-        const siteName = getS1SiteCustomerName_();
+        const siteName = getS1SiteFootName_();
         const msgText = String(text || getS1WbgtMessageJp() || '').trim();
+        const bannerSrc = getS1FootBannerSrc_();
+        if (bannerSrc) {
+            const siteSlot = buildS1SiteSlotHtml_(siteName);
+            const msgSlot = `<div class="s1-wbgt-slot s1-wbgt-msg-slot">${msgText ? buildS1WbgtMsgHtml(msgText) : ''}</div>`;
+            return `<div class="s1-wbgt-set">${siteSlot}${msgSlot}</div>`;
+        }
         if (siteName && msgText) {
             const siteSlot = buildS1SiteSlotHtml_(siteName);
             const msgSlot = `<div class="s1-wbgt-slot s1-wbgt-msg-slot">${buildS1WbgtMsgHtml(msgText)}</div>`;
@@ -6090,13 +6150,36 @@
         if (scene4AnimId) { cancelAnimationFrame(scene4AnimId); scene4AnimId = null; }
     }
     function clearScene4LvTimers() { clearScene4Timers(); }
+    function updateS1FootMsgSlots_(text) {
+        if (text === lastS1FootMsg_) return;
+        lastS1FootMsg_ = text;
+        const msgHtml = text ? buildS1WbgtMsgHtml(text) : '';
+        document.querySelectorAll('#scene1 .s1-wbgt-msg-slot').forEach(function (el) {
+            el.innerHTML = msgHtml;
+        });
+        sizeS1FootWbgtText_();
+    }
+    function s1FootBannerReady_() {
+        return !!s1WbgtTrack && !!s1WbgtTrack.querySelector('.s1-wbgt-site-slot .s1-wbgt-banner');
+    }
+    function setS1FootBarVisible_(visible) {
+        document.querySelectorAll('#scene1 .s1-wbgt-bar').forEach(function (el) {
+            el.style.display = visible ? 'block' : 'none';
+        });
+    }
     function refreshS1WbgtFootBar_(resetTransform) {
         if (!s1WbgtTrack) return;
         const text = getS1WbgtMessageJp();
+        const showBar = hasS1WbgtFootMessage_();
+        if (s1FootBannerReady_()) {
+            if (text !== lastS1FootMsg_) updateS1FootMsgSlots_(text);
+            applyGlobalScroll_(s1WbgtTrack, getS1FootLapPx_());
+            setS1FootBarVisible_(showBar);
+            return;
+        }
         if (text === lastS1FootMsg_ && s1WbgtTrack.querySelector('.s1-wbgt-set')) {
             applyGlobalScroll_(s1WbgtTrack, getS1FootLapPx_());
-            const bar = document.querySelector('#scene1 .s1-wbgt-bar');
-            if (bar) bar.style.display = hasS1WbgtFootMessage_() ? 'block' : 'none';
+            setS1FootBarVisible_(showBar);
             return;
         }
         lastS1FootMsg_ = text;
@@ -6106,8 +6189,7 @@
         applyGlobalScroll_(s1WbgtTrack, getS1FootLapPx_());
         sizeS1FootCompanyText_();
         sizeS1FootWbgtText_();
-        const bar = document.querySelector('#scene1 .s1-wbgt-bar');
-        if (bar) bar.style.display = hasS1WbgtFootMessage_() ? 'block' : 'none';
+        setS1FootBarVisible_(showBar);
     }
     function buildS1WbgtTrack(clearTimers) {
         if (clearTimers) clearScene1WbgtTimers();
@@ -6908,16 +6990,15 @@
     }
     function playScene1() {
         const advanceToken = scene1AdvanceToken + 1;
-        applyDisplayRefreshAtSceneEntry_();
+        if (pendingSignageBgRefresh_) applyPendingSignageBgAtScene_();
         clearScene1WbgtTimers();
         clearDemoStepTimer_();
-        refreshS1WbgtFootBar_(true);
+        applyDisplayRefreshAtSceneEntry_();
         applyPendingSignageBgAtScene_();
         updateClock();
         stepLogo90(420, true);
-        const s1WbgtBar = document.querySelector('#scene1 .s1-wbgt-bar');
         const showWbgtFoot = hasS1WbgtFootMessage_();
-        if (s1WbgtBar) s1WbgtBar.style.display = showWbgtFoot ? 'block' : 'none';
+        setS1FootBarVisible_(showWbgtFoot);
         scheduleScene1SafetyAdvance_();
         if (isFullDemoStep_()) {
             scheduleDemoStep_(finishScene1);
@@ -7279,30 +7360,29 @@
     }
 
     window.onload = async function() {
+        bootDisplayHold_ = true;
         restoreSignageStateCache_();
         if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         applySiteLocationLabels_();
-        try {
-            syncWbgtSlotsToDomIfReady_();
-            refreshSignageBgIfChanged_(true);
-        } catch (err) {
-            console.warn('Init bg paint:', err);
-        }
+        paintBootSplash_();
         const logoEl = document.getElementById('signage-logo');
         const logoCfg = window.SIGNAGE_CONFIG;
         if (logoEl && logoCfg && logoCfg.logoSrc) {
-            logoEl.src = logoCfg.logoSrc;
+            if (logoEl.getAttribute('src') !== logoCfg.logoSrc) logoEl.src = logoCfg.logoSrc;
             logoEl.alt = logoCfg.logoAlt || '';
         }
         if (DEMO_ALERT_ONLY && !NO_HEAT_ALERT) {
+            bootDisplayHold_ = false;
             setTimeout(startAlertOnlyDemo_, 300);
             return;
         }
         if (DEMO_RAINWARN_ONLY) {
+            bootDisplayHold_ = false;
             setTimeout(startRainWarnOnlyDemo_, 300);
             return;
         }
         if (DEMO_SIGNAGE_ACTIVE) {
+            bootDisplayHold_ = false;
             await syncTimeFromNetwork().catch(function () {});
             if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'demo-local');
             updateClock();
@@ -7320,54 +7400,44 @@
             setTimeout(startSequence, 500);
             return;
         }
-        await syncTimeFromNetwork().catch(function () {});
-        updateClock();
-        startClockTicker();
-        /* 初回取得完了まで「取得不可」は出さない。色はキャッシュ復元または pending（誤った level 0 を出さない） */
-        if (!wbgtOffSeason) wbgtUnavailable = false;
         try {
-            syncWbgtSlotsToDomIfReady_();
-            refreshSignageBgIfChanged_(true);
-            buildTicker();
-            buildS1WbgtTrack(false);
-            buildFcLvTrack(false);
-        } catch (err) {
-            console.error('Init display:', err);
-        }
-        setInterval(function () {
-            syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
-        }, CLOCK_SYNC_INTERVAL_MS);
-        /* 初回取得を待ってからループ開始（濃い灰の時間を短く・更新の重なりを防ぐ） */
-        var mainLoopStartedLocal_ = false;
-        function beginMainLoop_() {
-            if (mainLoopStartedLocal_) return;
-            mainLoopStartedLocal_ = true;
+            await Promise.race([
+                syncTimeFromNetwork().catch(function () {}),
+                new Promise(function (resolve) { setTimeout(resolve, 2500); })
+            ]);
+            await Promise.race([
+                runScheduledFetch({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] }),
+                new Promise(function (resolve) { setTimeout(resolve, 3500); })
+            ]);
+            if (s1) {
+                s1.style.display = sceneDisplayMode(s1);
+                s1.classList.add('active');
+            }
+            flushInitialDisplay_();
+            startClockTicker();
+            setInterval(function () {
+                syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
+            }, CLOCK_SYNC_INTERVAL_MS);
             mainLoopStarted_ = true;
             scheduleDataRefresh();
-            const active = getActiveScene();
-            const midPlay = !!(scene1AnimId || scene2AnimId || scene4AnimId || scene5AnimId ||
-                tickerAnimId || s1Flow_ || haFlow_ || t3Flow_);
-            if (!midPlay) {
-                if (active === s1) {
-                    playScene1();
-                } else if (!active) {
-                    startSequence();
-                }
-            }
-            updateRainNowcastAlert_().then(function () {
-                queueDisplayRefresh_();
-                if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(false);
-            });
-        }
-        if (s1) {
-            s1.style.display = sceneDisplayMode(s1);
-            s1.classList.add('active');
+            playScene1();
+        } catch (err) {
+            console.error('Init:', err);
+            bootDisplayHold_ = false;
+            if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'local-fallback');
             updateClock();
+            refreshSignageBgIfChanged_(true);
+            if (s1) {
+                s1.style.display = sceneDisplayMode(s1);
+                s1.classList.add('active');
+            }
+            startClockTicker();
+            mainLoopStarted_ = true;
+            scheduleDataRefresh();
+            playScene1();
+        } finally {
+            bootDisplayHold_ = false;
         }
-        Promise.race([
-            runScheduledFetch({ jma: true, moe: true, nowc: false, forecast: true, labels: ['起動'] }),
-            new Promise(function (resolve) { setTimeout(resolve, 3500); })
-        ]).finally(beginMainLoop_);
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
                 syncTimeFromNetwork().then(function() { updateClock(); startClockTicker(); }).catch(function() { startClockTicker(); });
