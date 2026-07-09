@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- wbgt-cube-greencross-5face / 株式会社グリーンクロス WBGT サイネージ（本番 5面 640×128・ロゴ列128） -->
 <!-- 同階層: assets/logo.png（右端ロゴ列）・assets/foot-banner.png（下帯） -->
 <!-- 会場: 〒135-0063 東京都江東区有明３丁目１１−１（東京ビッグサイト） -->
@@ -103,10 +103,10 @@
             body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
         }
         body.layout-512.native-640 .canvas { transform: none !important; }
-        /* 右端 128×128（x≥512）: 左512pxと同じ本体色（bgColor）・ロゴ中央 */
+        /* 右端 128×128（x≥512）: 上バー色（barColor）で塗りつぶし・ロゴ中央 */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; background: #308DD8; order: 2; overflow: hidden; position: relative;
+            flex-shrink: 0; background: #55A5E6; order: 2; overflow: hidden; position: relative;
             transition: background-color 0.6s ease;
         }
         /* 初回読み込み: キャッシュ復元まで背景遷移を抑え、左右の色ズレを目立たせない */
@@ -369,6 +369,7 @@
             height: 22px; width: auto; max-width: 234px;
             object-fit: contain; object-position: center center;
             background: transparent;
+            transform: translateY(-3px);
         }
         #scene1 .s1-wbgt-site-slot .s1-wbgt-banner-svg {
             height: 26px; max-width: 252px;
@@ -1566,7 +1567,7 @@
   global.SIGNAGE_CONFIG = {
     logoSrc: './assets/logo.png',
     logoAlt: '株式会社グリーンクロス',
-    logoPanelBg: '#308DD8',
+    logoPanelBg: '#55A5E6',
     footLogoSrc: '',
     footBannerSrc: './assets/foot-banner.png'
   };
@@ -1630,7 +1631,7 @@
         var content = document.querySelector('.content-area');
         var panel = document.querySelector('.logo-panel');
         if (content) content.style.backgroundColor = colors.bg;
-        if (panel) panel.style.backgroundColor = colors.bg;
+        if (panel) panel.style.backgroundColor = colors.bar;
     } catch (_) {}
 })();
 </script>
@@ -2073,7 +2074,26 @@
         applySceneStripBg(content, levelIdx, displayMode);
     }
 
-    /** 右端 128×128 ロゴ列: 左512pxと同じ本体色（bgColor）で塗りつぶし */
+    function readActiveTopBarColor_() {
+        const scene = document.querySelector('.content-area .scene.active');
+        if (!scene) return '';
+        const selectors = [
+            '.col-bg-layer .col-bg-top',
+            '.scene-strip-bg .col-bg-top',
+            '.t3-scene-top-bar',
+            '.t3-static-top-bar'
+        ];
+        for (let i = 0; i < selectors.length; i++) {
+            const el = scene.querySelector(selectors[i]);
+            if (!el || el.style.display === 'none') continue;
+            if (el.style.backgroundColor) return el.style.backgroundColor;
+            const cs = getComputedStyle(el).backgroundColor;
+            if (cs && cs !== 'transparent' && cs !== 'rgba(0, 0, 0, 0)') return cs;
+        }
+        return '';
+    }
+
+    /** 右端 128×128 ロゴ列: 上バー色（barColor）で塗りつぶし */
     function initSignageLogo_() {
         const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
         const cfg = global.SIGNAGE_CONFIG;
@@ -2084,12 +2104,12 @@
     function refreshLogoPanel(levelIdx, displayMode) {
         const panel = document.querySelector('.logo-panel');
         if (!panel) return;
-        panel.style.backgroundColor = colorsForDisplay(levelIdx, displayMode).bgColor;
+        const domBar = readActiveTopBarColor_();
+        panel.style.backgroundColor = domBar || colorsForDisplay(levelIdx, displayMode).barColor;
     }
 
     function refreshAll(currentLevelIdx, displayMode) {
         refreshContentAreaBg(currentLevelIdx, displayMode);
-        refreshLogoPanel(currentLevelIdx, displayMode);
     }
 
     function stripPanelBgLayers() {
@@ -2563,6 +2583,16 @@
         }
         return { mode: mode, lv: lv };
     }
+    function getSignageBgPaint_() {
+        const rawMode = getSignageDisplayMode_();
+        const rawLv = rawMode === 'normal' ? getSignageBgLevel_() : -1;
+        return resolveSignageBgPaint_(rawMode, rawLv);
+    }
+    function syncSignageLogoPanel_() {
+        if (typeof SignageBg === 'undefined' || !SignageBg.refreshLogoPanel) return;
+        const paint = getSignageBgPaint_();
+        SignageBg.refreshLogoPanel(paint.lv, paint.mode);
+    }
     /** WBGT非依存コンテンツなし — 取得不可・提供期間外は警報・アラートを出さない */
     function wbgtNormalDisplay_() {
         return !wbgtOffSeason && !wbgtUnavailable;
@@ -2671,11 +2701,13 @@
         if (mode === 'offseason') {
             SignageBg.refreshScene1(lv, mode);
             if (typeof SignageBg.repaintStripHosts_ === 'function') SignageBg.repaintStripHosts_(lv, mode);
+            SignageBg.refreshLogoPanel(lv, mode);
             return;
         }
         if (mode === 'unavailable') {
             SignageBg.refreshScene1(-1, mode);
             if (typeof SignageBg.repaintStripHosts_ === 'function') SignageBg.repaintStripHosts_(-1, mode);
+            SignageBg.refreshLogoPanel(-1, mode);
             return;
         }
         SignageBg.refreshScene1(lv, mode);
@@ -2688,6 +2720,7 @@
             : (lastWbgtSlots || (DEMO_SIGNAGE_ACTIVE ? mockSlotsForDemoLevel(lv) : null));
         if (slots) SignageBg.refreshForecast(slots, mode);
         if (typeof SignageBg.repaintStripHosts_ === 'function') SignageBg.repaintStripHosts_(lv, mode);
+        SignageBg.refreshLogoPanel(lv, mode);
     }
     function refreshSignageBgIfChanged_(force) {
         const rawMode = getSignageDisplayMode_();
@@ -2821,11 +2854,9 @@
     const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
 
-    /** ロゴパネル: 現在の WBGT 段階色に同期 */
+    /** ロゴパネル: 現在の WBGT 段階の上バー色に同期 */
     function applySignageLogoPanel_() {
-        if (typeof SignageBg !== 'undefined' && SignageBg.refreshLogoPanel) {
-            SignageBg.refreshLogoPanel(getSignageBgLevel_(), getSignageDisplayMode_());
-        }
+        syncSignageLogoPanel_();
     }
 
     /* ===== 熱中症アラート（警戒=WBGT33予測 / 特別警戒=WBGT35予測 で発表） ===== */
@@ -6247,6 +6278,7 @@
             if (current) hideSceneEl(current);
             applyScrollX_(nextEl, 0);
             nextEl.style.zIndex = '';
+            syncSignageLogoPanel_();
             onComplete?.();
             return;
         }
@@ -6268,6 +6300,7 @@
                 hideSceneEl(current);
                 applyScrollX_(nextEl, 0);
                 nextEl.style.zIndex = '';
+                syncSignageLogoPanel_();
             }
         }
         sceneSlideAnimId = requestAnimationFrame(tick);
@@ -6585,9 +6618,7 @@
         t3Messages_ = getT3Messages_();
         if (typeof SignageBg !== 'undefined') {
             SignageBg.refreshTicker(lv, mode);
-            if (SignageBg.refreshLogoPanel) {
-                SignageBg.refreshLogoPanel(lv, mode);
-            }
+            syncSignageLogoPanel_();
         }
         const staticTopBar = document.querySelector('#scene3 .t3-static-top-bar');
         const alertTop = getT3HeatAlertTopForDisplay_();
