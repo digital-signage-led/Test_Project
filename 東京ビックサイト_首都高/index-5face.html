@@ -12,9 +12,10 @@
     <title>WBGT Signage 5面 - 首都高速道路</title>
     <link rel="preload" as="image" href="./assets/shuto_mark.png">
     <link rel="preload" as="image" href="./assets/shuto_logo.png">
+    <link rel="preload" as="image" href="./assets/shuto_corp.png">
     <script>
     (function () {
-        ['./assets/shuto_mark.png', './assets/shuto_logo.png'].forEach(function (u) {
+        ['./assets/shuto_mark.png', './assets/shuto_logo.png', './assets/shuto_corp.png'].forEach(function (u) {
             var img = new Image();
             img.decoding = 'sync';
             img.src = u;
@@ -65,9 +66,9 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=swap');
         :root {
             --led-foot-bar-bg: #fff9f0;
-            --led-foot-bar-h: 28px;
-            --led-col-body-h: 68px;
-            --led-col-main-h: 100px;
+            --led-foot-bar-h: 32px;
+            --led-col-body-h: 64px;
+            --led-col-main-h: 96px;
             --led-foot-font: 15px;
             --led-foot-site-font: 15px;
         }
@@ -121,11 +122,11 @@
             body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
         }
         body.layout-512.native-640 .canvas { transform: none !important; }
-        /* 右端 128×128（513以降）: 上バー色で全面塗り・ロゴ中央 */
+        /* 右端 128×128: メールロゴ同様（上に大きくマーク、下に社名） */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
             flex: 0 0 128px; flex-shrink: 0; overflow: hidden; position: relative;
-            background: #55A5E6;
+            background: #ffffff;
         }
         .logo-rotator {
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
@@ -133,12 +134,23 @@
             transform-origin: center center;
             transition: transform 0.6s ease-in-out;
         }
-        .logo-img {
-            display: block; max-width: 104px; max-height: 104px; width: auto; height: auto;
-            object-fit: contain; object-position: center center; margin: 0;
+        /* 右端 128×128: 参考画像の比率（マーク約65%・社名約幅揃え・被らない） */
+        .logo-stack {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 5px; width: 112px; max-height: 124px; box-sizing: border-box;
+            padding: 4px 0;
         }
-        /* 黒背景PNG: 上バー色パネルに馴染ませる（マークのシアンはそのまま） */
-        .logo-panel .logo-img { mix-blend-mode: screen; }
+        .logo-img {
+            display: block; width: 108px; max-width: 108px; height: auto; max-height: 92px;
+            object-fit: contain; object-position: center center; margin: 0;
+            flex: 0 0 auto;
+        }
+        .logo-corp-img {
+            display: block; width: 108px; max-width: 108px; height: auto; max-height: 18px;
+            object-fit: contain; object-position: center center; margin: 0;
+            mix-blend-mode: multiply;
+            flex: 0 0 auto;
+        }
         .content-area { width: 512px; height: 128px; position: relative; overflow: hidden; flex: 0 0 512px; flex-shrink: 0; background: #308DD8; }
         .content-area > .scene-strip-bg { z-index: 0; }
         .content-area > .scene { z-index: 1; will-change: transform; }
@@ -379,18 +391,43 @@
             display: flex; align-items: center; justify-content: center;
             padding: 0 4px; box-sizing: border-box;
         }
+        /* 下帯ブランド: 既存マーク + 首都高技術株式会社（横並び） */
+        .s1-foot-brand {
+            display: inline-flex; flex-direction: row; align-items: center; justify-content: center;
+            gap: 6px; max-width: 248px; height: var(--led-foot-bar-h);
+            box-sizing: border-box;
+        }
+        .s1-foot-mark {
+            display: block; height: 28px; width: auto; max-width: 72px;
+            object-fit: contain; object-position: center center; flex-shrink: 0;
+            mix-blend-mode: multiply;
+        }
+        .s1-foot-corp {
+            display: inline-flex; flex-direction: row; align-items: center; gap: 2px;
+            color: #1a1a1a; font-family: "Noto Sans JP", sans-serif; white-space: nowrap;
+            line-height: 1;
+        }
+        .s1-foot-corp-name {
+            font-size: 18px; font-weight: 900; letter-spacing: 0.02em;
+        }
+        .s1-foot-corp-kk {
+            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+            font-size: 9px; font-weight: 700; line-height: 1.05; text-align: center;
+        }
         #scene1 .s1-wbgt-site-slot .s1-wbgt-banner {
             display: block; margin: 0 auto;
-            height: 24px; width: auto; max-width: 248px;
+            height: 30px; width: auto; max-width: 252px;
             object-fit: contain; object-position: center center;
             background: transparent;
             mix-blend-mode: multiply;
+            transform: scale(1.12);
+            transform-origin: center center;
         }
         #scene1 .s1-wbgt-site-slot .s1-wbgt-banner-svg {
-            height: 26px; max-width: 252px;
+            height: 30px; max-width: 256px;
         }
         .s1-wbgt-banner {
-            display: block; height: 22px; width: auto; max-width: 246px;
+            display: block; height: 30px; width: auto; max-width: 256px;
             object-fit: contain; object-position: center center; flex-shrink: 0;
         }
         .s1-wbgt-banner-svg {
@@ -1549,7 +1586,7 @@
     site: {
       customer: '首都高速道路株式会社',
       rental: '',
-      label: '首都高速道路',
+      label: '首都高技術',
       address: '〒135-0063 東京都江東区有明３丁目１１−１',
       locationLabel: '江東区'
     },
@@ -1581,8 +1618,9 @@
 
   global.SIGNAGE_CONFIG = {
     logoSrc: './assets/shuto_mark.png',
-    logoAlt: '首都高速道路',
-    logoPanelBg: '#3a3a3a',
+    logoAlt: '首都高技術株式会社',
+    logoPanelBg: '#ffffff',
+    logoCorpSrc: './assets/shuto_corp.png',
     footLogoSrc: '',
     footBannerSrc: './assets/shuto_logo.png'
   };
@@ -1699,7 +1737,7 @@
             <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
             <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
         </div>
-        <div class="s1-wbgt-bar"><div class="s1-wbgt-track" id="s1-wbgt-track"><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高速道路" decoding="sync" fetchpriority="high"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高速道路" decoding="sync"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高速道路" decoding="sync"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div></div></div>
+        <div class="s1-wbgt-bar"><div class="s1-wbgt-track" id="s1-wbgt-track"><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高技術株式会社" decoding="sync" fetchpriority="high"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高技術株式会社" decoding="sync"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div><div class="s1-wbgt-set"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/shuto_logo.png" alt="首都高技術株式会社" decoding="sync"></div><div class="s1-wbgt-slot s1-wbgt-msg-slot"></div></div></div></div>
     </div>
 
     <div class="scene" id="scene2">
@@ -1795,7 +1833,10 @@
     </div>
     <div class="logo-panel">
         <div class="logo-rotator" id="logo-rotator">
-            <img class="logo-img" id="signage-logo" src="./assets/shuto_mark.png" alt="首都高速道路" decoding="sync" fetchpriority="high">
+            <div class="logo-stack">
+                <img class="logo-img" id="signage-logo" src="./assets/shuto_mark.png" alt="" decoding="sync" fetchpriority="high">
+                <img class="logo-corp-img" src="./assets/shuto_corp.png" alt="首都高技術株式会社" decoding="sync">
+            </div>
         </div>
     </div>
 
@@ -2021,7 +2062,7 @@
         applySceneStripBg(content, levelIdx, displayMode);
     }
 
-    /** 右端 128×128（513以降）: 上バー色（barColor）で全面塗り */
+    /** 右端 128×128（513以降）: WBGT色は使わず固定背景 */
     function initSignageLogo_() {
         const img = document.getElementById('signage-logo') || document.querySelector('.logo-img');
         const cfg = global.SIGNAGE_CONFIG;
@@ -2034,10 +2075,8 @@
         if (!panel) return;
         panel.querySelectorAll('.col-bg-layer').forEach(function (el) { el.remove(); });
         panel.classList.remove('col-bg-host', 'col-bg-dark-text', 'wbgt-off-season', 'wbgt-unavailable');
-        let lv = levelIdx;
-        let mode = displayMode;
-        if (mode === 'normal' && (lv == null || lv < 0)) lv = 0;
-        panel.style.backgroundColor = colorsForDisplay(lv, mode).barColor;
+        const cfg = global.SIGNAGE_CONFIG || {};
+        panel.style.backgroundColor = cfg.logoPanelBg || '#ffffff';
     }
 
     function refreshAll(currentLevelIdx, displayMode) {
@@ -4491,10 +4530,13 @@
     let clockTickWallMs_ = 0;
 
     const timeSync = { baseUtcMs: null, clientAtSync: 0, source: '' };
-    /** 表示は時:分のみ。内部時刻はこの間隔で NICT 等と再同期（Wi-Fi 前提） */
+    /**
+     * サイネージ時刻は必ず PC のシステム時計（Date.now）のみ。
+     * ネットワーク時刻・気象 latest_time は時計に使わない（ずれの原因になるため禁止）。
+     */
     const CLOCK_SYNC_INTERVAL_MS = 60000;
     const clockHmFormatter = new Intl.DateTimeFormat('ja-JP', {
-        timeZone: CLOCK_TZ, hour: '2-digit', minute: '2-digit', hour12: false
+        timeZone: CLOCK_TZ, hour: '2-digit', minute: '2-digit', hour12: false, hourCycle: 'h23'
     });
     const clockSecFormatter = new Intl.DateTimeFormat('ja-JP', {
         timeZone: CLOCK_TZ, second: 'numeric'
@@ -4504,14 +4546,15 @@
     });
 
     function getSyncedUtcMs() {
-        if (timeSync.baseUtcMs == null) return null;
-        return timeSync.baseUtcMs + (Date.now() - timeSync.clientAtSync);
+        return Date.now();
     }
-    function applySyncedUtcMs(utcMs, source) {
-        if (!Number.isFinite(utcMs)) return;
-        timeSync.baseUtcMs = utcMs;
-        timeSync.clientAtSync = Date.now();
-        if (source) timeSync.source = source;
+    function applySyncedUtcMs(_utcMs, source) {
+        /* 表示用オフセットは持たない。常に PC 時計へ固定 */
+        const now = Date.now();
+        timeSync.baseUtcMs = now;
+        timeSync.clientAtSync = now;
+        timeSync.source = source || 'local';
+        return true;
     }
     function utcMsWithRtt(serverUtcMs, t0, t1) {
         if (!Number.isFinite(serverUtcMs)) return NaN;
@@ -4557,40 +4600,50 @@
     }
     async function fetchUtcMsFromNict() {
         const urls = ['https://ntp-b1.nict.go.jp/cgi-bin/json', 'https://ntp-a1.nict.go.jp/cgi-bin/json'];
+        let lastErr = null;
         for (const url of urls) {
-            const t0 = performance.now();
-            const res = await fetch(url, { cache: 'no-store' });
-            const t1 = performance.now();
-            if (!res.ok) continue;
-            const dateHdr = res.headers.get('Date');
-            let serverUtcMs = NaN;
             try {
-                const json = await res.json();
-                if (json && typeof json.st === 'number') serverUtcMs = json.st * 1000;
-            } catch (_) {}
-            if (!Number.isFinite(serverUtcMs) && dateHdr) serverUtcMs = Date.parse(dateHdr);
-            if (Number.isFinite(serverUtcMs)) return utcMsWithRtt(serverUtcMs, t0, t1);
+                const t0 = performance.now();
+                const res = await fetch(url, { cache: 'no-store' });
+                const t1 = performance.now();
+                if (!res.ok) { lastErr = new Error('NICT HTTP ' + res.status); continue; }
+                const dateHdr = res.headers.get('Date');
+                let serverUtcMs = NaN;
+                try {
+                    const json = await res.json();
+                    if (json && typeof json.st === 'number') serverUtcMs = json.st * 1000;
+                } catch (_) {}
+                if (!Number.isFinite(serverUtcMs) && dateHdr) serverUtcMs = Date.parse(dateHdr);
+                if (Number.isFinite(serverUtcMs)) return utcMsWithRtt(serverUtcMs, t0, t1);
+            } catch (e) { lastErr = e; }
         }
-        throw new Error('NICT unavailable');
+        throw lastErr || new Error('NICT unavailable');
     }
-    async function fetchUtcMsFromJmaLatest() {
-        const t0 = performance.now();
-        const res = await fetch(JMA_LATEST_TIME_URL, JMA_FETCH_HEADERS);
-        const t1 = performance.now();
-        if (!res.ok) throw new Error('jma-latest HTTP ' + res.status);
-        const text = (await res.text()).trim();
-        let serverUtcMs = NaN;
-        if (text.endsWith('+09:00')) serverUtcMs = Date.parse(text);
-        else serverUtcMs = Date.parse(text.replace(/\.\d+$/, '') + '+09:00');
-        if (!Number.isFinite(serverUtcMs)) throw new Error('jma-latest parse');
-        return utcMsWithRtt(serverUtcMs, t0, t1);
+    /** HTTPS Date ヘッダから UTC を取得（最終フォールバック） */
+    async function fetchUtcMsFromHttpsDate_() {
+        const urls = [
+            'https://www.cloudflare.com/cdn-cgi/trace',
+            'https://www.google.com/generate_204'
+        ];
+        for (const url of urls) {
+            try {
+                const t0 = performance.now();
+                const res = await fetch(url, { cache: 'no-store', method: 'GET' });
+                const t1 = performance.now();
+                const dateHdr = res.headers.get('Date');
+                if (!dateHdr) continue;
+                const serverUtcMs = Date.parse(dateHdr);
+                if (Number.isFinite(serverUtcMs)) return utcMsWithRtt(serverUtcMs, t0, t1);
+            } catch (_) {}
+        }
+        throw new Error('https-date unavailable');
     }
-    /** JMA latest_time は10分単位だが、日本向け最終フォールバックとして利用 */
+    /** 時計用: 気象の latest_time は使わない（観測時刻で時計がずれる） */
     const TIME_SYNC_CHAIN = [
         { name: 'NICT', fetch: fetchUtcMsFromNict },
-        { name: 'timeapi.io', fetch: fetchUtcMsFromTimeApiIo },
         { name: 'worldtimeapi', fetch: fetchUtcMsFromWorldTimeApi },
-        { name: 'jma-latest', fetch: fetchUtcMsFromJmaLatest }
+        { name: 'timeapi.io', fetch: fetchUtcMsFromTimeApiIo },
+        { name: 'https-date', fetch: fetchUtcMsFromHttpsDate_ }
     ];
     function fetchWithTimeout_(promise, ms, label) {
         return Promise.race([
@@ -4601,13 +4654,8 @@
         ]);
     }
     async function syncTimeFromNetwork() {
-        for (const src of TIME_SYNC_CHAIN) {
-            try {
-                const utcMs = await fetchWithTimeout_(src.fetch(), 8000, src.name);
-                if (Number.isFinite(utcMs)) { applySyncedUtcMs(utcMs, src.name); return true; }
-            } catch (e) { console.warn('Time sync [' + src.name + ']:', e.message || e); }
-        }
-        console.warn('Time sync: 全ソース失敗。PC時計を暫定利用します。');
+        /* ネットワーク同期は行わない。PC システム時計のみ */
+        applySyncedUtcMs(Date.now(), 'local');
         return false;
     }
     function fitS1DateFontSize_() {
@@ -4649,16 +4697,39 @@
         el.innerHTML = '<span class="clock-h">--</span><span class="clock-colon" aria-hidden="true">:</span><span class="clock-m">--</span>';
     }
     function updateClock() {
-        let ms = getSyncedUtcMs();
-        if (ms == null) { applySyncedUtcMs(Date.now(), 'local-fallback'); ms = getSyncedUtcMs(); }
-        const now = new Date(Math.floor(ms));
+        const now = new Date(Date.now());
         const d = clockDateFormatter.format(now);
+        const pad = function (n) { return (n < 10 ? '0' : '') + n; };
         let h = '';
         let m = '';
-        clockHmFormatter.formatToParts(now).forEach(function (p) {
-            if (p.type === 'hour') h = p.value;
-            if (p.type === 'minute') m = p.value;
-        });
+        /* Asia/Tokyo の時・分を parts から取得（PC時計＝正） */
+        try {
+            const parts = jstPartsFromMs(now.getTime());
+            if (Number.isFinite(parts.hour) && Number.isFinite(parts.minute)) {
+                h = pad(parts.hour);
+                m = pad(parts.minute);
+            }
+        } catch (_) {}
+        if (!h || !m) {
+            clockHmFormatter.formatToParts(now).forEach(function (p) {
+                if (p.type === 'hour') h = p.value;
+                if (p.type === 'minute') m = p.value;
+            });
+        }
+        if (!h || !m) {
+            const parts = new Intl.DateTimeFormat('en-GB', {
+                timeZone: CLOCK_TZ, hour: '2-digit', minute: '2-digit', hour12: false, hourCycle: 'h23'
+            }).formatToParts(now);
+            parts.forEach(function (p) {
+                if (p.type === 'hour') h = p.value === '24' ? '00' : p.value;
+                if (p.type === 'minute') m = p.value;
+            });
+        }
+        if (h === '24') h = '00';
+        if (!h || !m) {
+            h = pad(now.getHours());
+            m = pad(now.getMinutes());
+        }
         document.querySelectorAll('.clock-hm').forEach(function (el) {
             ensureClockHmStructure_(el);
             el.querySelector('.clock-h').textContent = h;
@@ -4670,18 +4741,9 @@
     }
     function startClockTicker() {
         if (clockIntervalId != null) { clearTimeout(clockIntervalId); clockIntervalId = null; }
-        clockTickWallMs_ = Date.now();
         function tick() {
-            const wallNow = Date.now();
-            if (wallNow - clockTickWallMs_ > 5000) {
-                if (timeSync.baseUtcMs != null) {
-                    applySyncedUtcMs(timeSync.baseUtcMs + (wallNow - clockTickWallMs_), timeSync.source);
-                }
-            }
-            clockTickWallMs_ = wallNow;
             try { updateClock(); } catch (err) { console.warn('Clock tick:', err); }
-            const ms = getSyncedUtcMs();
-            const base = ms != null ? ms : Date.now();
+            const base = Date.now();
             clockIntervalId = setTimeout(tick, Math.max(50, 1000 - (base % 1000)));
         }
         tick();
@@ -5970,6 +6032,7 @@
     function hasS1WbgtFootMessage_() {
         if (wbgtOffSeason) return false;
         if (String(getS1FootBannerSrc_() || '').trim()) return true;
+        if (getS1FootMarkSrc_()) return true;
         return !!String(getS1WbgtMessageJp() || '').trim();
     }
     /* 下帯: WBGT取得不可時は「取得不可」。提供期間外は地点名で白帯を維持 */
@@ -6036,13 +6099,26 @@
         const cfg = (typeof window !== 'undefined' && window.SIGNAGE_CONFIG) || {};
         return String(cfg.footBannerSrc || '').trim();
     }
+    function getS1FootMarkSrc_() {
+        const cfg = (typeof window !== 'undefined' && window.SIGNAGE_CONFIG) || {};
+        return String(cfg.footLogoSrc || cfg.logoSrc || './assets/shuto_mark.png').trim();
+    }
+    function buildS1FootBrandHtml_() {
+        const markSrc = escapeS1Html(getS1FootMarkSrc_());
+        return '<span class="s1-foot-brand">' +
+            '<img class="s1-foot-mark" src="' + markSrc + '" alt="" decoding="sync">' +
+            '<span class="s1-foot-corp" aria-label="首都高技術株式会社">' +
+            '<span class="s1-foot-corp-name">首都高技術</span>' +
+            '<span class="s1-foot-corp-kk"><span>株</span><span>式</span><span>会</span><span>社</span></span>' +
+            '</span></span>';
+    }
     function buildS1SiteLogoHtml_() {
         const logoSrc = getS1SiteLogoSrc_();
         if (!logoSrc) return '';
         return `<span class="s1-wbgt-logo-wrap"><img class="s1-wbgt-logo" src="${escapeS1Html(logoSrc)}" alt="" decoding="async"></span>`;
     }
     function buildS1FootBannerSvgHtml_(siteName) {
-        const name = siteName || '首都高速道路';
+        const name = siteName || '首都高技術';
         const alt = escapeS1Html(name);
         const cfg = (typeof window !== 'undefined' && window.SIGNAGE_CONFIG) || {};
         const logoSrc = escapeS1Html(cfg.footLogoSrc || cfg.logoSrc || './assets/shuto_mark.png');
@@ -6058,9 +6134,7 @@
             const alt = escapeS1Html(siteName || '');
             return `<div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="${escapeS1Html(bannerSrc)}" alt="${alt}" decoding="async"></div>`;
         }
-        const logoHtml = buildS1SiteLogoHtml_();
-        const labelHtml = `<span class="s1-wbgt-site-label">${escapeS1Html(siteName)}</span>`;
-        return `<div class="s1-wbgt-slot s1-wbgt-site-slot"><span class="s1-wbgt-site-inner">${logoHtml}${labelHtml}</span></div>`;
+        return '<div class="s1-wbgt-slot s1-wbgt-site-slot">' + buildS1FootBrandHtml_() + '</div>';
     }
     function ensureS1WbgtBarVisible_() {
         document.querySelectorAll('#scene1 .s1-wbgt-bar').forEach(function (el) {
@@ -6091,25 +6165,9 @@
     function buildS1WbgtSetHtml(text) {
         const siteName = getS1SiteFootName_();
         const msgText = String(text || getS1WbgtMessageJp() || '').trim();
-        const bannerSrc = getS1FootBannerSrc_();
-        if (bannerSrc) {
-            const siteSlot = buildS1SiteSlotHtml_(siteName);
-            const msgSlot = `<div class="s1-wbgt-slot s1-wbgt-msg-slot">${msgText ? buildS1WbgtMsgHtml(msgText) : ''}</div>`;
-            return `<div class="s1-wbgt-set">${siteSlot}${msgSlot}</div>`;
-        }
-        if (siteName && msgText) {
-            const siteSlot = buildS1SiteSlotHtml_(siteName);
-            const msgSlot = `<div class="s1-wbgt-slot s1-wbgt-msg-slot">${buildS1WbgtMsgHtml(msgText)}</div>`;
-            return `<div class="s1-wbgt-set">${siteSlot}${msgSlot}</div>`;
-        }
-        const line = msgText || siteName || getS1FootFallbackText_();
-        const msg = buildS1WbgtMsgHtml(line);
-        if (footBarUseCompact_(line)) {
-            const slot = `<div class="s1-wbgt-slot s1-wbgt-slot-wide">${msg}</div>`;
-            return `<div class="s1-wbgt-set">${slot}</div>`;
-        }
-        const slot = buildFootBarSlotHtml(msg, 's1-wbgt-slot');
-        return `<div class="s1-wbgt-set">${slot}${slot}</div>`;
+        const siteSlot = buildS1SiteSlotHtml_(siteName);
+        const msgSlot = `<div class="s1-wbgt-slot s1-wbgt-msg-slot">${msgText ? buildS1WbgtMsgHtml(msgText) : ''}</div>`;
+        return `<div class="s1-wbgt-set">${siteSlot}${msgSlot}</div>`;
     }
     function getFcLvText() {
         return getFootSourceText_();
@@ -6160,7 +6218,7 @@
         sizeS1FootWbgtText_();
     }
     function s1FootBannerReady_() {
-        return !!s1WbgtTrack && !!s1WbgtTrack.querySelector('.s1-wbgt-site-slot .s1-wbgt-banner');
+        return !!s1WbgtTrack && !!s1WbgtTrack.querySelector('.s1-wbgt-site-slot .s1-foot-brand, .s1-wbgt-site-slot .s1-wbgt-banner');
     }
     function setS1FootBarVisible_(visible) {
         document.querySelectorAll('#scene1 .s1-wbgt-bar').forEach(function (el) {
@@ -7405,6 +7463,7 @@
                 syncTimeFromNetwork().catch(function () {}),
                 new Promise(function (resolve) { setTimeout(resolve, 2500); })
             ]);
+            updateClock();
             await Promise.race([
                 runScheduledFetch({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] }),
                 new Promise(function (resolve) { setTimeout(resolve, 3500); })
@@ -7415,9 +7474,7 @@
             }
             flushInitialDisplay_();
             startClockTicker();
-            setInterval(function () {
-                syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
-            }, CLOCK_SYNC_INTERVAL_MS);
+            setInterval(function () { updateClock(); }, CLOCK_SYNC_INTERVAL_MS);
             mainLoopStarted_ = true;
             scheduleDataRefresh();
             playScene1();
@@ -7440,7 +7497,9 @@
         }
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
-                syncTimeFromNetwork().then(function() { updateClock(); startClockTicker(); }).catch(function() { startClockTicker(); });
+                applySyncedUtcMs(Date.now(), 'local');
+                updateClock();
+                startClockTicker();
                 startBackgroundFetch_({ jma: true, moe: true, nowc: true, forecast: true, labels: ['復帰'] });
             }
         });
