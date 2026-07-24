@@ -2,45 +2,58 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=557, initial-scale=1.0">
+<meta name="viewport" content="width=557, height=400">
 <title>騒音振動モニター</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #000; }
-
-  /* 1. led-cloud側の枠サイズ */
-  .signage-box {
+  
+  /* 表示したい全体枠（サイネージ枠） */
+  html, body {
     width: 557px;
     height: 400px;
-    position: relative;
     overflow: hidden;
+    background: #000;
   }
 
-  /* 2. 中身（Webページ） */
-  .signage-box iframe {
+  /* 最初のコードと同じ切り抜き枠（605px * 540px） */
+  .crop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 605px;
+    height: 540px;
+    overflow: hidden;
+    transform-origin: 0 0;
+  }
+
+  /* 最初のコードと全く同じ位置・サイズ設定 */
+  .crop iframe {
     border: none;
     position: absolute;
-    
-    /* ★文字・グラフを大きくするため、描画幅を1200pxから700pxにキュッと縮めます */
-    width: 700px;
-    height: 550px;
-
-    transform-origin: 0 0;
-    
-    /* ★拡大倍率（1.0より大きくするとさらに拡大されます） */
-    transform: scale(1.15);
-    
-    /* 表示位置の調整 */
-    left: -120px;
-    top: -140px;
+    width: 1920px;
+    height: 1080px;
+    left: -700px;
+    top: -204px;
   }
 </style>
 </head>
 <body>
 
-  <div class="signage-box">
-    <iframe src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738" scrolling="no"></iframe>
+  <div class="crop" id="crop">
+    <iframe
+      src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738"
+      scrolling="no"
+    ></iframe>
   </div>
+
+  <script>
+    var c = document.getElementById('crop');
+    var w = parseInt(getComputedStyle(c).width);  /* 605px */
+    var h = parseInt(getComputedStyle(c).height); /* 540px */
+    
+    /* 最初のコードの「605x540の切り抜き」をそのまま 557x400 の枠へ自動で縮小フィットさせます */
+    c.style.transform = 'scale(' + (557 / w) + ',' + (400 / h) + ')';
+  </script>
 
 </body>
 </html>
