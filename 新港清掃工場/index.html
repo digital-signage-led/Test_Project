@@ -5,27 +5,31 @@
 <title>騒音振動モニター</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #000; }
-
-  /* 1. 表示枠 */
-  .signage-box {
-    width: 557px;
-    height: 400px;
-    position: relative;
+  
+  /* bodyと枠を100%にして、led-cloudの枠いっぱいに広げる */
+  html, body, .signage-box {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
+    background: #000;
+    position: relative;
   }
 
-  /* 2. 中身（Webページ） */
+  /* 中身のWebページ */
   .signage-box iframe {
     border: none;
     position: absolute;
     
+    /* 画面サイズ */
     width: 1200px;
     height: 900px;
 
     transform-origin: 0 0;
-    transform: scale(0.83);
     
+    /* ★ 縮小を解除して大きく表示（1.0 = 100%） */
+    transform: scale(1.0);
+    
+    /* 位置の微調整 */
     left: -280px;
     top: -230px;
   }
