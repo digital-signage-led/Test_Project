@@ -16,7 +16,6 @@
     position: absolute;
     top: 0;
     left: 0;
-    /* ▼ 調整したサイズに書き換え済み ▼ */
     width: 660px;
     height: 460px;
     overflow: hidden;
@@ -28,7 +27,9 @@
     width: 1920px;
     height: 1080px;
     left: -700px;
-    top: -204px; /* もしiframeのtop（縦位置）も微調整していた場合は、その数値に変えてください */
+    
+    /* ★修正点1: DevToolsでちょうどよかった「iframeのtopの数値」を入れてください */
+    top: -204px; 
   }
 </style>
 </head>
@@ -41,10 +42,9 @@
   </div>
   <script>
     var c = document.getElementById('crop');
-    var w = parseInt(getComputedStyle(c).width);
-    var h = parseInt(getComputedStyle(c).height);
-    /* 設定した 660px / 460px に合わせて自動的に拡大縮小倍率を計算します */
-    c.style.transform = 'scale('+(600/w)+','+(512/h)+')';
+    
+    /* ★修正点2: 勝手に縦横比を引き伸ばさないよう、DevToolsの倍率に直接固定します */
+    c.style.transform = 'scale(0.91, 1.1)'; 
   </script>
 </body>
 </html>
