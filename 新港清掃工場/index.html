@@ -2,20 +2,20 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=557, height=400">
+<meta name="viewport" content="width=558, height=424">
 <title>騒音振動モニター</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   
-  /* 表示したい全体枠（サイネージ枠） */
+  /* サイネージ枠（W558px * H424px） */
   html, body {
-    width: 557px;
-    height: 400px;
+    width: 558px;
+    height: 424px;
     overflow: hidden;
     background: #000;
   }
 
-  /* 最初のコードと同じ切り抜き枠（605px * 540px） */
+  /* 切り抜き枠 */
   .crop {
     position: absolute;
     top: 0;
@@ -24,14 +24,23 @@
     height: 540px;
     overflow: hidden;
     transform-origin: 0 0;
+
+    /* ★【倍率・引き伸ばし調整】
+       scale(横倍率, 縦倍率)
+       2番目の数字を「0.785」から「0.85」「0.9」のように大きくすると縦に伸びます */
+    transform: scale(0.922, 0.785);
   }
 
-  /* 最初のコードと全く同じ位置・サイズ設定 */
+  /* 元サイトの位置（新URL対応） */
   .crop iframe {
     border: none;
     position: absolute;
     width: 1920px;
     height: 1080px;
+
+    /* ★【位置の移動調整】
+       left: 左右の移動（数字を動かして位置合わせ）
+       top : 上下の移動（数字を動かして位置合わせ） */
     left: -700px;
     top: -204px;
   }
@@ -39,21 +48,12 @@
 </head>
 <body>
 
-  <div class="crop" id="crop">
+  <div class="crop">
     <iframe
-      src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738"
+      src="https://www2.edam.ne.jp/Public/18237/Sokutei/SSC/RN"
       scrolling="no"
     ></iframe>
   </div>
-
-  <script>
-    var c = document.getElementById('crop');
-    var w = parseInt(getComputedStyle(c).width);  /* 605px */
-    var h = parseInt(getComputedStyle(c).height); /* 540px */
-    
-    /* 最初のコードの「605x540の切り抜き」をそのまま 557x400 の枠へ自動で縮小フィットさせます */
-    c.style.transform = 'scale(' + (557 / w) + ',' + (400 / h) + ')';
-  </script>
 
 </body>
 </html>
