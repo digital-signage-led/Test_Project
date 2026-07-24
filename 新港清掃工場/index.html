@@ -2,49 +2,40 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=600, height=512">
 <title>騒音振動モニター</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    width: 600px;
-    height: 512px;
+  body { background: #000; }
+
+  /* 1. 表示枠 */
+  .signage-box {
+    width: 557px;
+    height: 400px;
+    position: relative;
     overflow: hidden;
-    background: #000;
   }
-  .crop {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 660px;
-    height: 460px;
-    overflow: hidden;
-    transform-origin: 0 0;
-  }
-  .crop iframe {
+
+  /* 2. 中身（Webページ） */
+  .signage-box iframe {
     border: none;
     position: absolute;
-    width: 1920px;
-    height: 1080px;
-    left: -700px;
     
-    /* ★修正点1: DevToolsでちょうどよかった「iframeのtopの数値」を入れてください */
-    top: -204px; 
+    width: 1200px;
+    height: 900px;
+
+    transform-origin: 0 0;
+    transform: scale(0.83);
+    
+    left: -280px;
+    top: -230px;
   }
 </style>
 </head>
 <body>
-  <div class="crop" id="crop">
-    <iframe
-      src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738"
-      scrolling="no"
-    ></iframe>
+
+  <div class="signage-box">
+    <iframe src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738" scrolling="no"></iframe>
   </div>
-  <script>
-    var c = document.getElementById('crop');
-    
-    /* ★修正点2: 勝手に縦横比を引き伸ばさないよう、DevToolsの倍率に直接固定します */
-    c.style.transform = 'scale(0.91, 1.1)'; 
-  </script>
+
 </body>
 </html>
