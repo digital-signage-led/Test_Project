@@ -16,8 +16,9 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 605px;
-    height: 540px;
+    /* ▼ 調整したサイズに書き換え済み ▼ */
+    width: 660px;
+    height: 460px;
     overflow: hidden;
     transform-origin: 0 0;
   }
@@ -27,14 +28,14 @@
     width: 1920px;
     height: 1080px;
     left: -700px;
-    top: -204px;
+    top: -204px; /* もしiframeのtop（縦位置）も微調整していた場合は、その数値に変えてください */
   }
 </style>
 </head>
 <body>
   <div class="crop" id="crop">
     <iframe
-      src="https://www2.edam.ne.jp/Public/18237/Sokutei/SSC/RN"
+      src="https://www2.edam.ne.jp/Public/00642/Sokutei/SSC/RN?LoID=738"
       scrolling="no"
     ></iframe>
   </div>
@@ -42,6 +43,7 @@
     var c = document.getElementById('crop');
     var w = parseInt(getComputedStyle(c).width);
     var h = parseInt(getComputedStyle(c).height);
+    /* 設定した 660px / 460px に合わせて自動的に拡大縮小倍率を計算します */
     c.style.transform = 'scale('+(600/w)+','+(512/h)+')';
   </script>
 </body>
