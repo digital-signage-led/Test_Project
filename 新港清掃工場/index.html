@@ -21,28 +21,20 @@
     top: 0;
     left: 0;
     width: 605px;
-    height: 540px;
+    height: 480px;
     overflow: hidden;
     transform-origin: 0 0;
-
-    /* ★【倍率・引き伸ばし調整】
-       scale(横倍率, 縦倍率)
-       2番目の数字を「0.785」から「0.85」「0.9」のように大きくすると縦に伸びます */
     transform: scale(0.922, 0.785);
   }
 
-  /* 元サイトの位置（新URL対応） */
+  /* 元サイトの位置（最新の調整値） */
   .crop iframe {
     border: none;
     position: absolute;
     width: 1920px;
     height: 1080px;
-
-    /* ★【位置の移動調整】
-       left: 左右の移動（数字を動かして位置合わせ）
-       top : 上下の移動（数字を動かして位置合わせ） */
     left: -700px;
-    top: -204px;
+    top: -280px;
   }
 </style>
 </head>
