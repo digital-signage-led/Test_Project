@@ -51,14 +51,14 @@ var API_BASE = 'https://wxtech.weathernews.com/api/v1/ss1wx';
 
 function doGet(e) {
   var params = (e && e.parameter) ? e.parameter : {};
+  var callback = params.callback || '';
   var site = null;
 
   // site 指定があればマスタ優先。なければ lat/lon 直指定。どちらもなければ suminoe。
-  // （旧: site未指定時に常に suminoe 固定 → HTML の lat/lon が無視される問題を修正）
   if (params.site) {
     site = SITES[params.site];
     if (!site) {
-      return json_({ ok: false, reason: 'unknown_site' });
+      return json_({ ok: false, reason: 'unknown_site' }, callback);
     }
   } else if (params.lat && params.lon) {
     site = {
@@ -73,12 +73,10 @@ function doGet(e) {
   try {
     var data = fetchForecast_(site.lat, site.lon);
     data.siteName = site.name;
-    return json_(data);
+    return json_(data, callback);
   } catch (err) {
     // ★安全ルール★ 取得に失敗したら ok:false のみを返す。
-    // 前回値・推定値・気象庁からの代替値などは絶対に返さない。
-    // 表示側は ok:false を受けたら「取得不可」だけを出す。
-    return json_({ ok: false, reason: String(err).slice(0, 200) });
+    return json_({ ok: false, reason: String(err).slice(0, 200) }, callback);
   }
 }
 
@@ -98,9 +96,10 @@ function fetchForecast_(lat, lon) {
     return cached;
   }
 
-  var apiKey = PropertiesService.getScriptProperties().getProperty('WXTECH_API_KEY')
-            || WXTECH_API_KEY_FALLBACK;
-  if (!apiKey) throw new Error('WXTECH_API_KEY not set');
+  // トライアル運用: コード内キーを優先（プロパティ未設定でも動かす）
+  var apiKey = WXTECH_API_KEY_FALLBACK
+            || PropertiesService.getScriptProperties().getProperty('WXTECH_API_KEY');
+  if (!apiKey) throw new Error('WXTECH_API_KEY missing (v2)');
 
   var url = API_BASE + '?lat=' + lat + '&lon=' + lon;
   var res = UrlFetchApp.fetch(url, {
@@ -134,9 +133,16 @@ function fetchForecast_(lat, lon) {
 }
 
 
-function json_(obj) {
+function json_(obj, callback) {
+  var body = JSON.stringify(obj);
+  // ブラウザ(CORS回避)用: ?callback=xxx で JSONP
+  if (callback && /^[A-Za-z_$][\w$]*$/.test(String(callback))) {
+    return ContentService
+      .createTextOutput(callback + '(' + body + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
   return ContentService
-    .createTextOutput(JSON.stringify(obj))
+    .createTextOutput(body)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
