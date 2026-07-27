@@ -37,7 +37,51 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>気象サイネージ 4面 - 住之江区</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=optional">
+<!-- サイネージ機は Google Fonts に届かないことが多いため、同梱 woff2 を使う -->
+<style>
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("./fonts/inter-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url("./fonts/inter-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: block;
+  src: url("./fonts/inter-800.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans JP";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("./fonts/noto-sans-jp-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans JP";
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url("./fonts/noto-sans-jp-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans JP";
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+  src: url("./fonts/noto-sans-jp-900.woff2") format("woff2");
+}
+</style>
 <script>
 /** 4面 512×128 本番用。localhost は PC 確認用に拡大表示 */
 (function () {
@@ -65,37 +109,57 @@
     --led-col-main-h: 96px;
     --led-foot-font: 15px;
 }
+/*
+ * コンテンツ画像の始まり = X.Y.0.0（左上原点）
+ * LEDプレーヤー／ブラウザとも canvas 左上を (0,0) に固定する。
+ */
+html {
+    margin: 0; padding: 0; width: 512px; height: 128px;
+    overflow: hidden; background: #000;
+}
 body {
-    margin: 0; padding: 0; background-color: #1a1a1a; overflow: hidden;
-    font-family: "Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    margin: 0; padding: 0; width: 512px; height: 128px;
+    overflow: hidden; background-color: #000;
+    position: absolute; top: 0; left: 0;
+    /* 数値=Inter / 日本語=Noto。サイネージは同梱フォント必須（ネット経由不可想定） */
+    font-family: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
 }
 html.native-640, body.native-640 {
     width: 512px !important; height: 128px !important;
     min-width: 512px; min-height: 128px; max-width: 512px; max-height: 128px;
     margin: 0 !important; padding: 0 !important; overflow: hidden !important;
-    background: #000;
+    background: #000; top: 0 !important; left: 0 !important;
 }
-body.native-640 { display: block; }
+body.native-640 { display: block; position: absolute; top: 0; left: 0; }
 body.native-640 .canvas {
-    transform: none !important; position: absolute; top: 0; left: 0; margin: 0; padding: 0;
+    transform: none !important;
+    position: absolute !important; top: 0 !important; left: 0 !important;
+    margin: 0 !important; padding: 0 !important;
 }
 .canvas {
-    width: 512px; height: 128px; position: relative; overflow: hidden;
-    display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0; transform-origin: top left;
+    width: 512px; height: 128px;
+    position: absolute; top: 0; left: 0;
+    overflow: hidden; margin: 0; padding: 0;
+    display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0;
+    transform-origin: 0 0; /* = X.Y.0.0 */
 }
 body.browser-preview {
-    min-height: 100vh; display: flex; align-items: flex-start; justify-content: flex-start;
-    background: #1a1a1a;
+    width: 100vw; height: 100vh; min-height: 100vh;
+    display: block; background: #1a1a1a;
+    position: absolute; top: 0; left: 0;
 }
 body.browser-preview .canvas {
+    position: absolute !important; top: 0 !important; left: 0 !important;
     transform: scale(min(calc(100vw / 512), calc(100vh / 128))) !important;
-    transform-origin: top left;
+    transform-origin: 0 0;
 }
 /* 4面（512×128）: ロゴ列なし */
 body.layout-512 .logo-panel { display: none !important; }
 
 .content-area {
-    width: 512px; height: 128px; position: relative; overflow: hidden;
+    width: 512px; height: 128px;
+    position: absolute; top: 0; left: 0;
+    overflow: hidden; margin: 0; padding: 0;
     flex: 0 0 512px; flex-shrink: 0; background: #308DD8;
 }
 .content-area > .scene-strip-bg { z-index: 0; }
@@ -137,9 +201,15 @@ body.layout-512 .logo-panel { display: none !important; }
     width: 100%; height: 32px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
-.s1-body, .s2-body, .fl-body {
+.s1-body, .fl-body {
     width: 100%; max-width: 128px; height: var(--led-col-body-h); flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0 6px;
+    box-sizing: border-box;
+}
+/* 天気アイコン欠け防止: s2/d5 本文はクリップしない */
+.s2-body, .d5-body {
+    width: 100%; max-width: 128px; height: var(--led-col-body-h); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; overflow: visible; padding: 0 6px;
     box-sizing: border-box;
 }
 .s1-bar-label, .s2-bar-label, .fl-bar-label {
@@ -208,9 +278,14 @@ body.layout-512 .logo-panel { display: none !important; }
     font-family: "Noto Sans JP", sans-serif; max-width: 118px; overflow: hidden;
     white-space: nowrap; text-align: center; text-overflow: ellipsis;
 }
-.weather-svg {
-    width: 58px; height: 58px; display: block; flex-shrink: 0;
-    overflow: visible; transform: none !important;
+/* WxTech公式アイコン 152×112 → 表示は約58×43（画像内も左上基準） */
+.weather-icon {
+    width: 58px; height: 43px; display: block; flex-shrink: 0;
+    object-fit: contain; object-position: 0 0; image-rendering: auto;
+}
+.weather-none {
+    font-size: 28px; font-weight: 800; color: #7a8896;
+    font-family: "Inter", sans-serif; line-height: 1;
 }
 .s2-tmaxmin-card {
     display: inline-flex; align-items: baseline; justify-content: center; gap: 2px;
@@ -241,14 +316,14 @@ body.layout-512 .logo-panel { display: none !important; }
 #scene4 .d5-panel .d5-body {
     width: 100%; height: var(--led-col-body-h); flex-shrink: 0;
     display: flex; flex-direction: row; align-items: center; justify-content: center;
-    padding: 0 4px; box-sizing: border-box; overflow: hidden;
+    padding: 0 4px; box-sizing: border-box; overflow: visible;
 }
 #scene4 .d5-panel .d5-foot {
     width: 100%; height: var(--led-foot-bar-h); flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; box-sizing: border-box;
 }
 .d5-foot-txt { font-size: 15px; font-weight: 700; color: #1a1a1a; font-family: "Noto Sans JP", sans-serif; }
-.d5-weather-row { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 2px; max-width: 120px; overflow: hidden; }
+.d5-weather-row { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 2px; max-width: 120px; overflow: visible; }
 .d5-sep { font-size: 34px; font-weight: 700; line-height: 1; color: #ebebeb; font-family: "Inter", sans-serif; opacity: 0.9; }
 .d5-temp { font-size: 46px; font-weight: 800; color: #ebebeb; line-height: 1; font-family: "Inter", sans-serif; font-variant-numeric: tabular-nums; }
 .d5-today-frame { position: absolute; left: 0; top: 0; width: 128px; height: 128px; box-sizing: border-box; border: 2px solid #ffffff; pointer-events: none; z-index: 10; }
@@ -301,128 +376,128 @@ body.layout-512 .logo-panel { display: none !important; }
 })(typeof window !== 'undefined' ? window : global);
 </script>
 
-<!-- 天気アイコン: WxTech公式PNGは「サンプルにつき本番利用不可」のため自作SVG -->
-<svg style="display:none">
+<!-- 天気アイコン: 公式PNGは本番不可のため自作。余白多めで欠け防止 -->
+<svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <defs>
   <!-- 100 晴れ -->
   <symbol id="icon-sunny" viewBox="0 0 120 120">
-    <circle cx="60" cy="60" r="26" fill="#FFC21A"/>
-    <g stroke="#FFC21A" stroke-width="9" stroke-linecap="round">
-      <line x1="60" y1="10" x2="60" y2="24"/><line x1="60" y1="96" x2="60" y2="110"/>
-      <line x1="10" y1="60" x2="24" y2="60"/><line x1="96" y1="60" x2="110" y2="60"/>
-      <line x1="25" y1="25" x2="35" y2="35"/><line x1="85" y1="85" x2="95" y2="95"/>
-      <line x1="25" y1="95" x2="35" y2="85"/><line x1="85" y1="35" x2="95" y2="25"/>
+    <circle cx="60" cy="60" r="22" fill="#FFC21A"/>
+    <g stroke="#FFC21A" stroke-width="8" stroke-linecap="round">
+      <line x1="60" y1="18" x2="60" y2="30"/><line x1="60" y1="90" x2="60" y2="102"/>
+      <line x1="18" y1="60" x2="30" y2="60"/><line x1="90" y1="60" x2="102" y2="60"/>
+      <line x1="32" y1="32" x2="40" y2="40"/><line x1="80" y1="80" x2="88" y2="88"/>
+      <line x1="32" y1="88" x2="40" y2="80"/><line x1="80" y1="40" x2="88" y2="32"/>
     </g>
   </symbol>
   <!-- 500 快晴 -->
   <symbol id="icon-clear" viewBox="0 0 120 120">
-    <circle cx="60" cy="60" r="32" fill="#FFD21A"/>
-    <g stroke="#FFD21A" stroke-width="8" stroke-linecap="round">
-      <line x1="60" y1="8" x2="60" y2="20"/><line x1="60" y1="100" x2="60" y2="112"/>
-      <line x1="8" y1="60" x2="20" y2="60"/><line x1="100" y1="60" x2="112" y2="60"/>
+    <circle cx="60" cy="60" r="28" fill="#FFD21A"/>
+    <g stroke="#FFD21A" stroke-width="7" stroke-linecap="round">
+      <line x1="60" y1="16" x2="60" y2="26"/><line x1="60" y1="94" x2="60" y2="104"/>
+      <line x1="16" y1="60" x2="26" y2="60"/><line x1="94" y1="60" x2="104" y2="60"/>
     </g>
   </symbol>
-  <!-- 550 猛暑（WxTech固有コード） -->
+  <!-- 550 猛暑（温度計なし・赤い太陽のみ） -->
   <symbol id="icon-heat" viewBox="0 0 120 120">
-    <circle cx="46" cy="52" r="24" fill="#FF3B14"/>
+    <circle cx="60" cy="60" r="24" fill="#FF3B14"/>
     <g stroke="#FF3B14" stroke-width="8" stroke-linecap="round">
-      <line x1="46" y1="10" x2="46" y2="22"/><line x1="8" y1="52" x2="20" y2="52"/>
-      <line x1="19" y1="25" x2="28" y2="34"/><line x1="19" y1="79" x2="28" y2="70"/>
+      <line x1="60" y1="18" x2="60" y2="30"/><line x1="60" y1="90" x2="60" y2="102"/>
+      <line x1="18" y1="60" x2="30" y2="60"/><line x1="90" y1="60" x2="102" y2="60"/>
+      <line x1="32" y1="32" x2="40" y2="40"/><line x1="80" y1="80" x2="88" y2="88"/>
+      <line x1="32" y1="88" x2="40" y2="80"/><line x1="80" y1="40" x2="88" y2="32"/>
     </g>
-    <rect x="86" y="24" width="16" height="52" rx="8" fill="#ffffff"/>
-    <rect x="90" y="42" width="8" height="42" fill="#FF3B14"/>
-    <circle cx="94" cy="90" r="16" fill="#FF3B14"/>
   </symbol>
-  <!-- 雲は円＋水平矩形で構成（弧パスだと傾いて見えるため） -->
   <!-- 600 うすぐもり -->
   <symbol id="icon-thincloud" viewBox="0 0 120 120">
-    <circle cx="40" cy="38" r="20" fill="#FFC21A"/>
+    <circle cx="42" cy="40" r="18" fill="#FFC21A"/>
     <g fill="#C9D6E6">
-      <circle cx="38" cy="70" r="16"/>
-      <circle cx="60" cy="64" r="20"/>
-      <circle cx="84" cy="70" r="15"/>
-      <rect x="22" y="70" width="77" height="18" rx="9"/>
+      <circle cx="40" cy="68" r="14"/>
+      <circle cx="60" cy="62" r="18"/>
+      <circle cx="82" cy="68" r="13"/>
+      <rect x="26" y="68" width="69" height="16" rx="8"/>
     </g>
   </symbol>
   <!-- 200 くもり -->
   <symbol id="icon-cloudy" viewBox="0 0 120 120">
     <g fill="#C9D6E6">
-      <circle cx="36" cy="58" r="18"/>
-      <circle cx="60" cy="50" r="24"/>
-      <circle cx="86" cy="58" r="17"/>
-      <rect x="18" y="58" width="86" height="22" rx="11"/>
+      <circle cx="38" cy="56" r="16"/>
+      <circle cx="60" cy="48" r="22"/>
+      <circle cx="84" cy="56" r="15"/>
+      <rect x="22" y="56" width="78" height="20" rx="10"/>
     </g>
   </symbol>
   <!-- 650 小雨 -->
   <symbol id="icon-lightrain" viewBox="0 0 120 120">
     <g fill="#C9D6E6">
-      <circle cx="36" cy="46" r="16"/>
-      <circle cx="58" cy="40" r="20"/>
-      <circle cx="82" cy="46" r="15"/>
-      <rect x="20" y="46" width="77" height="18" rx="9"/>
+      <circle cx="38" cy="44" r="14"/>
+      <circle cx="58" cy="38" r="18"/>
+      <circle cx="80" cy="44" r="13"/>
+      <rect x="24" y="44" width="69" height="16" rx="8"/>
     </g>
-    <g stroke="#3FA9F5" stroke-width="7" stroke-linecap="round">
-      <line x1="44" y1="76" x2="40" y2="98"/><line x1="70" y1="76" x2="66" y2="98"/>
+    <g stroke="#3FA9F5" stroke-width="6" stroke-linecap="round">
+      <line x1="46" y1="72" x2="42" y2="92"/><line x1="70" y1="72" x2="66" y2="92"/>
     </g>
   </symbol>
   <!-- 300 雨 -->
   <symbol id="icon-rainy" viewBox="0 0 120 120">
     <g fill="#B9C7D8">
-      <circle cx="36" cy="44" r="16"/>
-      <circle cx="58" cy="38" r="20"/>
-      <circle cx="82" cy="44" r="15"/>
-      <rect x="20" y="44" width="77" height="18" rx="9"/>
+      <circle cx="38" cy="42" r="14"/>
+      <circle cx="58" cy="36" r="18"/>
+      <circle cx="80" cy="42" r="13"/>
+      <rect x="24" y="42" width="69" height="16" rx="8"/>
     </g>
-    <g stroke="#3FA9F5" stroke-width="8" stroke-linecap="round">
-      <line x1="38" y1="74" x2="32" y2="100"/><line x1="60" y1="74" x2="54" y2="100"/><line x1="82" y1="74" x2="76" y2="100"/>
+    <g stroke="#3FA9F5" stroke-width="7" stroke-linecap="round">
+      <line x1="40" y1="70" x2="36" y2="94"/><line x1="60" y1="70" x2="56" y2="94"/><line x1="80" y1="70" x2="76" y2="94"/>
     </g>
   </symbol>
   <!-- 400 雪 -->
   <symbol id="icon-snow" viewBox="0 0 120 120">
     <g fill="#C9D6E6">
-      <circle cx="36" cy="44" r="16"/>
-      <circle cx="58" cy="38" r="20"/>
-      <circle cx="82" cy="44" r="15"/>
-      <rect x="20" y="44" width="77" height="18" rx="9"/>
+      <circle cx="38" cy="42" r="14"/>
+      <circle cx="58" cy="36" r="18"/>
+      <circle cx="80" cy="42" r="13"/>
+      <rect x="24" y="42" width="69" height="16" rx="8"/>
     </g>
-    <g fill="#EAF6FF"><circle cx="40" cy="84" r="7"/><circle cx="60" cy="94" r="7"/><circle cx="80" cy="84" r="7"/></g>
+    <g fill="#EAF6FF"><circle cx="42" cy="80" r="6"/><circle cx="60" cy="90" r="6"/><circle cx="78" cy="80" r="6"/></g>
   </symbol>
   <!-- 430 みぞれ -->
   <symbol id="icon-sleet" viewBox="0 0 120 120">
     <g fill="#C0CEDD">
-      <circle cx="36" cy="44" r="16"/>
-      <circle cx="58" cy="38" r="20"/>
-      <circle cx="82" cy="44" r="15"/>
-      <rect x="20" y="44" width="77" height="18" rx="9"/>
+      <circle cx="38" cy="42" r="14"/>
+      <circle cx="58" cy="36" r="18"/>
+      <circle cx="80" cy="42" r="13"/>
+      <rect x="24" y="42" width="69" height="16" rx="8"/>
     </g>
-    <line x1="40" y1="74" x2="34" y2="98" stroke="#3FA9F5" stroke-width="8" stroke-linecap="round"/>
-    <circle cx="62" cy="90" r="7" fill="#EAF6FF"/>
-    <line x1="84" y1="74" x2="78" y2="98" stroke="#3FA9F5" stroke-width="8" stroke-linecap="round"/>
+    <line x1="42" y1="70" x2="38" y2="92" stroke="#3FA9F5" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="60" cy="86" r="6" fill="#EAF6FF"/>
+    <line x1="80" y1="70" x2="76" y2="92" stroke="#3FA9F5" stroke-width="7" stroke-linecap="round"/>
   </symbol>
   <!-- 850 大雨・嵐 -->
   <symbol id="icon-storm" viewBox="0 0 120 120">
     <g fill="#8FA3B8">
-      <circle cx="36" cy="40" r="16"/>
-      <circle cx="58" cy="34" r="20"/>
-      <circle cx="82" cy="40" r="15"/>
-      <rect x="20" y="40" width="77" height="18" rx="9"/>
+      <circle cx="38" cy="40" r="14"/>
+      <circle cx="58" cy="34" r="18"/>
+      <circle cx="80" cy="40" r="13"/>
+      <rect x="24" y="40" width="69" height="16" rx="8"/>
     </g>
-    <g stroke="#3FA9F5" stroke-width="8" stroke-linecap="round"><line x1="34" y1="70" x2="28" y2="96"/><line x1="86" y1="70" x2="80" y2="96"/></g>
-    <polygon points="66,62 50,94 62,90 56,112 82,72 66,76" fill="#FFE14A"/>
+    <g stroke="#3FA9F5" stroke-width="7" stroke-linecap="round"><line x1="36" y1="68" x2="32" y2="90"/><line x1="84" y1="68" x2="80" y2="90"/></g>
+    <polygon points="64,60 50,88 60,84 54,102 78,70 64,74" fill="#FFE14A"/>
   </symbol>
   <!-- 950 大雪 -->
   <symbol id="icon-heavysnow" viewBox="0 0 120 120">
     <g fill="#AFC2D6">
-      <circle cx="36" cy="40" r="16"/>
-      <circle cx="58" cy="34" r="20"/>
-      <circle cx="82" cy="40" r="15"/>
-      <rect x="20" y="40" width="77" height="18" rx="9"/>
+      <circle cx="38" cy="40" r="14"/>
+      <circle cx="58" cy="34" r="18"/>
+      <circle cx="80" cy="40" r="13"/>
+      <rect x="24" y="40" width="69" height="16" rx="8"/>
     </g>
-    <g fill="#EAF6FF"><circle cx="38" cy="78" r="8"/><circle cx="60" cy="90" r="8"/><circle cx="82" cy="78" r="8"/><circle cx="60" cy="108" r="6"/></g>
+    <g fill="#EAF6FF"><circle cx="40" cy="74" r="7"/><circle cx="60" cy="86" r="7"/><circle cx="80" cy="74" r="7"/><circle cx="60" cy="100" r="5"/></g>
   </symbol>
   <!-- 999 データなし -->
   <symbol id="icon-none" viewBox="0 0 120 120">
-    <text x="60" y="76" text-anchor="middle" font-size="52" font-weight="800" fill="#7a8896" font-family="Inter,sans-serif">--</text>
+    <text x="60" y="72" text-anchor="middle" font-size="44" font-weight="800" fill="#7a8896" font-family="Inter,sans-serif">--</text>
   </symbol>
+  </defs>
 </svg>
 
 <div class="canvas">
@@ -487,42 +562,75 @@ var UNAVAILABLE_GRACE_MS = 60 * 1000;
    srf(短期予報)は11種のみ。mrf(中期予報)はフル表。
    出典: WxTech APIリファレンス 天気コード(予報)
    ============================================================ */
+/* WxTech公式 天気コード(予報) 表現一覧 */
 var WX_NAME = {
-    100:'晴れ', 101:'晴れ時々くもり', 111:'晴れのちくもり', 114:'晴れのち雨',
+    100:'晴れ', 101:'晴れ時々くもり', 102:'晴れ一時雨', 103:'晴れ時々雨',
+    104:'晴れ一時雪', 105:'晴れ時々雪', 106:'晴れ一時雨か雪', 107:'晴れ時々雨か雪',
+    108:'晴れ一時雨', 110:'晴れのち時々くもり', 111:'晴れのちくもり', 112:'晴れのち一時雨',
+    113:'晴れのち時々雨', 114:'晴れのち雨', 115:'晴れのち一時雪', 116:'晴れのち時々雪',
+    117:'晴れのち雪', 118:'晴れのち雨か雪', 119:'晴れのち雨か雷雨', 120:'晴れ一時雨',
+    121:'晴れ一時雨', 122:'晴れ夕方一時雨', 123:'晴れ山沿い雷雨', 124:'晴れ山沿い雪',
+    125:'晴れ午後は雷雨', 126:'晴れ昼頃から雨', 127:'晴れ夕方から雨', 128:'晴れ夜は雨',
+    129:'晴れ夜半から雨', 130:'朝の内霧のち晴れ', 131:'晴れ朝方霧', 132:'晴れ時々くもり',
+    140:'晴れ時々雨', 160:'晴れ一時雪か雨', 170:'晴れ時々雪か雨', 181:'晴れのち雪か雨',
     200:'くもり', 201:'くもり時々晴れ', 202:'くもり一時雨', 203:'くもり時々雨',
-    211:'くもりのち晴れ', 214:'くもりのち雨',
-    300:'雨', 301:'雨時々晴れ', 302:'雨時々止む', 306:'大雨', 311:'雨のち晴れ', 313:'雨のちくもり',
-    350:'雷', 400:'雪', 405:'大雪', 430:'みぞれ',
-    500:'快晴', 550:'猛暑', 552:'猛暑時々曇り', 553:'猛暑時々雨',
-    562:'猛暑のち曇り', 563:'猛暑のち雨', 572:'曇り時々猛暑', 573:'雨時々猛暑',
-    582:'曇りのち猛暑', 583:'雨のち猛暑',
-    600:'うすぐもり', 650:'小雨', 800:'雷', 850:'大雨・嵐', 950:'大雪', 999:'--'
+    204:'くもり一時雪', 205:'くもり時々雪', 206:'くもり一時雨か雪', 207:'くもり時々雨か雪',
+    208:'くもり一時雨か雷雨', 209:'霧', 210:'くもりのち時々晴れ', 211:'くもりのち晴れ',
+    212:'くもりのち一時雨', 213:'くもりのち時々雨', 214:'くもりのち雨', 215:'くもりのち一時雪',
+    216:'くもりのち時々雪', 217:'くもりのち雪', 218:'くもりのち雨か雪', 219:'くもりのち雨か雷雨',
+    220:'くもり朝夕一時雨', 221:'くもり朝の内一時雨', 222:'くもり夕方一時雨', 223:'くもり日中時々晴れ',
+    224:'くもり昼頃から雨', 225:'くもり夕方から雨', 226:'くもり夜は雨', 227:'くもり夜半から雨',
+    228:'くもり昼頃から雪', 229:'くもり夕方から雪', 230:'くもり夜は雪', 231:'くもり海上海岸は霧か霧雨',
+    240:'くもり時々雨で雷を伴う', 250:'くもり時々雪で雷を伴う', 260:'くもり一時雪か雨',
+    270:'くもり時々雪か雨', 281:'くもりのち雪か雨',
+    300:'雨', 301:'雨時々晴れ', 302:'雨時々止む', 303:'雨時々雪', 304:'雨か雪',
+    306:'大雨', 308:'雨で暴風を伴う', 309:'雨一時雪', 311:'雨のち晴れ', 313:'雨のちくもり',
+    314:'雨のち時々雪', 315:'雨のち雪', 316:'雨か雪のち晴れ', 317:'雨か雪のちくもり',
+    320:'朝の内雨のち晴れ', 321:'朝の内雨のちくもり', 322:'雨朝晩一時雪', 323:'雨昼頃から晴れ',
+    324:'雨夕方から晴れ', 325:'雨夜は晴れ', 326:'雨夕方から雪', 327:'雨夜は雪',
+    328:'雨一時強く降る', 329:'雨一時みぞれ', 340:'雪か雨', 350:'雷',
+    361:'雪か雨のち晴れ', 371:'雪か雨のちくもり',
+    400:'雪', 401:'雪時々晴れ', 402:'雪時々止む', 403:'雪時々雨', 405:'大雪',
+    406:'風雪強い', 407:'暴風雪', 409:'雪一時雨', 411:'雪のち晴れ', 413:'雪のちくもり',
+    414:'雪のち雨', 420:'朝の内雪のち晴れ', 421:'朝の内雪のちくもり', 422:'雪昼頃から雨',
+    423:'雪夕方から雨', 424:'雪夜半から雨', 425:'雪一時強く降る', 426:'雪のちみぞれ',
+    427:'雪一時みぞれ', 430:'みぞれ', 450:'雪で雷を伴う',
+    500:'快晴', 550:'猛暑', 552:'猛暑時々曇り', 553:'猛暑時々雨', 558:'猛暑時々大雨・嵐',
+    562:'猛暑のち曇り', 563:'猛暑のち雨', 568:'猛暑のち大雨・嵐', 572:'曇り時々猛暑',
+    573:'雨時々猛暑', 582:'曇りのち猛暑', 583:'雨のち猛暑',
+    600:'うすぐもり', 650:'小雨', 800:'雷',
+    850:'大雨・嵐', 851:'大雨・嵐時々晴れ', 852:'大雨・嵐時々曇り', 853:'大雨・嵐時々雨',
+    854:'大雨・嵐時々雪', 855:'大雨・嵐時々猛暑', 859:'大雨・嵐一時大雪',
+    861:'大雨・嵐のち晴れ', 862:'大雨・嵐のち曇り', 863:'大雨・嵐のち雨', 864:'大雨・嵐のち雪',
+    865:'大雨・嵐のち猛暑', 869:'大雨・嵐のち大雪', 871:'晴れ時々大雨・嵐', 872:'曇り時々大雨・嵐',
+    873:'雨時々大雨・嵐', 874:'雪時々大雨・嵐', 881:'晴れのち大雨・嵐', 882:'曇りのち大雨・嵐',
+    883:'雨のち大雨・嵐', 884:'雪のち大雨・嵐',
+    950:'大雪', 951:'大雪時々晴れ', 952:'大雪時々曇', 953:'大雪一時雨', 954:'大雪時々雪',
+    958:'大雪一時大雨', 961:'大雪のち晴れ', 962:'大雪のち曇', 963:'大雪のち雨', 964:'大雪のち雪',
+    968:'大雪のち大雨・嵐', 971:'晴れ一時大雪', 972:'曇一時大雪', 973:'雨一時大雪', 974:'雪一時大雪',
+    981:'晴れのち大雪', 982:'曇のち大雪', 983:'雨のち大雪', 984:'雪のち大雪',
+    999:'--'
 };
 
-/** コードを描画系統に落とす。未知コードは icon-none（誤ったアイコンを出さない） */
-function wxIconHref(code) {
+/**
+ * WxTech公式天気アイコン
+ * https://tpf.weathernews.jp/wxicon/152/[wx].png
+ * ※リファレンス上は「サンプルのため本番利用はご遠慮ください」。
+ *   依頼により公式URLを使用。サイネージ機から tpf.weathernews.jp へ到達できること。
+ */
+var WX_ICON_BASE = 'https://tpf.weathernews.jp/wxicon/152/';
+function wxIconUrl(code) {
     var c = Number(code);
-    if (!isFinite(c) || c === 999) return '#icon-none';
-    if (c >= 950) return '#icon-heavysnow';
-    if (c >= 850 && c < 900) return '#icon-storm';
-    if (c === 800 || c === 350) return '#icon-storm';
-    if (c >= 650 && c < 700) return '#icon-lightrain';
-    if (c >= 600 && c < 650) return '#icon-thincloud';
-    if (c >= 550 && c < 600) return '#icon-heat';
-    if (c === 500) return '#icon-clear';
-    if (c >= 430 && c < 500) return c === 430 ? '#icon-sleet' : '#icon-snow';
-    if (c >= 400 && c < 430) return '#icon-snow';
-    if (c >= 300 && c < 400) return '#icon-rainy';
-    if (c >= 200 && c < 300) return '#icon-cloudy';
-    if (c >= 100 && c < 200) return '#icon-sunny';
-    return '#icon-none';
+    if (!isFinite(c) || c <= 0 || c === 999) return '';
+    return WX_ICON_BASE + Math.floor(c) + '.png';
+}
+function wxIconHtml(code) {
+    var url = wxIconUrl(code);
+    if (!url) return '<span class="weather-none">--</span>';
+    return '<img class="weather-icon" src="' + url + '" alt="" width="58" height="43" decoding="async">';
 }
 function wxName(code) {
     return WX_NAME[Number(code)] || '';
-}
-function isHeatCode(code) {
-    var c = Number(code);
-    return c >= 550 && c < 600;
 }
 
 /* 風向 1〜16。※公式「風向定義一覧」で要確認（暫定で1=北） */
@@ -765,7 +873,7 @@ function s2PanelHtml(item) {
     if (unavailable) {
         body = '<div class="s2-val"><span class="s2-num">--</span></div>';
     } else if (item.key === 'weather') {
-        body = '<svg class="weather-svg"><use href="' + wxIconHref(n.wx) + '"/></svg>';
+        body = wxIconHtml(n.wx);
     } else if (item.key === 'wnddir') {
         body = '<div class="s2-dir-text">' + esc(windDirName(n.wnddir)) + '</div>';
     } else if (item.key === 'tmaxmin') {
@@ -877,14 +985,14 @@ function buildScene4() {
     for (var i = 0; i < 4; i++) {
         var d = state.daily[i] || {};
         var label = unavailable ? '--' : formatWxDayLabel(d.date);
-        var icon = unavailable ? '#icon-none' : wxIconHref(d.wx);
+        var iconHtml = unavailable ? '<span class="weather-none">--</span>' : wxIconHtml(d.wx);
         var mx = unavailable ? '--' : num(d.maxtemp);
         var mn = unavailable ? '--' : num(d.mintemp);
         var pop = unavailable || d.pop == null ? '--' : num(d.pop);
         one += '<div class="d5-panel">' +
                '<div class="s2-top-bar"><span class="s2-bar-label">' + esc(label) + '</span></div>' +
                '<div class="d5-body"><div class="d5-weather-row">' +
-               '<svg class="weather-svg"><use href="' + icon + '"/></svg>' +
+               iconHtml +
                '<span class="d5-sep">/</span>' +
                '<span class="d5-temp">' + mx + '</span>' +
                '</div></div>' +
