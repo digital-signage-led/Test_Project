@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=558, height=424">
+<title>騒音振動モニター</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  /* サイネージ枠（W558px * H424px） */
+  html, body {
+    width: 558px;
+    height: 424px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  /* 切り抜き枠 */
+  .crop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 605px;
+    height: 450px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    transform: scale(0.922, 0.95);
+  }
+
+  /* 元サイトの位置（最新の調整値） */
+  .crop iframe {
+    border: none;
+    position: absolute;
+    width: 1920px;
+    height: 1080px;
+    left: -700px;
+    top: -280px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="crop">
+    <iframe
+      src="https://www2.edam.ne.jp/Public/18390/Sokutei/SSC/RN"
+      scrolling="no"
+    ></iframe>
+  </div>
+
+</body>
+</html>
