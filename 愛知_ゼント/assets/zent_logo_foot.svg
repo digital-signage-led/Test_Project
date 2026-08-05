@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 32" role="img" aria-label="MOTOR SPORTS produced by ZENT">
+  <!-- vector mark (checkered flame) -->
+  <g transform="translate(2,3)">
+    <defs>
+      <linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#F6D56A"/>
+        <stop offset="55%" stop-color="#D4A017"/>
+        <stop offset="100%" stop-color="#B8860B"/>
+      </linearGradient>
+      <clipPath id="flameClip">
+        <path d="M2,22 L6,8 L12,2 L18,6 L24,1 L30,7 L28,14 L32,18 L26,26 L18,28 L10,26 Z"/>
+      </clipPath>
+    </defs>
+    <path d="M2,22 L6,8 L12,2 L18,6 L24,1 L30,7 L28,14 L32,18 L26,26 L18,28 L10,26 Z"
+          fill="url(#gGold)"/>
+    <g clip-path="url(#flameClip)">
+      <rect x="8" y="6" width="5" height="5" fill="#1a1a1a"/>
+      <rect x="13" y="6" width="5" height="5" fill="url(#gGold)"/>
+      <rect x="18" y="6" width="5" height="5" fill="#1a1a1a"/>
+      <rect x="8" y="11" width="5" height="5" fill="url(#gGold)"/>
+      <rect x="13" y="11" width="5" height="5" fill="#1a1a1a"/>
+      <rect x="18" y="11" width="5" height="5" fill="url(#gGold)"/>
+      <rect x="8" y="16" width="5" height="5" fill="#1a1a1a"/>
+      <rect x="13" y="16" width="5" height="5" fill="url(#gGold)"/>
+      <rect x="18" y="16" width="5" height="5" fill="#1a1a1a"/>
+    </g>
+  </g>
+  <!-- crisp vector text -->
+  <g transform="translate(40,0)">
+    <text x="0" y="13"
+          font-family="Inter,'Arial Black','Helvetica Neue',Arial,sans-serif"
+          font-weight="900" font-size="12.5" letter-spacing="0.6"
+          fill="#1a1a1a">MOTOR SPORTS</text>
+    <text x="0" y="25"
+          font-family="Inter,'Noto Sans JP',Arial,sans-serif"
+          font-weight="600" font-size="8" letter-spacing="0.2"
+          fill="#555555">produced by </text>
+    <text x="58" y="25"
+          font-family="Inter,'Arial Black',Arial,sans-serif"
+          font-weight="900" font-size="9" letter-spacing="0.4"
+          fill="#E60012">ZENT</text>
+  </g>
+</svg>
