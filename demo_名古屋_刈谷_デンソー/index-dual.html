@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!-- wbgt-cube-aichi-nagoya-kariya-denso-5face / DENSO alternate Nagoya/Kariya 5face -->
+<html lang="ja" class="native-640">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>WBGT Signage 5face - DENSO Nagoya / Kariya</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 640px; height: 128px; overflow: hidden; background: #000; }
+    iframe { display: block; border: 0; width: 640px; height: 128px; background: #000; }
+    body.browser-preview { min-height: 100vh; width: 100%; display: flex; background: #1a1a1a; }
+    body.browser-preview iframe { transform: scale(min(calc(100vw / 640), calc(100vh / 128))); transform-origin: top left; }
+  </style>
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var localDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    var forceNative = localDev ? q.get('native640') === '1' : q.get('native640') !== '0';
+    if (!forceNative) document.documentElement.classList.add('browser-preview');
+    document.addEventListener('DOMContentLoaded', function () {
+      document.body.classList.add(forceNative ? 'native-640' : 'browser-preview');
+    });
+  })();
+  </script>
+</head>
+<body class="native-640">
+  <iframe id="signage-frame" title="DENSO WBGT Signage"></iframe>
+  <script>
+  (function () {
+    var pages = [
+      './index-nagoya.html?dualChild=1&native640=1',
+      './index-kariya.html?dualChild=1&native640=1'
+    ];
+    var idx = 0;
+    var frame = document.getElementById('signage-frame');
+    function show() {
+      frame.src = pages[idx] + '&_=' + Date.now();
+      console.log('[dual] show', idx === 0 ? 'nagoya' : 'kariya');
+    }
+    window.addEventListener('message', function (ev) {
+      if (!ev.data || ev.data.type !== 'signage-loop-end') return;
+      idx = (idx + 1) % pages.length;
+      show();
+    });
+    show();
+  })();
+  </script>
+</body>
+</html>
