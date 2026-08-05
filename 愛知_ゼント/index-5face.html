@@ -9,7 +9,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <!-- clock: jst-network-v1 -->
+    <!-- clock: jst-network-v2 / 表示・同期は常に Asia/Tokyo（端末TZ非依存） -->
     <title>WBGT Signage 5面 - ゼント 豊田</title>
     <link rel="preload" as="image" href="./assets/zent_logo_128.png?v=3">
     <link rel="preload" as="image" href="./assets/zent_logo_foot.png?v=7">
@@ -2167,8 +2167,7 @@
     const WBGT_ONLY = query.get('wbgtOnly') === '1';
     /** 大雨警報シーンを有効化 */
     const SITE_CFG = window.SignageConfig || {};
-    /** 表示時刻は常に日本標準時（JST） */
-    /** 表示・取得スケジュールは常に日本標準時 */
+    /** 表示・取得スケジュールは常に日本標準時（端末TZが UTC/海外でも JST） */
     const CLOCK_TZ = 'Asia/Tokyo';
     const NO_JMA_WARN = false;
     /** 熱中症アラートシーンを有効化（環境省発表時に表示） */
@@ -2682,7 +2681,9 @@
         return events.find(e => e.at > fromMs) || null;
     }
     function formatScheduleJst(ms) {
-        return new Date(ms).toLocaleString('ja-JP', { timeZone: CLOCK_TZ, hour12: false });
+        return new Date(ms).toLocaleString('ja-JP', {
+            timeZone: CLOCK_TZ, hour12: false, hourCycle: 'h23'
+        });
     }
     function refreshSignageBg() {
         if (typeof SignageBg === 'undefined') return;
@@ -4763,6 +4764,10 @@
                 }
             } catch (e) { console.warn('Time sync [' + src.name + ']:', e.message || e); }
         }
+        /* 一度も同期できていないときだけローカル時刻へフォールバック（表示は常に Asia/Tokyo） */
+        if (timeSync.baseUtcMs == null) {
+            applySyncedUtcMs(Date.now(), 'local-fallback');
+        }
         console.warn('Time sync: 全ソース失敗。PC時計を暫定利用（表示は Asia/Tokyo）します。');
         return false;
     }
@@ -4810,7 +4815,7 @@
             applySyncedUtcMs(Date.now(), 'local-fallback');
             ms = getSyncedUtcMs();
         }
-        /* 表示時刻・日付は必ず日本標準時（Asia/Tokyo） */
+        /* 表示時刻・日付は必ず日本標準時（Asia/Tokyo）。端末TZが UTC/海外でも JST */
         const jp = jstPartsFromMs(ms);
         const d = clockDateFormatter.format(new Date(Math.floor(ms)));
         const h = pad2Clock_(jp.hour);
@@ -7559,6 +7564,7 @@
         }
         if (DEMO_SIGNAGE_ACTIVE) {
             bootDisplayHold_ = false;
+            /* デモでもネット同期（失敗時のみローカル。表示は常に Asia/Tokyo） */
             applySyncedUtcMs(Date.now(), 'demo-local');
             updateClock();
             startClockTicker();
@@ -7583,6 +7589,7 @@
         applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
         startClockTicker();
+        /* Cloudflare → timeapi.io → worldtimeapi → NICT。定期再同期も同じ */
         setInterval(function () {
             syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
         }, CLOCK_SYNC_INTERVAL_MS);
