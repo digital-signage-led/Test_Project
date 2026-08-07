@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>地震コンテンツ確認</title>
+  <style>
+    body { font-family: "Segoe UI", "Hiragino Sans", Meiryo, sans-serif; margin: 24px; background: #111; color: #f2f2f2; }
+    h1 { font-size: 1.4rem; margin: 0 0 8px; }
+    p { color: #aaa; margin: 0 0 20px; }
+    .grid { display: grid; gap: 12px; max-width: 520px; }
+    a {
+      display: block; padding: 16px 18px; border-radius: 10px; text-decoration: none;
+      color: #fff; font-weight: 700; font-size: 1.05rem;
+    }
+    a.warn { background: #b00000; }
+    a.eew { background: #8b0000; }
+    a.info { background: #1a3a6b; }
+    a.loop { background: #333; border: 1px solid #666; }
+    a.obs { background: #2a1a10; border: 1px solid #666; }
+    a small { display: block; font-weight: 500; opacity: 0.85; margin-top: 4px; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1>地震コンテンツ確認</h1>
+  <p>直後1分＝黒ティッカー／その後＝観測パネル（通常ループに3周）</p>
+  <div class="grid">
+    <a class="warn" href="./index-4face.html?only=quake&quake=warn&native640=1&v=13">
+      ① 直後1分・黒ティッカー（警報）
+      <small>赤帯＋黄アイコン＋「〜で地震発生」大文字</small>
+    </a>
+    <a class="eew" href="./index-4face.html?only=quake&quake=eew&native640=1&v=13">
+      ② 直後1分・黒ティッカー（予報）
+      <small>同上・予報デモ</small>
+    </a>
+    <a class="obs" href="./index-4face.html?quake=warn&native640=1&v=13">
+      ③ 通常ループ＋割り込み
+      <small>1分黒 → 通常＋観測パネル3周</small>
+    </a>
+    <a class="info" href="./index-4face.html?only=quake&quake=info&native640=1&v=13">
+      ④ 地震情報デモ
+      <small>情報種別の表示確認</small>
+    </a>
+  </div>
+</body>
+</html>
