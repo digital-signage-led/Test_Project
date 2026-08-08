@@ -1,0 +1,47 @@
+/* 共通：三面サイズとページ枠 */
+:root {
+  --w-total: 640px;
+  --h-total: 192px;
+  --w-side: 128px;
+  --w-front: 384px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 0;
+  background: #000;
+}
+
+.machine {
+  position: relative;
+  display: flex;
+  width: var(--w-total);
+  height: var(--h-total);
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
+}
+
+.face {
+  position: relative;
+  height: var(--h-total);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.face--left,
+.face--right {
+  width: var(--w-side);
+}
+
+.face--front {
+  width: var(--w-front);
+}

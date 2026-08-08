@@ -1,0 +1,549 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@500;600;700&family=Share+Tech+Mono:wght@400;700&display=swap");
+@import url("./base.css");
+
+/* 本番：カードUI — 警戒レベル5段階色 */
+
+:root {
+  /* 警戒レベル5段階（新しい防災気象情報の参考画像どおり） */
+  --lv1: #ffffff; /* 白・心構え等 */
+  --lv2: #ffff00; /* 黄・注意報 */
+  --lv3: #ff0000; /* 赤・警報 */
+  --lv4: #c000c0; /* 紫・危険警報 */
+  --lv5: #2a0845; /* 濃い紫（ほぼ黒）・特別警報 */
+
+  /* 警戒レベル外（ブラウザ枠） */
+  --outside: #2c3e50;
+
+  --paper: var(--lv1);
+  --card: #ffffff;
+  --ink: #1a1a1a;
+  --mute: #6b7280;
+  --line: rgba(0, 0, 0, 0.06);
+  --blue: #3b82f6;
+  --hi: #f97316;
+  --lo: #60a5fa;
+  --advisory: #eab308;
+  --warning: #ff0000;
+  --danger: #bf00bf;
+  --special: #111111;
+  --accent: var(--warning);
+}
+
+body {
+  background: var(--outside);
+  color: var(--ink);
+  font-family: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+
+.machine {
+  background: var(--paper);
+  border: none;
+  border-radius: 0;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  display: grid;
+  grid-template-columns: 112px 1fr 112px;
+  gap: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  width: var(--w-total);
+  height: var(--h-total);
+  position: relative;
+  transition: background-color 0.45s ease;
+}
+
+/* 警戒レベル → 画面内背景色 */
+.machine[data-level="1"] {
+  --paper: var(--lv1);
+  --accent: #374151;
+}
+.machine[data-level="2"] {
+  --paper: var(--lv2);
+  --accent: #ca8a04;
+}
+.machine[data-level="3"] {
+  --paper: var(--lv3);
+  --accent: #ff0000;
+}
+.machine[data-level="4"] {
+  --paper: var(--lv4);
+  --accent: #bf00bf;
+}
+.machine[data-level="5"] {
+  --paper: var(--lv5);
+  --accent: #111111;
+}
+
+/* 発表なしはレベル1（白） */
+.machine[data-active="false"] {
+  --paper: var(--lv1);
+  --accent: #374151;
+}
+
+.face {
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: auto !important;
+  height: auto;
+  min-height: 0;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(40, 30, 20, 0.08);
+  flex: 1;
+  min-height: 0;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.face--left .card,
+.face--right .card {
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  text-align: center;
+}
+
+.face--left,
+.face--right {
+  overflow: hidden;
+}
+
+.card-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.card-stage .card {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  border-radius: 14px;
+}
+
+.face--left .stack,
+.face--right .stack {
+  width: 100%;
+  align-items: center;
+}
+
+.face--left .stack-item,
+.face--right .stack-item {
+  align-items: center;
+  width: 100%;
+}
+
+.face--left .label,
+.face--right .label,
+.face--left .value,
+.face--right .value,
+.face--left .unit,
+.face--right .unit,
+.face--left .level-num,
+.face--right .level-num {
+  text-align: center;
+  width: 100%;
+}
+
+.face--left .level-pill,
+.face--right .level-pill {
+  align-self: center;
+}
+
+/* 下へ消える → 上から出現 */
+.card.is-exit {
+  animation: card-exit-down 0.38s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+
+.card.is-enter {
+  animation: card-enter-top 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes card-exit-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+}
+
+@keyframes card-enter-top {
+  from {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.face--front {
+  gap: 8px;
+}
+
+.face--front .card--top {
+  flex: 1.15;
+}
+
+.face--front .card--bottom {
+  flex: 0.85;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mute);
+  letter-spacing: 0.04em;
+}
+
+.value {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.value--sm {
+  font-size: 28px;
+}
+
+.unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stack-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 右パネル：警戒レベル表示 */
+.level-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  margin: 8px 0 6px;
+  padding: 5px 16px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  min-width: 72px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.machine[data-level="1"] .level-pill {
+  background: #fff;
+  color: #111;
+}
+.machine[data-level="2"] .level-pill {
+  background: #ffff00;
+  color: #111;
+}
+.machine[data-level="3"] .level-pill {
+  background: #ff0000;
+  color: #fff;
+  border-color: #fff;
+}
+.machine[data-level="4"] .level-pill {
+  background: var(--lv4);
+  color: #fff;
+  border-color: #fff;
+}
+.machine[data-level="5"] .level-pill {
+  background: var(--lv5);
+  color: #fff;
+  border-color: #fff;
+}
+
+.machine[data-active="true"] .level-pill {
+  animation: pill-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes pill-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.level-num {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.machine[data-active="true"][data-theme="advisory"] {
+  --accent: var(--advisory);
+}
+.machine[data-active="true"][data-theme="warning"] {
+  --accent: var(--warning);
+}
+.machine[data-active="true"][data-theme="danger"] {
+  --accent: var(--danger);
+}
+.machine[data-active="true"][data-theme="special"] {
+  --accent: var(--special);
+}
+
+/* 中央上：流れ文字カード */
+.ticker-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  margin-top: 4px;
+  border-radius: 8px;
+  background: #fff5f5;
+  min-height: 42px;
+}
+
+.machine[data-active="false"] .ticker-wrap {
+  background: #f6f6f6;
+}
+
+.machine[data-active="true"] .ticker-wrap {
+  background: linear-gradient(180deg, #fee2e2, #fecaca);
+}
+
+.ticker-band {
+  position: relative;
+  width: 100%;
+  height: 42px;
+  overflow: hidden;
+  opacity: 1;
+  background: transparent;
+  box-shadow: none;
+}
+
+.machine[data-active="false"] .ticker-band {
+  opacity: 0.55;
+}
+
+.marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 42px;
+  color: #991b1b;
+  letter-spacing: 0.04em;
+}
+
+.machine[data-active="false"] .marquee {
+  color: #9ca3af;
+}
+
+.marquee span {
+  padding-right: 64px;
+}
+
+.marquee .tag {
+  color: #dc2626;
+}
+
+/* 中央下：警報チップ */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  align-content: flex-start;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #e5e7eb;
+}
+
+.chip.is-warning {
+  background: #ffedd5;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+.chip.is-advisory {
+  background: #fef9c3;
+  border-color: #fde047;
+  color: #854d0e;
+}
+
+.chip.is-danger,
+.chip.is-special {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.chip-empty {
+  font-size: 12px;
+  color: var(--mute);
+  font-weight: 600;
+}
+
+.card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mute);
+}
+
+/* グラフっぽい装飾（静的＋薄い動き） */
+.trend-dots {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  height: 36px;
+  margin-top: 4px;
+  padding: 0 4px;
+}
+
+.trend-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  animation: dot-bob 2.8s ease-in-out infinite;
+}
+
+.trend-dot:nth-child(2) {
+  animation-delay: 0.2s;
+  transform: translateY(2px);
+}
+.trend-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.trend-dot:nth-child(4) {
+  animation-delay: 0.6s;
+  transform: translateY(4px);
+}
+.trend-dot:nth-child(5) {
+  animation-delay: 0.8s;
+  transform: translateY(3px);
+}
+
+@keyframes dot-bob {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.15);
+  }
+}
+
+.trend-line {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 48px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.meta-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.meta {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 11px;
+  color: var(--mute);
+}
+
+/* 非表示互換ID用（既存JSが触る要素） */
+.sr-only,
+#levelPips,
+#leftBadge,
+#leftMark,
+#leftSub,
+#rightBadge,
+#rightMark,
+#rightSub,
+#frontStatus,
+#frontMeta {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: #fff7ed;
+  opacity: 0;
+  z-index: 8;
+  pointer-events: none;
+  border-radius: 0;
+}
+
+.machine.is-notifying .flash {
+  animation: flash-card 0.8s ease-out 1;
+}
+
+@keyframes flash-card {
+  0% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+  }
+}
