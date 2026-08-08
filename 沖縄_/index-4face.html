@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<!-- wbgt-cube-okinawa-kumejima-4face / 久米島 防災情報サイネージ（本番 4面 512×128・防災のみ） -->
+<!-- wbgt-cube-okinawa-kumejima-4face / 久米島 気象・防災サイネージ（本番 4面 512×128） -->
 <!-- 会場: 沖縄県島尻郡久米島町 -->
 <!-- 警報 久米島町 4736100／熱中症アラート 沖縄県／地震・避難は発表時のみ -->
-<!-- 表示: 発表があるときだけ流す。未発表は黒画面（時刻・WBGT・予報は出さない） -->
+<!-- 表示: 通常は気象庁・環境省の天気予報。防災は発表時に割り込み -->
 <!-- 地震: 緊急地震速報/地震情報割り込み（ニュースティッカー） ?only=quake / ?quake=eew|warn|info -->
 <html lang="ja" class="native-640 layout-512">
 <head>
@@ -11,7 +11,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v2 — Asia/Tokyo 表示 / CF→timeapi→worldtimeapi→NICT / naive dateTime=+09:00 -->
-    <title>防災情報 Signage 4面 - 久米島</title>
+    <title>気象・防災 Signage 4面 - 久米島</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=swap">
@@ -1739,8 +1739,8 @@
   'use strict';
 
   var cfg = {
-    /* 本番: 防災情報のみ（発表時だけ表示） */
-    bosaiOnly: true,
+    /* 通常: 気象庁・環境省の天気予報／WBGT。防災は発表時に割り込み */
+    bosaiOnly: false,
     site: {
       customer: '',
       rental: '',
@@ -1750,7 +1750,7 @@
       siteName: '久米島'
     },
     moe: {
-      /* 熱中症アラート用（WBGT画面は出さないが GAS でアラート取得） */
+      /* 環境省 WBGT・熱中症アラート（GAS） */
       gasUrl:
         'https://script.google.com/macros/s/AKfycbzSTsappgfJTaJruOBJsbnCXSTPkeTBp39CXpvoSZsPQ0mWGs4KjSonC8_eZ2b1EeUXTQ/exec',
       point: '91166',

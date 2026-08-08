@@ -30,7 +30,7 @@
 </head>
 <body>
   <h1>防災コンテンツ確認 — 久米島</h1>
-  <p>個別コンテンツを1件ずつ確認できます。本番は発表があるときだけ表示します。</p>
+  <p>本番は天気予報を常時表示し、防災は発表時に割り込みます。</p>
 
   <h2>テロップ（個別コンテンツ）</h2>
   <div class="grid">
@@ -48,11 +48,15 @@
     </a>
   </div>
 
-  <h2>気象警報・熱中症・避難（本番4面）</h2>
+  <h2>本番4面（気象＋防災）</h2>
   <div class="grid">
     <a class="prod" href="./index-4face.html?native640=1">
-      本番4面（防災のみ・発表時表示）
-      <small>led.html 同様に1件ずつ／未発表は黒画面</small>
+      本番4面（天気予報＋防災割り込み）
+      <small>気象庁・環境省／発表時のみ警報など</small>
+    </a>
+    <a class="loop" href="./index-4face.html?bosaiOnly=1&amp;native640=1">
+      防災のみモード
+      <small>?bosaiOnly=1／未発表は黒画面</small>
     </a>
     <a class="rain" href="./index-4face.html?demo=rainwarn&amp;native640=1">
       警報テロップ確認（1件ずつ）
