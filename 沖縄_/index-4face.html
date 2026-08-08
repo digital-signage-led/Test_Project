@@ -1130,7 +1130,7 @@
             height: 40px;
             padding: 3px 8px;
             box-sizing: border-box;
-            gap: 0;
+            gap: 10px;
         }
         .ra-hero-chrome-bot-seg {
             display: flex;
@@ -2390,17 +2390,15 @@
     const DISASTER_INTERRUPT_ALWAYS = true;
     const RAIN_HERO_OFF = query.get('rainhero') === '0';
     /*
-     * 既定: 白ベース3段で複数警報をまとめて横スクロール。
-     * 防災のみ(BOSAI_ONLY)は led.html に合わせ、発表中を1件ずつ色付きテロップで切替。
-     * まとめ表示に戻す: ?rainwhite=1
+     * 既定: led.html 同型。発表中を1件ずつ色付き3段テロップで流す
+     * （例: 黄・警戒レベル2・土砂災害注意報＋下帯スクロール）。
+     * まとめ白帯に戻す: ?rainwhite=1
      */
-    const RAIN_WHITE_DESIGN = BOSAI_ONLY
-        ? query.get('rainwhite') === '1'
-        : query.get('rainwhite') !== '0';
+    const RAIN_WHITE_DESIGN = query.get('rainwhite') === '1';
     /* 3段デザイン案は ?rainwhite=0 かつ ?rainhero≠0 のとき */
     const RAIN_HERO_DESIGN = !RAIN_HERO_OFF && !RAIN_WHITE_DESIGN;
-    /** 防災のみ: 発表キューを1件ずつ流す（led.html / demo-bousai と同型） */
-    const BOSAI_ONE_BY_ONE = BOSAI_ONLY && !RAIN_WHITE_DESIGN;
+    /** 発表キューを1件ずつ流す（天気予報ループ中の防災割り込みでも同じ） */
+    const BOSAI_ONE_BY_ONE = !RAIN_WHITE_DESIGN;
     /*
      * 流れる順の表示番号（順序は変えずラベルのみ）
      *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
@@ -3939,21 +3937,25 @@
     function buildHeroChromeTopSeg_(levelKey) {
         const seg = document.createElement('div');
         seg.className = 'ra-hero-chrome-top-seg';
-        const lv = document.createElement('span');
-        lv.className = 'ra-hero-chrome-level';
-        const kinds = kindsForLevel_(levelKey);
-        lv.textContent = topBandLabel_(levelKey, kinds[0], kinds);
-        const spacer = document.createElement('span');
-        spacer.className = 'ra-hero-chrome-spacer';
+        /* スクショ同型: [発表中] 警戒レベルN */
         const badge = document.createElement('span');
         badge.className = 'ra-hero-chrome-badge';
         const status = document.createElement('span');
         status.className = 'ra-hero-chrome-status';
         status.textContent = '発表中';
         badge.appendChild(status);
+        const lv = document.createElement('span');
+        lv.className = 'ra-hero-chrome-level';
+        /* 1件ずつ表示中は当該 kind だけで警戒レベル表記（土砂→警戒レベル2） */
+        const kinds = (BOSAI_ONE_BY_ONE && rainWarnKindActive.length)
+            ? rainWarnKindActive.slice()
+            : kindsForLevel_(levelKey);
+        lv.textContent = topBandLabel_(levelKey, kinds[0], kinds);
+        const spacer = document.createElement('span');
+        spacer.className = 'ra-hero-chrome-spacer';
+        seg.appendChild(badge);
         seg.appendChild(lv);
         seg.appendChild(spacer);
-        seg.appendChild(badge);
         return seg;
     }
     function buildHeroChromeBotSeg_(levelKey) {
