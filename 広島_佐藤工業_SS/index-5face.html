@@ -4424,9 +4424,23 @@
         logoRotator.style.transition = `transform ${ms}ms ease-in-out`;
         logoRotator.style.transform = `rotate(${logoRotDeg}deg)`;
     }
-    /** 5面: 右端ロゴ列あり（?layout512=1 で4面確認） */
+    /** 5面: シーン切替時に右端ロゴを90°回転（withFastSpin時は450°＝1回転+90°） */
     function stepLogo90(transitionMs, withFastSpin) {
-        resetLogoRotation();
+        if (!logoRotator) return;
+        if (document.body.classList.contains('layout-512')) {
+            resetLogoRotation();
+            return;
+        }
+        logoRotator.style.transition = 'none';
+        snapLogoRotDeg_();
+        logoRotator.style.transform = 'rotate(' + logoRotDeg + 'deg)';
+        void logoRotator.offsetWidth;
+        const spinDelta = withFastSpin === false ? 90 : 450;
+        logoRotDeg += spinDelta;
+        snapLogoRotDeg_();
+        const ms = transitionMs ?? LOGO_ROT_STEP_MS;
+        logoRotator.style.transition = 'transform ' + ms + 'ms ease-in-out';
+        logoRotator.style.transform = 'rotate(' + logoRotDeg + 'deg)';
     }
     function resetLogoRotation() {
         logoRotDeg = 0;
