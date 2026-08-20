@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- wbgt-cube-saga-greencross-5face / グリーンクロス WBGT サイネージ（本番 5面 640×128・右端ロゴ128） -->
-<!-- 下帯: greencross_lockup_yoko.png ／ 右端128（512〜640）: greencross_logo.png・正立固定 -->
+<!-- 下帯: greencross_lockup_yoko.png ／ 右端128（512〜640）: greencross_logo.png・シーン切替で90°回転 -->
 <!-- 会場: 〒840-0857 佐賀県佐賀市鍋島町大字八戸3036 -->
 <!-- WBGT・AMeDAS 85142（佐賀・気象庁/環境省）／警報 佐賀市 4120100 -->
 <html lang="ja" class="native-640">
@@ -4517,9 +4517,19 @@
         logoRotator.style.transition = `transform ${ms}ms ease-in-out`;
         logoRotator.style.transform = `rotate(${logoRotDeg}deg)`;
     }
-    /** 5面右端 128×128（512〜640）: グリーンクロスロゴを正立固定（90°回転・切替なし） */
+    /** 切替時は高速スピンを入れて 90°進める（見た目は +90°） */
     function stepLogo90(transitionMs, withFastSpin) {
-        resetLogoRotation();
+        if (!logoRotator) return;
+        logoRotator.style.transition = 'none';
+        snapLogoRotDeg_();
+        logoRotator.style.transform = `rotate(${logoRotDeg}deg)`;
+        void logoRotator.offsetWidth;
+        const spinDelta = withFastSpin === false ? 90 : 450;
+        logoRotDeg += spinDelta;
+        snapLogoRotDeg_();
+        const ms = transitionMs ?? LOGO_ROT_STEP_MS;
+        logoRotator.style.transition = `transform ${ms}ms ease-in-out`;
+        logoRotator.style.transform = `rotate(${logoRotDeg}deg)`;
     }
     function resetLogoRotation() {
         logoRotDeg = 0;
