@@ -13,7 +13,7 @@
     <title>WBGT Signage 5面 - インテックス大阪（ニッケン）</title>
     <link rel="preload" as="image" href="./assets/nikken_logo_stack.png?v=2">
     <link rel="preload" as="image" href="./assets/nikken_logo_foot.png?v=4">
-    <link rel="preload" as="image" href="./assets/nikken_logo_wide.png?v=1">
+    <link rel="preload" as="image" href="./assets/nikken_logo_wide.png?v=2">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=optional">
     <script>
 /** 5面 640×128 本番用（コンテンツ512 + ロゴ128）。?layout512=1 で4面確認可。localhost は PC 確認用に拡大表示 */
@@ -296,10 +296,11 @@
             width: 128px; max-width: 128px; height: 128px; max-height: 128px;
             flex: 0 0 128px; object-fit: contain; transform: none;
         }
-        /* 横長ロゴ: 面いっぱいに大きく */
+        /* 横長ロゴ: 256×128パネル内に収まるサイズ（佐藤工業用の scale(1.22) は使わない） */
         .logo-face-img.logo-face-wide {
-            width: auto; max-width: none; height: 128px; max-height: 128px;
-            transform: scale(1.22);
+            width: 240px; max-width: 240px; height: auto; max-height: 72px;
+            object-fit: contain; object-position: center center;
+            transform: none;
             transform-origin: center center;
         }
 
@@ -1898,7 +1899,7 @@
   global.SIGNAGE_CONFIG = {
     logoSrc: './assets/nikken_logo_stack.png?v=2',
     logoAlt: 'レンタルのニッケン',
-    logoWideSrc: './assets/nikken_logo_wide.png?v=1',
+    logoWideSrc: './assets/nikken_logo_wide.png?v=2',
     /* コンテンツ内128ロゴ枠（シーン2/4/5）: 正方形・白背景ワードマーク */
     logoPanelSrc: './assets/nikken_logo_panel.png?v=1',
     logoPanelBg: '#ffffff',
@@ -8121,7 +8122,7 @@
             };
         }
         return {
-            src: cfg.logoWideSrc || './assets/nikken_logo_wide.png?v=1',
+            src: cfg.logoWideSrc || './assets/nikken_logo_wide.png?v=2',
             alt: alt,
             cls: 'logo-face-wide'
         };
