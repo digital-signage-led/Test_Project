@@ -5102,8 +5102,12 @@
     let scene5AnimId = null;
     const SCENE_LOGO_PANEL_W = 256;
     const SCENE_LOGO_PANEL_COUNT = 2; /* 0–256 / 257–512 に同じ横長ロゴ */
-    const SCENE_LOGO_LAPS = 2;
+    const SCENE_LOGO_LAPS = 6; /* スロット風に十分回す周回数 */
     const LOGO_ACTION_HOLD_MS = 1000; /* 各動作の前後で1秒静止 */
+    /* スロット風: 最高速約1秒 → 減速して停止 */
+    const LOGO_SLOT_FAST_MS = 1000;
+    const LOGO_SLOT_DECEL_MS = 2200;
+    const LOGO_SLOT_FAST_DIST_RATIO = 0.72; /* 最高速区間で進む距離割合 */
     let sceneLogoSetWidth = SCENE_LOGO_PANEL_COUNT * SCENE_LOGO_PANEL_W;
     let sceneLogoAnimId = null;
     const T3_UNIT_W = 256;
@@ -8215,8 +8219,10 @@
         if (sceneLogoAnimId) { cancelAnimationFrame(sceneLogoAnimId); sceneLogoAnimId = null; }
         clearLogoHoldTimer_();
         applyDisplayRefreshAtSceneEntry_();
-        const scrollTotal = sceneLogoSetWidth * SCENE_LOGO_LAPS;
-        let totalScrolled = 0;
+        /* スロット停止位置をパネル境界に揃える */
+        const lap = Math.max(1, sceneLogoSetWidth);
+        const rawTotal = lap * SCENE_LOGO_LAPS;
+        const scrollTotal = Math.max(lap, Math.round(rawTotal / SCENE_LOGO_PANEL_W) * SCENE_LOGO_PANEL_W);
         applyScrollX_(logoFaceTrack, 0);
         logoFaceTrack.style.transition = 'none';
         if (isFullDemoStep_()) {
@@ -8244,24 +8250,49 @@
             logoActionHold_(goNextLogoOrExit_);
         }
 
-        function animateLogoFace() {
-            const speed = getScrollSpeedPx_();
-            advanceGlobalScroll_(speed);
-            totalScrolled += speed;
-            applyScrollX_(logoFaceTrack, wrapScrollX_(-totalScrolled, sceneLogoSetWidth));
-            if (totalScrolled >= scrollTotal) {
-                sceneLogoAnimId = null;
-                applyScrollX_(logoFaceTrack, wrapScrollX_(-scrollTotal, sceneLogoSetWidth));
-                stopLogoSpinInterval();
-                afterLogoScroll_();
-                return;
+        /* スロットル風: 最高速で約1秒流し、その後徐々に減速して止まる */
+        function logoSlotEaseOutCubic_(u) {
+            const x = Math.max(0, Math.min(1, u));
+            return 1 - Math.pow(1 - x, 3);
+        }
+        function logoSlotProgress_(elapsedMs) {
+            const fastMs = LOGO_SLOT_FAST_MS;
+            const decelMs = LOGO_SLOT_DECEL_MS;
+            const totalMs = fastMs + decelMs;
+            const t = Math.max(0, Math.min(1, elapsedMs / totalMs));
+            const fastEnd = fastMs / totalMs;
+            const fastRatio = LOGO_SLOT_FAST_DIST_RATIO;
+            if (t <= fastEnd) {
+                return (t / fastEnd) * fastRatio;
             }
-            sceneLogoAnimId = requestAnimationFrame(animateLogoFace);
+            const u = (t - fastEnd) / (1 - fastEnd);
+            return fastRatio + (1 - fastRatio) * logoSlotEaseOutCubic_(u);
         }
 
-        /* 入場1秒静止 → 横スクロール → 終了1秒静止 → 次へ */
+        function animateLogoFaceSlot_(t0) {
+            function tick(now) {
+                if (!t0) t0 = now;
+                const elapsed = now - t0;
+                const totalMs = LOGO_SLOT_FAST_MS + LOGO_SLOT_DECEL_MS;
+                const p = logoSlotProgress_(elapsed);
+                const scrolled = p * scrollTotal;
+                applyScrollX_(logoFaceTrack, wrapScrollX_(-scrolled, lap));
+                advanceGlobalScroll_(Math.max(0.01, getScrollSpeedPx_()));
+                if (elapsed >= totalMs || p >= 0.999) {
+                    sceneLogoAnimId = null;
+                    applyScrollX_(logoFaceTrack, wrapScrollX_(-scrollTotal, lap));
+                    stopLogoSpinInterval();
+                    afterLogoScroll_();
+                    return;
+                }
+                sceneLogoAnimId = requestAnimationFrame(tick);
+            }
+            sceneLogoAnimId = requestAnimationFrame(tick);
+        }
+
+        /* 入場1秒静止 → スロット回転 → 終了1秒静止 → 次へ */
         logoActionHold_(function () {
-            sceneLogoAnimId = requestAnimationFrame(animateLogoFace);
+            animateLogoFaceSlot_(0);
         });
     }
     function playScene2() {
