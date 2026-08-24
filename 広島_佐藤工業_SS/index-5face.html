@@ -11,7 +11,8 @@
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v2 — Asia/Tokyo 表示 / CF→timeapi→worldtimeapi→NICT / naive dateTime=+09:00 -->
     <title>WBGT Signage 5面 - 佐藤工業</title>
-    <link rel="preload" as="image" href="./assets/sato_kogyo_logo_stack.png?v=2">
+    <link rel="preload" as="image" href="./assets/sato_kogyo_logo_stack.png?v=6">
+    <link rel="preload" as="image" href="./assets/sato_kogyo_logo_wide.png?v=3">
     <link rel="preload" as="image" href="./assets/sato_kogyo_logo_foot.png?v=1">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=optional">
     <script>
@@ -55,9 +56,37 @@
             document.body.classList.add('browser-preview');
             document.body.classList.remove('native-640');
         }
+        fitPreview_();
     }
+    function fitPreview_() {
+        var canvas = document.querySelector('.canvas');
+        if (!canvas) return;
+        var preview = document.documentElement.classList.contains('browser-preview')
+            || (document.body && document.body.classList.contains('browser-preview'));
+        var native = document.documentElement.classList.contains('native-640')
+            || (document.body && document.body.classList.contains('native-640'));
+        if (!preview || native) {
+            canvas.style.transform = '';
+            return;
+        }
+        var layout512 = document.documentElement.classList.contains('layout-512')
+            || (document.body && document.body.classList.contains('layout-512'));
+        var baseW = layout512 ? 512 : 640;
+        var s = Math.min(window.innerWidth / baseW, window.innerHeight / 128);
+        if (!(s > 0) || !isFinite(s)) s = 1;
+        canvas.style.transform = 'scale(' + s + ')';
+        canvas.style.transformOrigin = 'top left';
+    }
+    window.fitSignagePreview_ = fitPreview_;
+    window.addEventListener('resize', fitPreview_);
     if (document.body) addBody_();
     else document.addEventListener('DOMContentLoaded', addBody_);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fitPreview_);
+    } else {
+        fitPreview_();
+    }
+    setTimeout(fitPreview_, 0);
 })();
 
     </script>
@@ -98,29 +127,30 @@
         }
         .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0; transform-origin: top left; }
         @media screen and (min-width: 641px) {
-            .canvas { transform: scale(calc(100vw / 640)); }
+            html:not(.browser-preview) .canvas { transform: scale(calc(100vw / 640)); }
         }
         body.native-640 .canvas { transform: none !important; }
-        /* localhost / 127.0.0.1 確認用: ビューポートに合わせて拡大（native640 無効時） */
+        /* localhost / 127.0.0.1 確認用: ビューポート幅に収める（Simple Browser の 100vw ずれ対策は JS） */
+        html.browser-preview, body.browser-preview {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
         body.browser-preview {
-            min-height: 100vh;
+            min-height: 100%;
             display: flex;
             align-items: flex-start;
             justify-content: flex-start;
             background: #1a1a1a;
         }
         body.browser-preview .canvas {
-            transform: scale(min(calc(100vw / 640), calc(100vh / 128))) !important;
             transform-origin: top left;
-        }
-        body.browser-preview.layout-512 .canvas {
-            transform: scale(min(calc(100vw / 512), calc(100vh / 128))) !important;
         }
         /* 4面（512×128）: ロゴ列なし */
         body.layout-512 .logo-panel { display: none !important; }
         body.layout-512 .canvas { width: 512px !important; }
         @media screen and (min-width: 513px) {
-            body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
+            html:not(.browser-preview) body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
         }
         body.layout-512.native-640 .canvas { transform: none !important; }
         /* 右端 128×128: メールロゴ同様（上に大きくマーク、下に社名） */
@@ -133,16 +163,16 @@
             width: 128px; height: 128px; flex-shrink: 0; position: relative; z-index: 1;
             display: flex; align-items: center; justify-content: center;
             transform-origin: center center;
-            transition: transform 0.6s ease-in-out;
+            will-change: transform;
         }
-        /* 右端 128×128: 上下左右に余白を残して大きく表示 */
+        /* 右端 128×128: 面いっぱいに近く大きく表示 */
         .logo-stack {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 0; width: 112px; max-height: 112px; box-sizing: border-box;
+            gap: 0; width: 120px; max-height: 120px; box-sizing: border-box;
             padding: 0;
         }
         .logo-img {
-            display: block; width: 112px; max-width: 112px; height: auto; max-height: 112px;
+            display: block; width: 120px; max-width: 120px; height: auto; max-height: 120px;
             object-fit: contain; object-position: center center; margin: 0;
             flex: 0 0 auto;
         }
@@ -157,6 +187,13 @@
         .content-area { width: 512px; height: 128px; position: relative; overflow: hidden; flex: 0 0 512px; flex-shrink: 0; background: #308DD8; }
         .content-area > .scene-strip-bg { z-index: 0; }
         .content-area > .scene { z-index: 1; will-change: transform; }
+        /* NEWS: 報道ブルー帯（指定レイアウト・色は青系） */
+        .content-area.news-canvas {
+            background: #0B4F9C !important;
+        }
+        .content-area.news-canvas > .scene-strip-bg {
+            display: none !important;
+        }
         .scene {
             position: absolute; top: 0; left: 0; width: 512px; height: 128px;
             display: none; overflow: hidden; box-sizing: border-box;
@@ -166,6 +203,140 @@
         #scene3.active { display: flex; flex-direction: column; }
         #scene4.active { display: block; }
         #scene5.active { display: block; }
+        #sceneLogo.active { display: block; }
+        #sceneNews.active { display: block; z-index: 2; }
+        #sceneNews {
+            width: 512px; height: 128px; overflow: hidden;
+            background: #0B4F9C;
+            box-shadow: 0 2px 0 #0B4F9C, 0 -2px 0 #0B4F9C;
+        }
+        .news-scroll-wrap {
+            width: 512px; height: 128px; overflow: hidden; position: relative; z-index: 1;
+            background: linear-gradient(180deg, #1A6FC0 0%, #0A3D7A 100%);
+            margin: 0; padding: 0; border: none; outline: none; box-shadow: none;
+        }
+        .news-track {
+            display: flex; flex-direction: row; height: 128px;
+            transition: none; gap: 0; will-change: transform; align-items: center;
+            border: none; outline: none; box-shadow: none;
+        }
+        .news-unit {
+            height: 128px; flex-shrink: 0;
+            display: flex; flex-direction: row; align-items: center; gap: 20px;
+            padding: 0 28px; box-sizing: border-box; white-space: nowrap;
+            border: none; outline: none; box-shadow: none;
+        }
+        .news-badge {
+            flex-shrink: 0;
+            display: flex; flex-direction: row; align-items: center; gap: 12px;
+            height: 128px;
+        }
+        .news-badge-logo {
+            display: block; width: 96px; height: 96px; flex: 0 0 96px;
+            object-fit: contain; object-position: center center;
+            background: #ffffff; border-radius: 8px;
+        }
+        .news-badge-label {
+            font-family: "Inter", "Noto Sans JP", sans-serif;
+            font-size: 28px; font-weight: 800; letter-spacing: 0.06em;
+            color: #C8E8F5; line-height: 1.1; white-space: nowrap;
+        }
+        .news-sep {
+            flex-shrink: 0;
+            font-family: "Noto Sans JP", sans-serif;
+            font-size: 22px; font-weight: 800; color: #57B8ED;
+            line-height: 1; margin: 0 4px;
+        }
+        .news-item {
+            flex-shrink: 0;
+            display: flex; flex-direction: row; align-items: center; gap: 16px;
+            white-space: nowrap;
+        }
+        .news-date {
+            flex-shrink: 0;
+            font-family: "Inter", "Noto Sans JP", sans-serif;
+            font-size: 40px; font-weight: 800; color: #8AD0F0;
+            line-height: 1.1; letter-spacing: 0.02em;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum" 1;
+            white-space: nowrap;
+        }
+        .news-title {
+            flex-shrink: 0;
+            font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+            font-size: 48px; font-weight: 800; color: #F0F8FF;
+            line-height: 1.1; letter-spacing: 0.02em;
+            white-space: nowrap;
+            overflow: visible; text-overflow: clip;
+        }
+        /* もう一つのコンテンツ: 横長ロゴ（紋章+佐藤工業）を256px単位で右→左に流す */
+        .logo-face-scroll-wrap {
+            width: 512px; height: 128px; overflow: hidden; position: relative; z-index: 1;
+            background: #ffffff;
+        }
+        .logo-face-track {
+            display: flex; flex-direction: row; width: 1024px; height: 128px;
+            transition: none; gap: 0; will-change: transform;
+        }
+        .logo-face-panel {
+            width: 256px; height: 128px; flex: 0 0 256px; flex-shrink: 0;
+            box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+            background: #ffffff; overflow: hidden; padding: 0;
+        }
+        .logo-face-img {
+            display: block; width: 256px; max-width: 256px; height: 128px; max-height: 128px;
+            object-fit: contain; object-position: center center; margin: 0;
+        }
+        /* 紋章単体: 256パネル内に128×2で隙間なく並べる */
+        .logo-face-panel.logo-face-panel-crest {
+            justify-content: center; gap: 0;
+        }
+        .logo-face-img.logo-face-crest {
+            width: 128px; max-width: 128px; height: 128px; max-height: 128px;
+            flex: 0 0 128px; object-fit: contain; transform: none;
+        }
+        /* 横長ロゴ: 面いっぱいに大きく */
+        .logo-face-img.logo-face-wide {
+            width: auto; max-width: none; height: 128px; max-height: 128px;
+            transform: scale(1.22);
+            transform-origin: center center;
+        }
+
+        /* 1つ目コンテンツ: CSPI CUBE風ブランド面（128×4 + 右端ロゴ128） */
+        #sceneBrand { overflow: hidden; position: relative; }
+        #sceneBrand.active { display: block; }
+        .brand-scroll-wrap {
+            width: 512px; height: 128px; overflow: hidden; position: relative; z-index: 1;
+            background: #ffffff;
+            opacity: 1;
+            transition: opacity 0.45s ease-in-out;
+        }
+        .brand-scroll-wrap.brand-fade-out {
+            opacity: 0;
+        }
+        .brand-track {
+            display: flex; flex-direction: row; width: 1024px; height: 128px;
+            transition: none; gap: 0; will-change: transform;
+        }
+        .brand-panel {
+            width: 128px; height: 128px; flex: 0 0 128px; flex-shrink: 0;
+            box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+            background: #ffffff; overflow: hidden; position: relative;
+        }
+        .brand-inner {
+            display: flex; align-items: center; justify-content: center;
+            width: 128px; height: 128px; transform-origin: center center;
+        }
+        .brand-crest-plate {
+            width: 124px; height: 124px; flex-shrink: 0;
+            background: #ffffff;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 4px;
+        }
+        .brand-crest-img {
+            display: block; width: 120px; max-width: 120px; height: auto; max-height: 120px;
+            object-fit: contain; object-position: center center;
+        }
 
         /* --- 列背景（signage-bg.js）512×128 / 4列×128 --- */
         .col-bg-host { position: relative; overflow: hidden; }
@@ -311,11 +482,13 @@
         #scene1, #scene4 { overflow: hidden; position: relative; }
         #scene1.active { display: block; }
         .fc-scroll-wrap {
-            width: 512px; height: var(--led-col-main-h); flex-shrink: 0;
-            overflow: hidden; position: relative; z-index: 1;
+            width: 512px; height: 128px; flex-shrink: 0;
+            overflow: hidden; position: absolute; left: 0; top: 0; z-index: 13;
+            background: transparent;
         }
         .fc-track {
-            display: flex; flex-direction: row; width: 1024px; transition: none; gap: 0;
+            display: flex; flex-direction: row; width: 1280px; transition: none; gap: 0;
+            align-items: flex-start; background: transparent;
         }
         .fc-track .fc-panel {
             width: 128px; height: var(--led-col-main-h); max-height: var(--led-col-main-h);
@@ -531,9 +704,14 @@
         }
 
         .conveyor-track { display: flex; flex-direction: row; width: 2304px; transition: none; gap: 0; }
-        #scene2 { overflow: hidden; position: relative; }
+        #scene2 { overflow: hidden; position: relative; height: 128px; }
         #scene2.active { display: block; }
-        .s2-scroll-wrap { width: 512px; height: var(--led-col-main-h); overflow: hidden; position: relative; z-index: 1; }
+        /* 気象9面は本文高。末尾ロゴだけ128×128（その列の白帯を覆う） */
+        .s2-scroll-wrap {
+            width: 512px; height: 128px; overflow: hidden;
+            position: absolute; left: 0; top: 0; z-index: 13;
+            background: transparent;
+        }
         #scene2 .s2-panel, #scene2 .s2-panel-data { height: var(--led-col-main-h); }
         #scene2 .s2-bar-label { font-size: 20px; line-height: 1.05; letter-spacing: 0.2px; }
         #scene2 .s2-num { font-size: 44px; }
@@ -543,6 +721,47 @@
         #scene2 .s2-tmax-high, #scene2 .s2-tmax-low { font-size: 40px; }
         #scene2 .s2-tmax-sep { font-size: 40px; font-weight: 800; }
         #scene2 .s2-tmax-unit { font-size: 16px; }
+        #scene2 .s2-logo-panel {
+            width: 128px; height: 128px !important; max-height: 128px;
+            flex: 0 0 128px; padding: 0; gap: 0;
+            background: #ffffff !important;
+            position: relative; z-index: 2;
+            box-sizing: border-box; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #scene2 .s2-logo-panel .col-bg-layer { display: none !important; }
+        #scene2 .s2-logo-panel .s2-top-bar,
+        #scene2 .s2-logo-panel .s2-foot { display: none !important; }
+        #scene2 .s2-logo-panel .s2-body {
+            width: 128px; height: 128px; max-height: 128px;
+            padding: 0; background: #ffffff !important;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #scene2 .s2-logo-panel .s2-logo-face-img {
+            display: block; width: 120px; height: 120px;
+            object-fit: contain; object-position: center center;
+            background: #ffffff;
+        }
+        #scene2 .s2-meta-bar { z-index: 12; }
+        /* 白帯は本体と同幅128枠。1〜9に文字、10（ロゴ）は空＝被らない */
+        #scene2 .s2-meta-set.s2-meta-set-panels {
+            width: auto; height: var(--led-foot-bar-h); flex-shrink: 0;
+            display: flex; flex-direction: row; align-items: stretch;
+            box-sizing: border-box;
+        }
+        #scene2 .s2-meta-slot.s2-meta-slot-panel {
+            width: 128px; flex: 0 0 128px; height: var(--led-foot-bar-h);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; padding: 0 3px; box-sizing: border-box;
+        }
+        #scene2 .s2-meta-slot.s2-meta-slot-logo { background: transparent; }
+        #scene2 .s2-meta-slot-panel .s2-meta-panel-txt {
+            display: block; max-width: 124px; overflow: hidden;
+            white-space: nowrap; line-height: var(--led-foot-bar-h);
+            font-size: 15px; font-weight: 700; color: #1a1a1a;
+            font-family: "Noto Sans JP", sans-serif; text-align: center;
+            letter-spacing: 0;
+        }
 
         #scene2 .s2-panel .col-bg-foot, #scene2 .s2-panel-data .col-bg-foot { display: none; }
         /* 列間の縦すき間（黒線）を防ぐ — 背景を1px重ねてシームレスに */
@@ -583,9 +802,46 @@
             display: flex; align-items: center; justify-content: center; box-sizing: border-box;
             overflow: hidden; padding: 0 6px;
         }
-        /* シーン4: 時刻と同型（スクロール104=32+72、下帯24は fc-lv-bar） */
+        /* シーン4: 数値は本文高、最後ロゴは128×128でその列の白帯を隠す */
+        #scene4 { height: 128px; }
         #scene4 .fc-panel .col-bg-layer { height: var(--led-col-main-h); }
         #scene4 .fc-panel .col-bg-foot { display: none; }
+        #scene4 .fc-logo-panel {
+            width: 128px; height: 128px !important; max-height: 128px;
+            flex: 0 0 128px; padding: 0; gap: 0;
+            background: #ffffff !important;
+            position: relative; z-index: 2;
+            box-sizing: border-box; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #scene4 .fc-logo-panel .col-bg-layer { display: none !important; }
+        #scene4 .fc-logo-panel .fc-top-bar,
+        #scene4 .fc-logo-panel .fc-body { display: none !important; }
+        #scene4 .fc-logo-panel .fc-logo-face-img {
+            display: block; width: 120px; height: 120px;
+            object-fit: contain; object-position: center center;
+            background: #ffffff;
+        }
+        #scene4 .fc-lv-bar { z-index: 12; }
+        #scene4 .fc-lv-set.fc-lv-set-sync {
+            width: auto; height: var(--led-foot-bar-h); flex-shrink: 0;
+            display: flex; flex-direction: row; align-items: stretch;
+        }
+        #scene4 .fc-lv-slot.fc-lv-slot-src {
+            width: 512px; max-width: 512px; flex: 0 0 512px;
+            height: var(--led-foot-bar-h);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; box-sizing: border-box; padding: 0 8px;
+        }
+        #scene4 .fc-lv-slot.fc-lv-slot-logo {
+            width: 128px; flex: 0 0 128px; height: var(--led-foot-bar-h);
+            background: transparent;
+        }
+        #scene4 .fc-lv-slot-src .fc-lv-msg-compact {
+            max-width: 496px; text-align: center;
+            font-size: var(--led-foot-font); font-weight: 700;
+            white-space: nowrap; overflow: hidden;
+        }
         .fc-wbgt {
             display: inline-flex; align-items: baseline; justify-content: center; gap: 2px;
             max-width: 112px; text-align: center; white-space: nowrap; overflow: hidden;
@@ -600,13 +856,29 @@
             line-height: 1; margin-left: 1px;
         }
         .daily-scene { display: none; overflow: hidden; }
-        .d5-track { display: flex; flex-direction: row; width: 1024px; transition: none; gap: 0; }
+        .d5-track { display: flex; flex-direction: row; width: 1280px; transition: none; gap: 0; align-items: flex-start; }
         .d5-panel { width: 128px; height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box; flex-shrink: 0; overflow: hidden; padding: 0; gap: 0; border: none; outline: none; background: transparent; }
-        /* シーン5: 時刻と同型 上32 + 中72 + 下24（列内フッタ） */
+        /* シーン5: 時刻と同型 上32 + 中72 + 下24。5項目目ロゴは128×128 */
         #scene5 .d5-panel .s2-top-bar { height: 32px; flex-shrink: 0; }
         #scene5 .d5-panel .s2-body { height: var(--led-col-body-h); flex-shrink: 0; max-width: 128px; }
         #scene5 .d5-panel .s2-foot { height: var(--led-foot-bar-h); flex-shrink: 0; }
         #scene5 .d5-panel .col-bg-foot { display: none; }
+        #scene5 .d5-logo-panel {
+            width: 128px; height: 128px; flex: 0 0 128px;
+            background: #ffffff !important;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0; gap: 0; overflow: hidden;
+        }
+        #scene5 .d5-logo-panel .col-bg-layer { display: none !important; }
+        #scene5 .d5-logo-panel .s2-top-bar,
+        #scene5 .d5-logo-panel .s2-body,
+        #scene5 .d5-logo-panel .s2-foot,
+        #scene5 .d5-logo-panel .d5-today-frame { display: none !important; }
+        #scene5 .d5-logo-panel .d5-logo-face-img {
+            display: block; width: 120px; height: 120px;
+            object-fit: contain; object-position: center center;
+            background: #ffffff;
+        }
         #scene5 .col-bg-host { flex-shrink: 0; }
         #scene5 .col-bg-layer { width: calc(100% + 1px); }
         #scene5 .d5-body {
@@ -1623,16 +1895,26 @@
   global.SignageConfig = cfg;
 
   global.SIGNAGE_CONFIG = {
-    logoSrc: './assets/sato_kogyo_logo_stack.png?v=2',
+    logoSrc: './assets/sato_kogyo_logo_stack.png?v=6',
     logoAlt: '佐藤工業',
+    logoWideSrc: './assets/sato_kogyo_logo_wide.png?v=3',
     logoPanelBg: '#ffffff',
     logoCorpSrc: '',
     footLogoSrc: '',
-    footBannerSrc: './assets/sato_kogyo_logo_foot.png?v=1'
+    footBannerSrc: './assets/sato_kogyo_logo_foot.png?v=1',
+    news: {
+      enabled: true,
+      apiUrl: '/api/news',
+      url: './data/news.json',
+      remoteUrl: 'https://digital-signage-led.github.io/wbgt-cube/%E5%BA%83%E5%B3%B6_%E4%BD%90%E8%97%A4%E5%B7%A5%E6%A5%AD_SS/data/news.json',
+      refreshMs: 600000,
+      maxItems: 3
+    }
   };
 })(typeof window !== 'undefined' ? window : global);
 
 </script>
+<script src="./assets/signage-news.js"></script>
 <div class="demo-badge" id="demo-badge" hidden>デモ</div>
 <svg style="display: none;">
     <symbol id="icon-sunny" viewBox="0 0 120 120"><circle cx="60" cy="60" r="24" fill="#ff4d00"/><g stroke="#ff4d00" stroke-width="8" stroke-linecap="round"><line x1="60" y1="15" x2="60" y2="30"/><line x1="60" y1="90" x2="60" y2="105"/><line x1="15" y1="60" x2="30" y2="60"/><line x1="90" y1="60" x2="105" y2="60"/><line x1="28" y1="28" x2="39" y2="39"/><line x1="81" y1="81" x2="92" y2="92"/><line x1="28" y1="92" x2="39" y2="81"/><line x1="81" y1="39" x2="92" y2="28"/></g></symbol>
@@ -1736,6 +2018,11 @@
             </div>
         </div>
     </div>
+    <div class="scene" id="sceneBrand">
+        <div class="brand-scroll-wrap">
+            <div class="brand-track" id="brand-track"></div>
+        </div>
+    </div>
     <div class="scene active" id="scene1">
         <div class="scene1-state active" id="s1-stateA">
             <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
@@ -1758,6 +2045,7 @@
             <div class="s2-panel-data s2-strip" data-s2="pres"><div class="s2-top-bar"><span class="s2-bar-label">気圧</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num pres-val"></span><span class="s2-unit">hPa</span></div></div></div>
             <div class="s2-panel-data s2-strip s2-panel-compact" data-s2="tmaxmin"><div class="s2-top-bar"><span class="s2-bar-label">最高/最低</span></div><div class="s2-body"><div class="s2-tmaxmin-card"><span class="s2-tmax-high tmaxmax-val">--</span><span class="s2-tmax-sep">/</span><span class="s2-tmax-low tmin-val">--</span><span class="s2-tmax-unit">℃</span></div></div></div>
             <div class="s2-panel-data s2-strip s2-panel-compact" data-s2="gust"><div class="s2-top-bar"><span class="s2-bar-label">最大瞬間風速</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num gust-val"></span><span class="s2-unit">m/s</span></div></div></div>
+            <div class="s2-panel s2-logo-panel" data-s2="logo"><div class="s2-body"><img class="s2-logo-face-img" src="./assets/sato_kogyo_logo_stack.png?v=6" alt="佐藤工業" decoding="sync"></div></div>
             <div class="s2-panel s2-strip" data-s2="weather"><div class="s2-top-bar"><span class="s2-bar-label">天気</span></div><div class="s2-body"><svg class="weather-svg"><use class="weather-icon-use" href="#icon-sunny"/></svg></div></div>
             <div class="s2-panel-data s2-strip" data-s2="temp"><div class="s2-top-bar"><span class="s2-bar-label">気温</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num temp-val"></span><span class="s2-unit">℃</span></div></div></div>
             <div class="s2-panel-data s2-strip" data-s2="rain"><div class="s2-top-bar"><span class="s2-bar-label">降水量</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num rain-val"></span><span class="s2-unit">mm</span></div></div></div>
@@ -1767,6 +2055,7 @@
             <div class="s2-panel-data s2-strip" data-s2="pres"><div class="s2-top-bar"><span class="s2-bar-label">気圧</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num pres-val"></span><span class="s2-unit">hPa</span></div></div></div>
             <div class="s2-panel-data s2-strip s2-panel-compact" data-s2="tmaxmin"><div class="s2-top-bar"><span class="s2-bar-label">最高/最低</span></div><div class="s2-body"><div class="s2-tmaxmin-card"><span class="s2-tmax-high tmaxmax-val">--</span><span class="s2-tmax-sep">/</span><span class="s2-tmax-low tmin-val">--</span><span class="s2-tmax-unit">℃</span></div></div></div>
             <div class="s2-panel-data s2-strip s2-panel-compact" data-s2="gust"><div class="s2-top-bar"><span class="s2-bar-label">最大瞬間風速</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num gust-val"></span><span class="s2-unit">m/s</span></div></div></div>
+            <div class="s2-panel s2-logo-panel" data-s2="logo"><div class="s2-body"><img class="s2-logo-face-img" src="./assets/sato_kogyo_logo_stack.png?v=6" alt="佐藤工業" decoding="sync"></div></div>
         </div>
         </div>
         <div class="s2-meta-bar"><div class="s2-meta-track" id="s2-meta-track"></div></div>
@@ -1775,14 +2064,16 @@
     <div class="scene" id="scene4">
         <div class="fc-scroll-wrap">
             <div class="fc-track" id="fc-conveyor">
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
-                <div class="fc-panel fc-slot-1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0" data-fc-slot="0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1" data-fc-slot="1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0" data-fc-slot="2"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1" data-fc-slot="3"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-logo-panel" data-fc="logo"><img class="fc-logo-face-img" src="./assets/sato_kogyo_logo_stack.png?v=6" alt="佐藤工業" decoding="sync"></div>
+                <div class="fc-panel fc-slot-0" data-fc-slot="0"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1" data-fc-slot="1"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-0" data-fc-slot="2"><div class="fc-top-bar"><span class="fc-bar-label">暑さ指数</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-slot-1" data-fc-slot="3"><div class="fc-top-bar"><span class="fc-bar-label">WBGT</span></div><div class="fc-body"><div class="fc-wbgt fc-val-live">--</div></div></div>
+                <div class="fc-panel fc-logo-panel" data-fc="logo"><img class="fc-logo-face-img" src="./assets/sato_kogyo_logo_stack.png?v=6" alt="佐藤工業" decoding="sync"></div>
             </div>
         </div>
         <div class="fc-lv-bar"><div class="fc-lv-track" id="fc-lv-track"></div></div>
@@ -1794,10 +2085,12 @@
             <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">福山市</div></div></div>
             <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">福山市</div></div></div>
             <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">福山市</div></div></div>
+            <div class="d5-panel d5-logo-panel" data-d5="logo"><img class="d5-logo-face-img" src="./assets/sato_kogyo_logo_stack.png?v=6" alt="佐藤工業" decoding="sync"></div>
             <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">福山市</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
             <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">福山市</div></div></div>
             <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">福山市</div></div></div>
             <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">福山市</div></div></div>
+            <div class="d5-panel d5-logo-panel" data-d5="logo"><img class="d5-logo-face-img" src="./assets/sato_kogyo_logo_stack.png?v=6" alt="佐藤工業" decoding="sync"></div>
         </div>
     </div>
 
@@ -1836,11 +2129,22 @@
             <div class="t3-guid-bar s2-meta-bar"><div class="t3-guid-track s2-meta-track" id="t3-guid-track"></div></div>
         </div>
     </div>
+
+    <div class="scene" id="sceneNews">
+        <div class="news-scroll-wrap">
+            <div class="news-track" id="news-track"></div>
+        </div>
+    </div>
+    <div class="scene" id="sceneLogo">
+        <div class="logo-face-scroll-wrap" id="logo-face-scroll-wrap">
+            <div class="logo-face-track" id="logo-face-track"></div>
+        </div>
+    </div>
     </div>
     <div class="logo-panel">
         <div class="logo-rotator" id="logo-rotator">
             <div class="logo-stack">
-                <img class="logo-img" id="signage-logo" src="./assets/sato_kogyo_logo_stack.png?v=2" alt="佐藤工業" decoding="sync" fetchpriority="high">
+                <img class="logo-img" id="signage-logo" src="./assets/sato_kogyo_logo_stack.png?v=6" alt="佐藤工業" decoding="sync" fetchpriority="high">
                 <img class="logo-corp-img" src="" alt="佐藤工業" decoding="sync">
             </div>
         </div>
@@ -2017,6 +2321,12 @@
 
     function refreshScene2(levelIdx, displayMode) {
         document.querySelectorAll('#scene2 .s2-panel, #scene2 .s2-panel-data').forEach(panel => {
+            if (panel.classList.contains('s2-logo-panel') || panel.getAttribute('data-s2') === 'logo') {
+                panel.querySelectorAll('.col-bg-layer').forEach(function (el) { el.remove(); });
+                panel.classList.remove('col-bg-host', 'col-bg-dark-text', 'wbgt-off-season', 'wbgt-unavailable');
+                panel.style.backgroundColor = '#ffffff';
+                return;
+            }
             applyStrip(panel, levelIdx, displayMode);
         });
     }
@@ -2035,6 +2345,12 @@
                 : 0;
         }
         document.querySelectorAll('#scene4 .fc-track .fc-panel').forEach(function (panel) {
+            if (panel.classList.contains('fc-logo-panel') || panel.getAttribute('data-fc') === 'logo') {
+                panel.querySelectorAll('.col-bg-layer').forEach(function (el) { el.remove(); });
+                panel.classList.remove('col-bg-host', 'col-bg-dark-text', 'wbgt-off-season', 'wbgt-unavailable');
+                panel.style.backgroundColor = '#ffffff';
+                return;
+            }
             applyStrip(panel, levelIdx, mode);
         });
     }
@@ -2043,13 +2359,20 @@
         const dark = isDarkTextForDisplay(levelIdx, displayMode);
         const forecastLv = dark ? levelIdx : 0;
         const forecastMode = dark ? displayMode : 'normal';
-        document.querySelectorAll('#scene5 .d5-panel:not(.d5-today-focus)').forEach(panel => {
-            applyStrip(panel, forecastLv, forecastMode);
-            panel.classList.toggle('col-bg-dark-text', dark);
-        });
-        document.querySelectorAll('#scene5 .d5-panel.d5-today-focus').forEach(panel => {
-            applyStrip(panel, levelIdx, displayMode);
-            panel.classList.toggle('col-bg-dark-text', dark);
+        document.querySelectorAll('#scene5 .d5-panel').forEach(panel => {
+            if (panel.classList.contains('d5-logo-panel') || panel.getAttribute('data-d5') === 'logo') {
+                panel.querySelectorAll('.col-bg-layer').forEach(function (el) { el.remove(); });
+                panel.classList.remove('col-bg-host', 'col-bg-dark-text', 'wbgt-off-season', 'wbgt-unavailable');
+                panel.style.backgroundColor = '#ffffff';
+                return;
+            }
+            if (panel.classList.contains('d5-today-focus')) {
+                applyStrip(panel, levelIdx, displayMode);
+                panel.classList.toggle('col-bg-dark-text', dark);
+            } else {
+                applyStrip(panel, forecastLv, forecastMode);
+                panel.classList.toggle('col-bg-dark-text', dark);
+            }
         });
     }
 
@@ -2157,9 +2480,11 @@
     /* 3段デザイン案は確認ボードと同じく既定ON（?rainhero=0 で従来レイアウト） */
     const RAIN_HERO_DESIGN = !RAIN_HERO_OFF && !RAIN_WHITE_DESIGN;
     /*
-     * 流れる順の表示番号（順序は変えずラベルのみ）
-     *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
-     *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
+     * 流れる順
+     *  1 時刻＋WBGT下帯 (s1) → 2 気象観測＋末尾紋章 (s2)
+     *  → ブランド面
+     *  → 3 WBGT表示 (s4) → 4 4日予報 (s5)
+     *  → 横長ロゴ → 5 多言語WBGT (s3) → シーン1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
      */
     function normalizeOnlyParam_(raw) {
@@ -2167,13 +2492,20 @@
         const v = String(raw).toLowerCase();
         if (v === 'alert') return 'alert';
         if (v === 'rainwarn') return 'rainwarn';
-        const map = { '1': 's1', '2': 's2', '3': 's4', '4': 's5', '5': 's3', s1: 's1', s2: 's2', s3: 's3', s4: 's4', s5: 's5' };
+        if (v === 'logo') return 'logo';
+        if (v === 'brand') return 'brand';
+        const map = { '1': 's1', '2': 's2', '3': 's4', '4': 's5', '5': 's3', s1: 's1', s2: 's2', s3: 's3', s4: 's4', s5: 's5', logo: 'logo', brand: 'brand' };
         return map[v] || null;
     }
     const SCENE_LABEL_BY_KEY = {
-        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', alert: '熱中症アラート', rainwarn: '大雨警報'
+        brand: 'ブランド', s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', logo: '横長ロゴ', alert: '熱中症アラート', rainwarn: '大雨警報'
     };
-    const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
+    const DEMO_ONLY = (function () {
+        const fromQ = normalizeOnlyParam_(query.get('only'));
+        if (fromQ) return fromQ;
+        /* ローカルも本番同様フル再生。単体確認は ?only=brand / ?only=logo 等 */
+        return null;
+    })();
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
     /* 640×128 ネイティブ: embed / native640=1 / フルデモ順送り */
     const NATIVE_640 = query.get('native640') === '1' || DEMO_EMBED
@@ -2188,6 +2520,7 @@
             document.body.classList.remove('layout-512');
         }
     }
+    if (typeof window.fitSignagePreview_ === 'function') window.fitSignagePreview_();
     function shouldShowDemoBadge_() {
         return !DEMO_EMBED && !NATIVE_640;
     }
@@ -2819,7 +3152,17 @@
     const sceneAlert = document.getElementById('sceneAlert');
     const sceneRainWarn = document.getElementById('sceneRainWarn');
     const d5Conveyor = document.getElementById('d5-conveyor');
+    const sceneLogo = document.getElementById('sceneLogo');
+    const sceneNews = document.getElementById('sceneNews');
+    const newsTrack = document.getElementById('news-track');
+    const logoFaceTrack = document.getElementById('logo-face-track');
+    const logoFaceScrollWrap = document.getElementById('logo-face-scroll-wrap');
     const logoRotator = document.getElementById('logo-rotator');
+    const sceneBrand = document.getElementById('sceneBrand');
+    const brandTrack = document.getElementById('brand-track');
+    let sceneBrandAnimId = null;
+    let sceneBrandHoldTimerId = null;
+    let logoMatteTimerId_ = null;
 
     /** ロゴパネル: 現在の WBGT 段階色に同期 */
     function applySignageLogoPanel_() {
@@ -3708,9 +4051,14 @@
         if (sceneRainWarn && sceneRainWarn.classList.contains('active') && shouldUseWhiteLayout_() && rainWhiteQueue.length) {
             setRainWarnWhiteBundle_(rainWhiteQueue);
             if (raFlow_) {
+                /* ライブ更新でもスクロール位置を維持（先頭へ飛ばさない） */
                 raFlow_.midBandW = rainWhiteMidW;
-                raFlow_.midBandX = 0;
-                applyRaWhiteMidX_(0);
+                const keepX = wrapScrollX_(globalScrollX_, rainWhiteMidW || RA_WHITE_BAND_W);
+                raFlow_.midBandX = keepX;
+                applyRaWhiteMidX_(keepX);
+                if (typeof applyRaWhiteBandX_ === 'function' && raFlow_.bandX != null) {
+                    applyRaWhiteBandX_(raFlow_.bandX);
+                }
             }
         }
     }
@@ -4161,7 +4509,251 @@
     }
     function finishMainLoopToS1_() {
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
-        transitionToScene(s1, playScene1);
+        if (s1) transitionToScene(s1, playScene1, true);
+    }
+    /**
+     * ブランド面シーケンス:
+     *  開始1秒静止（4面とも正立）→ 正立のまま1周流す → 1秒静止
+     *  → 90°ずつ 下/左/上/右 に揃える → 1秒静止 → 回転しながら転がって1周
+     *  → 1秒静止 → 次コンテンツへ
+     */
+    const BRAND_PANEL_W = 128;
+    const BRAND_PANEL_COUNT = 4;
+    const BRAND_LAPS = 1;
+    const BRAND_HOLD_MS = 1000;
+    const BRAND_START_ROT = 0; /* 正立（以前の下向き180の逆） */
+    const BRAND_ALIGN_ROTS = [180, 270, 0, 90]; /* 下・左・上・右 */
+    const BRAND_ALIGN_STEP_MS = 420;
+    /** 転がったあとの退場フェード */
+    const BRAND_EXIT_MS = 450;
+    let brandSetWidth = BRAND_PANEL_COUNT * BRAND_PANEL_W;
+    let brandRightBaseRot_ = 0;
+    function brandCrestHtml_(src) {
+        return '<div class="brand-crest-plate"><img class="brand-crest-img" src="'
+            + src + '" alt="佐藤工業" decoding="sync"></div>';
+    }
+    function ensureBrandPanels_() {
+        if (!brandTrack) return false;
+        const crestSrc = (window.SIGNAGE_CONFIG && window.SIGNAGE_CONFIG.logoSrc)
+            || './assets/sato_kogyo_logo_stack.png?v=6';
+        const htmlCrest = brandCrestHtml_(crestSrc);
+        /* 開始は4面とも正立 */
+        brandRightBaseRot_ = 0;
+        const n = BRAND_PANEL_COUNT * 2;
+        let html = '';
+        for (let i = 0; i < n; i++) {
+            html += '<div class="brand-panel" data-rot="' + BRAND_START_ROT + '" data-kind="crest">'
+                + '<div class="brand-inner">' + htmlCrest + '</div></div>';
+        }
+        brandTrack.innerHTML = html;
+        brandSetWidth = BRAND_PANEL_COUNT * BRAND_PANEL_W;
+        brandTrack.style.width = (brandSetWidth * 2) + 'px';
+        if (brandTrack.parentElement) brandTrack.parentElement.style.background = '#ffffff';
+        return true;
+    }
+    function applyBrandAbsoluteRots_(rots, transitionMs) {
+        document.querySelectorAll('#brand-track .brand-panel').forEach(function (panel, i) {
+            const rot = rots[i % BRAND_PANEL_COUNT];
+            panel.setAttribute('data-rot', String(rot));
+            const inner = panel.querySelector('.brand-inner');
+            if (!inner) return;
+            inner.style.transition = transitionMs > 0
+                ? ('transform ' + transitionMs + 'ms linear')
+                : 'none';
+            inner.style.transform = 'rotate(' + rot + 'deg)';
+        });
+    }
+    /** spinDeg: 各面は data-rot + spinDeg（負=反時計）。右端ロゴは連動しない */
+    function applyBrandSpin_(spinDeg) {
+        document.querySelectorAll('#brand-track .brand-panel').forEach(function (panel) {
+            const base = parseInt(panel.getAttribute('data-rot') || '0', 10) || 0;
+            const inner = panel.querySelector('.brand-inner');
+            if (!inner) return;
+            inner.style.transition = 'none';
+            inner.style.transform = 'rotate(' + (base + spinDeg) + 'deg)';
+        });
+    }
+    /** 各面を時計回り90°ずつ目標向きへ1ステップ進める。完了なら null */
+    function brandAlignStepRots_(fromRots, toRots) {
+        const next = fromRots.slice();
+        let moved = false;
+        for (let i = 0; i < BRAND_PANEL_COUNT; i++) {
+            const cur = ((fromRots[i] % 360) + 360) % 360;
+            const tgt = ((toRots[i] % 360) + 360) % 360;
+            if (cur === tgt) continue;
+            const d = (tgt - cur + 360) % 360;
+            next[i] = (cur + Math.min(90, d)) % 360;
+            moved = true;
+        }
+        return moved ? next : null;
+    }
+    function finishSceneBrand_() {
+        if (demoOnlyLoop_('brand', playSceneBrand)) return;
+        /* 転がったあと1秒静止してから次コンテンツへ */
+        brandHold_(BRAND_HOLD_MS, gotoAfterBrandBlock_);
+    }
+    function brandFadeOutThen_(fn) {
+        const wrap = brandTrack && brandTrack.parentElement;
+        if (sceneBrandHoldTimerId) { clearTimeout(sceneBrandHoldTimerId); sceneBrandHoldTimerId = null; }
+        if (!wrap) {
+            if (typeof fn === 'function') fn();
+            return;
+        }
+        wrap.classList.add('brand-fade-out');
+        sceneBrandHoldTimerId = setTimeout(function () {
+            sceneBrandHoldTimerId = null;
+            wrap.classList.remove('brand-fade-out');
+            if (typeof fn === 'function') fn();
+        }, BRAND_EXIT_MS);
+    }
+    function gotoAfterBrandBlock_() {
+        if (!s4) {
+            if (s5) transitionToScene(s5, playScene5);
+            else gotoSceneAfterScene5_();
+            return;
+        }
+        transitionToScene(s4, playScene4);
+    }
+    /** 128px / 90° 区間内: 最初・最後ゆっくり、真ん中早く */
+    function easeInBrandSeg_(t) {
+        const x = Math.max(0, Math.min(1, t));
+        if (x < 0.5) return 8 * x * x * x * x;
+        const y = 1 - x;
+        return 1 - 8 * y * y * y * y;
+    }
+    function brandHold_(ms, thenFn) {
+        if (sceneBrandHoldTimerId) { clearTimeout(sceneBrandHoldTimerId); sceneBrandHoldTimerId = null; }
+        sceneBrandHoldTimerId = setTimeout(function () {
+            sceneBrandHoldTimerId = null;
+            thenFn();
+        }, ms);
+    }
+    function playSceneBrand() {
+        if (!sceneBrand || !ensureBrandPanels_()) {
+            finishSceneBrand_();
+            return;
+        }
+        if (sceneBrandAnimId) { cancelAnimationFrame(sceneBrandAnimId); sceneBrandAnimId = null; }
+        if (sceneBrandHoldTimerId) { clearTimeout(sceneBrandHoldTimerId); sceneBrandHoldTimerId = null; }
+        applyDisplayRefreshAtSceneEntry_();
+        applyLogoFaceKindToRightPanel_('sato');
+        resetLogoRotation(); /* ブランド面中は右端ロゴを正立固定 */
+        applyScrollX_(brandTrack, 0);
+        brandTrack.style.transition = 'none';
+        if (brandTrack.parentElement) {
+            brandTrack.parentElement.classList.remove('brand-fade-out');
+        }
+        const startRots = [BRAND_START_ROT, BRAND_START_ROT, BRAND_START_ROT, BRAND_START_ROT];
+        applyBrandAbsoluteRots_(startRots, 0);
+        if (isFullDemoStep_()) {
+            scheduleDemoStep_(finishSceneBrand_);
+            return;
+        }
+
+        function scrollStartFacingLap_(doneFn) {
+            let totalScrolled = 0;
+            const scrollTotal = brandSetWidth * BRAND_LAPS;
+            const speed = getScrollSpeedPx_();
+            function tick() {
+                totalScrolled += speed;
+                applyScrollX_(brandTrack, wrapScrollX_(-totalScrolled, brandSetWidth));
+                applyBrandAbsoluteRots_(startRots, 0);
+                if (totalScrolled >= scrollTotal) {
+                    sceneBrandAnimId = null;
+                    applyScrollX_(brandTrack, wrapScrollX_(-scrollTotal, brandSetWidth));
+                    applyBrandAbsoluteRots_(startRots, 0);
+                    doneFn();
+                    return;
+                }
+                sceneBrandAnimId = requestAnimationFrame(tick);
+            }
+            sceneBrandAnimId = requestAnimationFrame(tick);
+        }
+
+        function alignToStagger_(doneFn) {
+            let cur = startRots.slice();
+            function step() {
+                const next = brandAlignStepRots_(cur, BRAND_ALIGN_ROTS);
+                if (!next) {
+                    applyBrandAbsoluteRots_(BRAND_ALIGN_ROTS, 0);
+                    doneFn();
+                    return;
+                }
+                cur = next;
+                applyBrandAbsoluteRots_(cur, BRAND_ALIGN_STEP_MS);
+                brandHold_(BRAND_ALIGN_STEP_MS, step);
+            }
+            step();
+        }
+
+        function rollWhileSpinning_(doneFn) {
+            const segCount = BRAND_PANEL_COUNT * BRAND_LAPS;
+            const sp = Math.max(0.01, getScrollSpeedPx_());
+            const segMs = (BRAND_PANEL_W / sp) * (1000 / 60);
+            let segIdx = 0;
+            let segT0 = 0;
+            function animateBrand(now) {
+                if (!segT0) segT0 = now;
+                let t = (now - segT0) / segMs;
+                while (t >= 1 && segIdx < segCount) {
+                    segIdx += 1;
+                    segT0 += segMs;
+                    t = (now - segT0) / segMs;
+                }
+                if (segIdx >= segCount) {
+                    const scrollPx = segCount * BRAND_PANEL_W;
+                    const spinDeg = -(segCount * 90);
+                    applyScrollX_(brandTrack, wrapScrollX_(-scrollPx, brandSetWidth));
+                    applyBrandSpin_(spinDeg);
+                    sceneBrandAnimId = null;
+                    doneFn();
+                    return;
+                }
+                const eased = easeInBrandSeg_(t);
+                const totalScrolled = (segIdx + eased) * BRAND_PANEL_W;
+                const spinDeg = -(segIdx + eased) * 90;
+                applyScrollX_(brandTrack, wrapScrollX_(-totalScrolled, brandSetWidth));
+                applyBrandSpin_(spinDeg);
+                sceneBrandAnimId = requestAnimationFrame(animateBrand);
+            }
+            sceneBrandAnimId = requestAnimationFrame(animateBrand);
+        }
+
+        /* 開始1秒静止 → 正立のまま1周 → 1秒静止 → 90°揃え → 1秒静止 → 転がる → 終了1秒静止 */
+        brandHold_(BRAND_HOLD_MS, function () {
+            scrollStartFacingLap_(function () {
+                brandHold_(BRAND_HOLD_MS, function () {
+                    alignToStagger_(function () {
+                        brandHold_(BRAND_HOLD_MS, function () {
+                            rollWhileSpinning_(finishSceneBrand_);
+                        });
+                    });
+                });
+            });
+        });
+    }
+    /** 各コンテンツのあと: ロゴ面を流してから次へ（kinds省略時は横長のみ） */
+    let afterLogoNext_ = null;
+    let logoFaceActiveKinds_ = null;
+    function playSceneLogoThen_(nextFn, kinds) {
+        afterLogoNext_ = typeof nextFn === 'function' ? nextFn : null;
+        if (DEMO_ONLY || !sceneLogo) {
+            gotoAfterSceneLogo_();
+            return;
+        }
+        logoFaceActiveKinds_ = (kinds && kinds.length) ? kinds : LOGO_FACE_KINDS;
+        logoFaceKindIdx_ = 0;
+        showSceneInstant_(sceneLogo, playSceneLogo);
+    }
+    function gotoAfterSceneLogo_() {
+        applyLogoFaceKindToRightPanel_('sato');
+        const go = afterLogoNext_;
+        afterLogoNext_ = null;
+        if (typeof go === 'function') {
+            go();
+            return;
+        }
+        /* 次先が無いときは先頭へ飛ばさない（再生中の巻き戻り防止） */
     }
     function gotoAfterRainWarnOrScene1_() {
         if (isDemoFullRainLoop_()) {
@@ -4390,7 +4982,7 @@
     }
     async function startRainWarnOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
         if (sceneRainWarn) {
             sceneRainWarn.style.display = 'block';
             sceneRainWarn.classList.add('active');
@@ -4409,51 +5001,52 @@
         playSceneRainWarn(0);
     }
     let logoRotDeg = 0;
+    const LOGO_ROT_PANEL_W = 128;
     const LOGO_ROT_STEP_MS = 420;
 
     function stopLogoSpinInterval() {
-        settleLogoRotation_(LOGO_ROT_STEP_MS);
+        /* noop — CSPI CUBE 準拠はスクロール／スライド連動 */
     }
-    function snapLogoRotDeg_() {
-        logoRotDeg = Math.round(logoRotDeg / 90) * 90;
-    }
-    function settleLogoRotation_(transitionMs) {
+    function applyLogoTransform_(animateMs) {
         if (!logoRotator) return;
-        snapLogoRotDeg_();
-        const ms = transitionMs ?? LOGO_ROT_STEP_MS;
-        logoRotator.style.transition = `transform ${ms}ms ease-in-out`;
-        logoRotator.style.transform = `rotate(${logoRotDeg}deg)`;
-    }
-    /** 5面: シーン切替時に右端ロゴを90°回転（withFastSpin時は450°＝1回転+90°） */
-    function stepLogo90(transitionMs, withFastSpin) {
-        if (!logoRotator) return;
-        if (document.body.classList.contains('layout-512')) {
-            resetLogoRotation();
-            return;
+        if (document.body.classList.contains('layout-512')) return;
+        if (animateMs > 0) {
+            logoRotator.style.transition = 'transform ' + animateMs + 'ms linear';
+        } else {
+            logoRotator.style.transition = 'none';
         }
-        logoRotator.style.transition = 'none';
-        snapLogoRotDeg_();
-        logoRotator.style.transform = 'rotate(' + logoRotDeg + 'deg)';
-        void logoRotator.offsetWidth;
-        const spinDelta = withFastSpin === false ? 90 : 450;
-        logoRotDeg += spinDelta;
-        snapLogoRotDeg_();
-        const ms = transitionMs ?? LOGO_ROT_STEP_MS;
-        logoRotator.style.transition = 'transform ' + ms + 'ms ease-in-out';
         logoRotator.style.transform = 'rotate(' + logoRotDeg + 'deg)';
     }
     function resetLogoRotation() {
         logoRotDeg = 0;
-        if (!logoRotator) return;
-        logoRotator.style.transition = 'none';
-        logoRotator.style.transform = 'rotate(0deg)';
+        applyLogoTransform_(0);
+    }
+    /**
+     * 512以降ロゴ: コンテンツが左へ流れる／シーンが右→左スライドするとき
+     * 128px につき 90° 時計回り。スライド 512px = ちょうど 1 回転。
+     */
+    function tickLogoScrollSync(scrollPx, panelWidthPx) {
+        if (!logoRotator || !scrollPx) return;
+        if (document.body.classList.contains('layout-512')) return;
+        const w = panelWidthPx > 0 ? panelWidthPx : LOGO_ROT_PANEL_W;
+        logoRotDeg += (scrollPx / w) * 90;
+        applyLogoTransform_(0);
+    }
+    function getLogoRotStepMs_() {
+        const sp = typeof getScrollSpeedPx_ === 'function' ? getScrollSpeedPx_() : 0.75;
+        return Math.round(LOGO_ROT_PANEL_W / Math.max(0.01, sp) * (1000 / 60));
+    }
+    function nudgeLogo90Seamless_() {
+        if (!logoRotator || document.body.classList.contains('layout-512')) return;
+        logoRotDeg += 90;
+        applyLogoTransform_(getLogoRotStepMs_());
+    }
+    /** 互換API — 通常はスライド／スクロール連動のみ（二重回転を避ける） */
+    function stepLogo90(transitionMs, withFastSpin) {
+        /* noop: transitionToScene のスライド連動 + advanceGlobalScroll_ で回転 */
     }
     function beginLogoSceneScroll(panelWidthPx) {
-        // スクロール追従回転は行わない
-    }
-    /** コンテンツが1パネル分スクロールするたびに90° */
-    function tickLogoScrollSync(totalScrolledPx, panelWidthPx) {
-        // スクロール追従回転は行わない
+        /* noop */
     }
     const FOOT_BAR_SLOT_W = 256;
     const FOOT_BAR_LAP_PX = FOOT_BAR_SLOT_W * 2;
@@ -4474,7 +5067,8 @@
     let scene1SafetyTimerId = null;
     let scene1AdvanceToken = 0;
     let s1Flow_ = null;
-    const SCENE2_PANEL_COUNT = 9;
+    const SCENE2_WEATHER_COUNT = 9;
+    const SCENE2_PANEL_COUNT = 10; /* 気象9 + 末尾ロゴ1 */
     const SCENE2_LAPS = 2;
     const SCENE2_SCROLL_PX = 0.8;
     const SCENE2_META_LAP_PX = FOOT_BAR_LAP_PX;
@@ -4484,7 +5078,7 @@
     let scene2MetaLapPx = FOOT_BAR_LAP_PX;
     const JMA_LATEST_TIME_URL = 'https://www.jma.go.jp/bosai/amedas/data/latest_time.txt';
     const JMA_FORECAST_URL = `https://www.jma.go.jp/bosai/forecast/data/forecast/${JMA_FORECAST_AREA_CODE}.json`;
-    const SCENE4_PANEL_COUNT = 4;
+    const SCENE4_PANEL_COUNT = 5; /* WBGT4 + 末尾ロゴ1 */
     const SCENE4_LAPS = 2;
     const SCENE4_SCROLL_PX = 0.8;
     const SCENE4_LV_LAP_PX = FOOT_BAR_LAP_PX;
@@ -4494,11 +5088,19 @@
     const SCENE4_LV_LAPS = 2;
     const SCENE4_LV_SETS = 3;
     const SCENE4_LV_SPEED_PX = 0.6;
-    const SCENE5_PANEL_COUNT = 4;
+    /* 今日〜明々後日の4日 + 末尾ロゴ */
+    const SCENE5_DAY_COUNT = 4;
+    const SCENE5_PANEL_COUNT = 5;
     const SCENE5_LAPS = 2;
     const SCENE5_SCROLL_PX = 0.8;
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
     let scene5AnimId = null;
+    const SCENE_LOGO_PANEL_W = 256;
+    const SCENE_LOGO_PANEL_COUNT = 2; /* 0–256 / 257–512 に同じ横長ロゴ */
+    const SCENE_LOGO_LAPS = 2;
+    const LOGO_ACTION_HOLD_MS = 1000; /* 各動作の前後で1秒静止 */
+    let sceneLogoSetWidth = SCENE_LOGO_PANEL_COUNT * SCENE_LOGO_PANEL_W;
+    let sceneLogoAnimId = null;
     const T3_UNIT_W = 256;
     const T3_USABLE_W = T3_UNIT_W - 8;
     const T3_SLOT_GAP = 2;
@@ -4513,6 +5115,8 @@
     const T3_TOP_HA_FONT_MAX = 20;
     const T3_LAPS_BEFORE_SWITCH = 1;
     let t3GuidLapPx = SCENE2_META_LAP_PX;
+    let t3GuidScrollX_ = 0;
+    let t3GuidAnimId = null;
     let t3Messages_ = [];
     let t3Flow_ = null;
     const SCENE_W = 512;
@@ -4528,6 +5132,8 @@
         return (DEMO_SIGNAGE && !DEMO_ONLY) ? DEMO_SCROLL_SPEED_PX : GLOBAL_SCROLL_SPEED_PX;
     }
     let sceneSlideAnimId = null;
+    let sceneSlideFromEl_ = null;
+    let activeSceneEl_ = null;
     let sceneEndHoldTimerId_ = null;
     let scenePostHoldTimerId_ = null;
     /** 全シーン共通スクロール位置（下帯・本体とも継ぎ目でリセットしない） */
@@ -4547,11 +5153,18 @@
         return v;
     }
     function advanceGlobalScroll_(speedPx) {
-        globalScrollX_ -= speedPx != null ? speedPx : getScrollSpeedPx_();
+        const speed = speedPx != null ? speedPx : getScrollSpeedPx_();
+        globalScrollX_ -= speed;
+        tickLogoScrollSync(speed, LOGO_ROT_PANEL_W);
     }
     function applyGlobalScroll_(el, lapPx) {
         if (!el || !lapPx) return;
         applyScrollX_(el, wrapScrollX_(globalScrollX_, lapPx));
+    }
+    /** 末尾ロゴ付きセット: 左端をコンテンツ先頭に揃える */
+    function snapGlobalScrollToLapStart_(lapPx) {
+        if (!lapPx || lapPx <= 0) return;
+        globalScrollX_ = Math.ceil(globalScrollX_ / lapPx) * lapPx;
     }
     function getS1FootLapPx_() {
         if (!s1WbgtTrack) return SCENE1_WBGT_LAP_PX;
@@ -4601,6 +5214,10 @@
             cancelAnimationFrame(sceneSlideAnimId);
             sceneSlideAnimId = null;
         }
+        if (sceneSlideFromEl_ && sceneSlideFromEl_ !== activeSceneEl_) {
+            hideSceneEl(sceneSlideFromEl_);
+        }
+        sceneSlideFromEl_ = null;
     }
     function detectScrollLapCrossed_(prevX, newX) {
         return newX > prevX;
@@ -4612,7 +5229,16 @@
         if (scene2AnimId) { cancelAnimationFrame(scene2AnimId); scene2AnimId = null; }
         if (scene4AnimId) { cancelAnimationFrame(scene4AnimId); scene4AnimId = null; }
         if (scene5AnimId) { cancelAnimationFrame(scene5AnimId); scene5AnimId = null; }
+        if (sceneLogoAnimId) { cancelAnimationFrame(sceneLogoAnimId); sceneLogoAnimId = null; }
+        if (logoMatteTimerId_) { clearTimeout(logoMatteTimerId_); logoMatteTimerId_ = null; }
+        if (sceneNewsAnimId) { cancelAnimationFrame(sceneNewsAnimId); sceneNewsAnimId = null; }
+        if (typeof newsCanvasTimerId_ !== 'undefined' && newsCanvasTimerId_) {
+            clearTimeout(newsCanvasTimerId_); newsCanvasTimerId_ = null;
+        }
+        if (sceneBrandAnimId) { cancelAnimationFrame(sceneBrandAnimId); sceneBrandAnimId = null; }
+        if (sceneBrandHoldTimerId) { clearTimeout(sceneBrandHoldTimerId); sceneBrandHoldTimerId = null; }
         if (tickerAnimId) { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; }
+        stopT3GuidScroll_();
         if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
     }
@@ -5002,13 +5628,16 @@
             return;
         }
         const arr = (slots && slots.length) ? slots : [{ wbgt: null, levelIdx: 0, hour: '現在' }];
-        document.querySelectorAll('#scene4 .fc-track .fc-panel').forEach(function (panel, i) {
-            const slotIdx = i % SCENE4_PANEL_COUNT;
-            const slot = arr[slotIdx] || arr[0];
+        document.querySelectorAll('#scene4 .fc-track .fc-panel').forEach(function (panel) {
+            if (panel.classList.contains('fc-logo-panel') || panel.getAttribute('data-fc') === 'logo') return;
+            const slotIdx = Number(panel.getAttribute('data-fc-slot'));
+            const idx = Number.isFinite(slotIdx) ? slotIdx : 0;
+            const slot = arr[idx] || arr[0];
             const isUnknown = slot.wbgt == null;
             const wbgtHtml = isUnknown ? '--' : formatFcWbgtHtml(slot.wbgt);
-            panel.className = 'fc-panel fc-slot-' + (slotIdx % 2);
-            panel.querySelectorAll('.fc-bar-label').forEach(function (el) { el.innerText = fcBarLabelForPanel_(slotIdx); });
+            panel.className = 'fc-panel fc-slot-' + (idx % 2);
+            panel.setAttribute('data-fc-slot', String(idx));
+            panel.querySelectorAll('.fc-bar-label').forEach(function (el) { el.innerText = fcBarLabelForPanel_(idx); });
             panel.querySelectorAll('.fc-val-live').forEach(function (el) { el.innerHTML = wbgtHtml; });
         });
         queueDisplayRefresh_();
@@ -5024,6 +5653,7 @@
         if (!fcConveyor) return;
         scene4SetWidth = SCENE4_PANEL_COUNT * 128;
         fcConveyor.style.width = `${scene4SetWidth * 2}px`;
+        scene4FcLvLapPx = scene4SetWidth;
     }
     function normalizeWbgtCelsius(raw) {
         if (raw === null || raw === undefined || raw === '') return null;
@@ -5295,6 +5925,8 @@
         if (s1) {
             s1.style.display = sceneDisplayMode(s1);
             s1.classList.add('active');
+            activeSceneEl_ = s1;
+            hideOtherScenes_(s1);
         }
         syncWbgtSlotsToDomIfReady_();
         if (typeof SignageBg !== 'undefined') refreshSignageBg();
@@ -5303,10 +5935,7 @@
     }
     function queueDisplayRefresh_() {
         pendingDisplayRefresh = true;
-        if (s3 && s3.classList.contains('active')) {
-            syncScene3Display_(true);
-            return;
-        }
+        /* シーン3を含め、再生中は組み替えを保留（途中ジャンプ防止） */
         if (mainLoopStarted_ && shouldDeferDisplayRefresh_()) return;
     }
     function queueOrRefreshS1FootBar_() {
@@ -5393,7 +6022,8 @@
                     if (plan.forecast && results[1]) {
                         applyJmaDailyForecastToDom(results[1], live.todayMaxTemp, live.todayLiveIcon);
                     }
-                    compactScene2Panels();
+                    /* ループ中は conveyor を作り直さない（途中で先頭へ飛ぶのを防ぐ） */
+                    if (!shouldDeferDisplayRefresh_()) compactScene2Panels();
                     queueDisplayRefresh_();
                     const sWarn = performance.now();
                     await updateRainWarnFromGas_();
@@ -5702,7 +6332,7 @@
     const D5_REL_LABELS = ['今日', '明日', '明後日', '明々後日'];
     const D5_FORECAST_INDICES = [0, 1, 2, 3];
     function applyD5BarLabels_() {
-        for (let day = 0; day < SCENE5_PANEL_COUNT; day++) {
+        for (let day = 0; day < SCENE5_DAY_COUNT; day++) {
             document.querySelectorAll(`.d5-day-${day} .s2-bar-label`).forEach(function (el) {
                 el.textContent = D5_REL_LABELS[day] || '--';
             });
@@ -5736,10 +6366,10 @@
             ? SignageBg.isDarkTextForDisplay(bgLv, mode)
             : (mode === 'normal' && (bgLv === 1 || bgLv === 2));
         const c = dark ? '#000000' : '#ebebeb';
-        document.querySelectorAll('#scene5 .d5-panel:not(.d5-today-focus)').forEach(function (panel) {
+        document.querySelectorAll('#scene5 .d5-panel:not(.d5-today-focus):not(.d5-logo-panel)').forEach(function (panel) {
             panel.classList.toggle('col-bg-dark-text', dark);
         });
-        document.querySelectorAll('#scene5 .d5-panel').forEach(function (panel) {
+        document.querySelectorAll('#scene5 .d5-panel:not(.d5-logo-panel)').forEach(function (panel) {
             panel.querySelectorAll('.s2-bar-label, .d5-sep, .d5-temp, .s2-unit').forEach(function (n) {
                 n.style.color = c;
             });
@@ -5820,7 +6450,7 @@
             if (area.weatherCodes && !weatherCodes) weatherCodes = area.weatherCodes;
         }
         applyD5BarLabels_();
-        for (let day = 0; day < SCENE5_PANEL_COUNT; day++) {
+        for (let day = 0; day < SCENE5_DAY_COUNT; day++) {
             const idx = D5_FORECAST_INDICES[day];
             let temp = tempsMax && tempsMax[idx] !== '' ? Number(tempsMax[idx]) : null;
             if (day === 0 && todayMaxTemp != null && Number.isFinite(todayMaxTemp)) temp = todayMaxTemp;
@@ -5846,58 +6476,51 @@
             stamp: `${Number(p.month)}/${Number(p.day)} ${p.hour}:${p.minute}`
         };
     }
-    const SCENE2_META_LABELS = {
-        weather: '天気', temp: '気温', rain: '降水量', wdir: '風向き', wind: '風速',
-        humi: '湿度', pres: '気圧', tmaxmin: '最高/最低', gust: '最大瞬間風速'
+    /* 白帯用の短い見出し（128px枠に収める） */
+    const SCENE2_META_SHORT = {
+        weather: '', temp: '気温', rain: '降水', wdir: '風向', wind: '風速',
+        humi: '湿度', pres: '気圧', tmaxmin: '高低', gust: '瞬間'
     };
-    const SCENE2_META_ORDER = ['weather', 'temp', 'rain', 'wdir', 'wind', 'humi', 'pres', 'tmaxmin', 'gust'];
+    /* 本体10面と同じ順。白帯文字は1〜9のみ、10ロゴ枠は空 */
+    const SCENE2_PANEL_ORDER = ['weather', 'temp', 'rain', 'wdir', 'wind', 'humi', 'pres', 'tmaxmin', 'gust', 'logo'];
     function scene2FootTextForType_(type, obs) {
         switch (type) {
-            case 'rain': return obs.time + '・10分';
-            case 'tmaxmin': return obs.date + '日中';
-            case 'gust': return obs.date + '最大';
-            default: return obs.stamp + '時点';
+            case 'rain': return obs.time;
+            case 'tmaxmin': return obs.date;
+            case 'gust': return obs.date;
+            default: return obs.time;
         }
     }
-    function buildScene2MetaGroups_(obs) {
-        const map = new Map();
-        SCENE2_META_ORDER.forEach(function (type) {
-            const foot = scene2FootTextForType_(type, obs);
-            if (!map.has(foot)) map.set(foot, []);
-            map.get(foot).push(SCENE2_META_LABELS[type] || type);
-        });
-        return Array.from(map.entries()).map(function (entry) {
-            return { labels: entry[1].join('・'), text: entry[0] };
-        });
-    }
-    function buildScene2MetaGroupsHtml_(obs) {
-        const loc = getSiteLocationLabel_();
-        const groups = buildScene2MetaGroups_(obs).map(function (g) {
-            return `<span class="s2-meta-group">${escapeS1Html(g.labels + '：' + g.text)}</span>`;
-        }).join('');
-        return `<span class="s2-meta-group s2-meta-loc">${escapeS1Html(loc)}</span>` + groups;
+    function buildScene2MetaSlotHtml_(type, obs) {
+        if (type === 'logo') {
+            return '<div class="s2-meta-slot s2-meta-slot-panel s2-meta-slot-logo" aria-hidden="true"></div>';
+        }
+        const foot = scene2FootTextForType_(type, obs);
+        let txt;
+        if (type === 'weather') {
+            txt = getSiteLocationLabel_() || '天気';
+        } else {
+            const label = SCENE2_META_SHORT[type] || '';
+            txt = label ? (label + ' ' + foot) : foot;
+        }
+        return '<div class="s2-meta-slot s2-meta-slot-panel"><span class="s2-meta-panel-txt">' +
+            escapeS1Html(txt) + '</span></div>';
     }
     function buildScene2MetaSetHtml(obs) {
-        const inner = buildScene2MetaGroupsHtml_(obs);
-        const msg = `<span class="s2-meta-msg-scroll s2-meta-msg-groups">${inner}</span>`;
-        const slot = `<div class="s2-meta-slot s2-meta-slot-flow">${msg}</div>`;
-        return `<div class="s2-meta-set s2-meta-set-flow">${slot}</div>`;
+        const slots = SCENE2_PANEL_ORDER.map(function (type) {
+            return buildScene2MetaSlotHtml_(type, obs);
+        }).join('');
+        return '<div class="s2-meta-set s2-meta-set-panels">' + slots + '</div>';
     }
     function buildScene2MetaTrack(latest) {
         if (!s2MetaTrack) return;
         const when = latest || lastAmedasObsTime || (getSyncedUtcMs() != null ? new Date(getSyncedUtcMs()) : new Date());
         const obs = formatScene2ObsClock_(when);
-        const groups = buildScene2MetaGroups_(obs);
-        if (!groups.length) {
-            s2MetaTrack.innerHTML = '';
-            scene2MetaLapPx = SCENE2_META_LAP_PX;
-            return;
-        }
-        let html = '';
-        for (let i = 0; i < SCENE2_META_SETS; i++) html += buildScene2MetaSetHtml(obs);
-        s2MetaTrack.innerHTML = html;
-        const set = s2MetaTrack.querySelector('.s2-meta-set-flow');
-        scene2MetaLapPx = set ? Math.max(SCENE2_META_LAP_PX, set.offsetWidth) : SCENE2_META_LAP_PX;
+        /* 本体コンベアと同じ周期（ロゴ枠は空なので文字が被らない） */
+        s2MetaTrack.innerHTML = buildScene2MetaSetHtml(obs) + buildScene2MetaSetHtml(obs);
+        const set = s2MetaTrack.querySelector('.s2-meta-set-panels');
+        const setW = set ? set.offsetWidth : (SCENE2_PANEL_ORDER.length * 128);
+        scene2MetaLapPx = Math.max(scene2SetWidth || setW, setW);
         applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
     }
     function applyJmaAmedasToDom(obs, latest) {
@@ -6004,14 +6627,33 @@
             }
         });
     }
-    /* 気象庁アメダス: 9項目を固定順でスクロール（10分ごと更新） */
+    /* 気象庁アメダス: 9項目のあと128×128ロゴ1枚（10分ごと更新） */
+    function scene2LogoPanelHtml_() {
+        const cfg = window.SIGNAGE_CONFIG || {};
+        const src = cfg.logoSrc || './assets/sato_kogyo_logo_stack.png?v=6';
+        return '<div class="s2-panel s2-logo-panel" data-s2="logo">'
+            + '<div class="s2-body"><img class="s2-logo-face-img" src="' + src
+            + '" alt="佐藤工業" decoding="sync"></div></div>';
+    }
+    function isScene2LogoPanel_(p) {
+        return !!(p && (p.classList.contains('s2-logo-panel') || p.getAttribute('data-s2') === 'logo'));
+    }
     function compactScene2Panels() {
         if (!conveyor) return;
-        const panels = Array.from(conveyor.children);
-        const half = Math.floor(panels.length / 2) || SCENE2_PANEL_COUNT;
-        panels.forEach(function (p) { p.style.display = 'flex'; });
-        scene2SetWidth = half * 128;
-        conveyor.style.width = `${scene2SetWidth * 2}px`;
+        const weather = Array.from(conveyor.children).filter(function (p) {
+            return !isScene2LogoPanel_(p);
+        });
+        const nWeather = Math.max(1, Math.floor(weather.length / 2) || SCENE2_WEATHER_COUNT);
+        const setWeather = weather.slice(0, nWeather);
+        let setHtml = '';
+        setWeather.forEach(function (p) { setHtml += p.outerHTML; });
+        setHtml += scene2LogoPanelHtml_();
+        conveyor.innerHTML = setHtml + setHtml;
+        scene2SetWidth = (nWeather + 1) * 128;
+        conveyor.style.width = (scene2SetWidth * 2) + 'px';
+        scene2MetaLapPx = scene2SetWidth;
+        if (typeof SignageBg !== 'undefined' && SignageBg.initHosts) SignageBg.initHosts();
+        buildScene2MetaTrack(lastAmedasObsTime);
     }
     async function fetchWeatherAndWbgt(opts) {
         const plan = Object.assign(
@@ -6327,30 +6969,29 @@
         }
         return `<span class="fc-lv-msg">${buildEvenCharSpans(text, 'fc-lv-ch')}</span>`;
     }
+    /* 白帯: 512に出典1文 + ロゴ下128は空（本体コンベアと同じ周期） */
     function buildFcLvSetHtml(text) {
-        const msg = buildFcLvMsgHtml(text);
-        if (footBarUseCompact_(text)) {
-            const slot = `<div class="fc-lv-slot fc-lv-slot-wide">${msg}</div>`;
-            return `<div class="fc-lv-set">${slot}</div>`;
-        }
-        const slot = buildFootBarSlotHtml(msg, 'fc-lv-slot');
-        return `<div class="fc-lv-set">${slot}${slot}</div>`;
+        const msg = '<span class="fc-lv-msg-compact">' + escapeS1Html(text) + '</span>';
+        const src = '<div class="fc-lv-slot fc-lv-slot-src">' + msg + '</div>';
+        const logo = '<div class="fc-lv-slot fc-lv-slot-logo" aria-hidden="true"></div>';
+        return '<div class="fc-lv-set fc-lv-set-sync">' + src + logo + '</div>';
     }
     function buildFcLvTrack(clearTimers) {
         if (!fcLvTrack) return;
         const text = getFcLvText();
-        if (text === lastFcLvText_ && fcLvTrack.querySelector('.fc-lv-set')) {
+        const key = 'sync512:' + text;
+        if (key === lastFcLvText_ && fcLvTrack.querySelector('.fc-lv-set-sync')) {
             if (clearTimers) clearScene4Timers();
+            scene4FcLvLapPx = scene4SetWidth || (SCENE4_PANEL_COUNT * 128);
             applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
             return;
         }
-        lastFcLvText_ = text;
+        lastFcLvText_ = key;
         if (clearTimers) clearScene4Timers();
-        let html = '';
-        for (let i = 0; i < SCENE4_LV_SETS; i++) html += buildFcLvSetHtml(text);
-        fcLvTrack.innerHTML = html;
-        const setEl = fcLvTrack.querySelector('.fc-lv-set');
-        scene4FcLvLapPx = setEl ? Math.max(SCENE4_LV_LAP_PX, setEl.offsetWidth) : SCENE4_LV_LAP_PX;
+        fcLvTrack.innerHTML = buildFcLvSetHtml(text) + buildFcLvSetHtml(text);
+        const setEl = fcLvTrack.querySelector('.fc-lv-set-sync');
+        const setW = setEl ? setEl.offsetWidth : (512 + 128);
+        scene4FcLvLapPx = Math.max(scene4SetWidth || setW, setW);
         applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
     }
     function clearScene4Timers() {
@@ -6412,6 +7053,7 @@
         if (scene1SafetyTimerId) clearTimeout(scene1SafetyTimerId);
         scene1SafetyTimerId = setTimeout(function () {
             scene1SafetyTimerId = null;
+            if (activeSceneEl_ !== s1 || sceneSlideAnimId != null) return;
             if (s1 && s1.classList.contains('active')) {
                 console.warn('[Scene1] 安全タイマーで次シーンへ進めます');
                 finishScene1();
@@ -6420,7 +7062,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneLogo' || el.id === 'sceneNews' || el.id === 'sceneBrand' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         return 'flex';
     }
@@ -6431,18 +7073,31 @@
         el.style.transform = '';
         el.style.zIndex = '';
     }
+    function hideOtherScenes_(keepA, keepB) {
+        document.querySelectorAll('.content-area .scene.active').forEach(function (el) {
+            if (el !== keepA && el !== keepB) hideSceneEl(el);
+        });
+    }
     function getActiveScene() {
+        if (activeSceneEl_ && activeSceneEl_.classList.contains('active')) return activeSceneEl_;
         return document.querySelector('.content-area .scene.active');
     }
-    function transitionToScene(nextEl, onComplete) {
+    function transitionToScene(nextEl, onComplete, allowRestart) {
         clearSceneEndHoldTimer_();
         clearSceneSlideAnim_();
         clearOutgoingSceneAnims_();
         const current = getActiveScene();
         if (!nextEl) { onComplete?.(); return; }
-        if (current === nextEl) { onComplete?.(); return; }
+        if (current === nextEl) {
+            hideOtherScenes_(nextEl);
+            activeSceneEl_ = nextEl;
+            if (allowRestart) onComplete?.();
+            return;
+        }
         nextEl.style.display = sceneDisplayMode(nextEl);
         nextEl.classList.add('active');
+        hideOtherScenes_(current, nextEl);
+        activeSceneEl_ = nextEl;
         if (!current || SCENE_SLIDE_MS <= 0) {
             if (current) hideSceneEl(current);
             applyScrollX_(nextEl, 0);
@@ -6450,27 +7105,56 @@
             onComplete?.();
             return;
         }
+        sceneSlideFromEl_ = current;
         nextEl.style.zIndex = '2';
         applyScrollX_(nextEl, SCENE_W);
         current.style.zIndex = '1';
         onComplete?.();
+        let slideLogoPrevOff = 0;
         const t0 = performance.now();
         function tick(now) {
             const p = Math.min(1, (now - t0) / SCENE_SLIDE_MS);
             const eased = p * (2 - p);
-            const off = scrollPx_(eased * SCENE_W);
+            const off = eased * SCENE_W;
+            const slideDelta = off - slideLogoPrevOff;
+            slideLogoPrevOff = off;
+            /* CSPI CUBE: 右→左スライド 512px = ロゴ1回転（時計回り） */
+            tickLogoScrollSync(slideDelta, LOGO_ROT_PANEL_W);
             applyScrollX_(current, -off);
             applyScrollX_(nextEl, SCENE_W - off);
             if (p < 1) {
                 sceneSlideAnimId = requestAnimationFrame(tick);
             } else {
                 sceneSlideAnimId = null;
+                sceneSlideFromEl_ = null;
                 hideSceneEl(current);
+                hideOtherScenes_(nextEl);
                 applyScrollX_(nextEl, 0);
                 nextEl.style.zIndex = '';
             }
         }
         sceneSlideAnimId = requestAnimationFrame(tick);
+    }
+    function showSceneInstant_(nextEl, onComplete, allowRestart) {
+        clearSceneEndHoldTimer_();
+        clearSceneSlideAnim_();
+        clearOutgoingSceneAnims_();
+        const current = getActiveScene();
+        if (!nextEl) { onComplete?.(); return; }
+        if (current === nextEl) {
+            hideOtherScenes_(nextEl);
+            activeSceneEl_ = nextEl;
+            if (allowRestart) onComplete?.();
+            return;
+        }
+        nextEl.style.display = sceneDisplayMode(nextEl);
+        nextEl.classList.add('active');
+        applyScrollX_(nextEl, 0);
+        nextEl.style.zIndex = '';
+        if (current) hideSceneEl(current);
+        hideOtherScenes_(nextEl);
+        activeSceneEl_ = nextEl;
+        onComplete?.();
     }
     /* 確認ボード: 提供期間外プレビュー行は非表示のまま一定時間待ってループ */
     function previewOffSeasonHold_(onlyKey, replayFn) {
@@ -6497,6 +7181,7 @@
         gotoAfterRainWarnOrScene1_();
     }
     function gotoAfterScene3_() {
+        stopT3GuidScroll_();
         gotoAfterScene3Tail_();
     }
     /* 256×128スロット中央に収まるサイズ（256÷128=2 のパネル内で中央揃え） */
@@ -6632,7 +7317,7 @@
     }
     function startAlertOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand].forEach(hideSceneEl);
         if (sceneAlert) {
             sceneAlert.style.display = 'block';
             sceneAlert.classList.add('active');
@@ -6689,9 +7374,29 @@
         }
         return SCENE2_META_LAP_PX;
     }
+    function stopT3GuidScroll_() {
+        if (t3GuidAnimId) { cancelAnimationFrame(t3GuidAnimId); t3GuidAnimId = null; }
+    }
+    function applyT3GuidScrollX_(trackEl) {
+        if (!trackEl || !t3GuidLapPx) return;
+        applyScrollX_(trackEl, wrapScrollX_(t3GuidScrollX_, t3GuidLapPx));
+    }
+    /** 白帯は言語切替の静止中も止めず独立スクロール */
+    function startT3GuidScroll_(guidTrack) {
+        stopT3GuidScroll_();
+        if (!guidTrack || !getT3GuideTierForDisplay_()) return;
+        t3GuidLapPx = measureT3GuideLapPx_(guidTrack) || t3GuidLapPx;
+        applyT3GuidScrollX_(guidTrack);
+        function tick() {
+            t3GuidScrollX_ -= getScrollSpeedPx_();
+            applyT3GuidScrollX_(guidTrack);
+            t3GuidAnimId = requestAnimationFrame(tick);
+        }
+        t3GuidAnimId = requestAnimationFrame(tick);
+    }
     function remeasureT3GuideLapPx_(trackEl) {
         t3GuidLapPx = measureT3GuideLapPx_(trackEl);
-        if (trackEl) applyGlobalScroll_(trackEl, t3GuidLapPx);
+        if (trackEl) applyT3GuidScrollX_(trackEl);
     }
     /** 環境省発表または ?heatalert= 指定時のみアラート指針を下帯に出す（フルデモの仮アラートは除く） */
     function isHeatAlertPublishedForGuide_() {
@@ -7160,6 +7865,7 @@
         t3Messages_ = getT3Messages_();
         buildT3GuideTrack();
         const guidTrack = document.getElementById('t3-guid-track');
+        startT3GuidScroll_(guidTrack);
         if (!t3Messages_.length) {
             gotoAfterScene3_();
             return;
@@ -7210,9 +7916,6 @@
                 }
             }
             applyT3TrackX_(tracks, t3Flow_.x);
-            if (guidTrack && getT3GuideTierForDisplay_()) {
-                applyGlobalScroll_(guidTrack, t3GuidLapPx);
-            }
             tickerAnimId = requestAnimationFrame(step);
         }
         runSceneScrollAfterHold_(function () {
@@ -7278,19 +7981,294 @@
             }, SCENE1_CLOCK_HOLD_MS);
         }
     }
-    /* シーン2の次はシーン3（WBGT表示） */
+    /* シーン2の次 → ブランド面 → WBGT表示（紋章はシーン2末尾） */
     function gotoSceneAfterScene2_() {
-        if (!s4) { gotoSceneAfterScene4_(); return; }
-        transitionToScene(s4, playScene4);
+        if (sceneBrand) {
+            transitionToScene(sceneBrand, playSceneBrand);
+            return;
+        }
+        gotoAfterBrandBlock_();
     }
-    /* シーン3（WBGT表示）の次はシーン4（4日予報） */
+    /* シーン3（WBGT表示）の次 → シーン4（4日予報） */
     function gotoSceneAfterScene4_() {
         transitionToScene(s5, playScene5);
     }
-    /* シーン4（4日予報）の次はシーン5（多言語WBGT） */
+    /* シーン4（4日予報）の次 → ニュース → 横長ロゴ → シーン5（多言語WBGT） */
     function gotoSceneAfterScene5_() {
-        if (!s3) { gotoAfterScene3_(); return; }
-        transitionToScene(s3, playScene3);
+        if (sceneNews && window.SignageNews) {
+            transitionToScene(sceneNews, playSceneNews);
+            return;
+        }
+        playSceneLogoThen_(function () {
+            if (!s3) { gotoAfterScene3_(); return; }
+            transitionToScene(s3, playScene3);
+        }, LOGO_BEFORE_MULTI_KINDS);
+    }
+    const SCENE_NEWS_LAPS = 1;
+    /* NEWSは文字が大きく読み取りやすいので、他シーンより少し速く流す */
+    const SCENE_NEWS_SPEED_MULT = 1.05;
+    let sceneNewsSetWidth = 512;
+    let sceneNewsAnimId = null;
+    let newsCanvasTimerId_ = null;
+    function clearSceneNewsTimers_() {
+        if (sceneNewsAnimId) { cancelAnimationFrame(sceneNewsAnimId); sceneNewsAnimId = null; }
+        if (newsCanvasTimerId_) { clearTimeout(newsCanvasTimerId_); newsCanvasTimerId_ = null; }
+    }
+    function buildSceneNewsTrack_() {
+        if (!newsTrack || !window.SignageNews) return false;
+        const items = SignageNews.getItems();
+        if (!items || !items.length) return false;
+        const logoSrc = (window.SIGNAGE_CONFIG && window.SIGNAGE_CONFIG.logoSrc)
+            || './assets/sato_kogyo_logo_stack.png?v=6';
+        function badgeHtml_() {
+            return '<div class="news-badge">'
+                + '<img class="news-badge-logo" src="' + logoSrc + '" alt="佐藤工業" decoding="sync">'
+                + '<span class="news-badge-label">新着情報</span>'
+                + '</div>';
+        }
+        function sepHtml_() {
+            return '<span class="news-sep" aria-hidden="true">●</span>';
+        }
+        function itemHtml_(it) {
+            return '<div class="news-item">'
+                + (it.date ? '<span class="news-date">' + escapeS1Html(it.date) + '</span>' : '')
+                + '<span class="news-title">' + escapeS1Html(it.title) + '</span>'
+                + '</div>';
+        }
+        function setHtml_() {
+            let html = badgeHtml_();
+            for (let i = 0; i < items.length; i++) {
+                html += sepHtml_() + itemHtml_(items[i]);
+            }
+            html += sepHtml_();
+            return '<div class="news-unit">' + html + '</div>';
+        }
+        /* [ロゴ+新着情報] ● [日付 タイトル] ● … を2セットつなげて流す */
+        newsTrack.innerHTML = setHtml_() + setHtml_();
+        const first = newsTrack.querySelector('.news-unit');
+        sceneNewsSetWidth = Math.max(512, first ? first.offsetWidth : 512);
+        newsTrack.style.width = (sceneNewsSetWidth * 2) + 'px';
+        applyScrollX_(newsTrack, 0);
+        return true;
+    }
+    /**
+     * NEWS用キャンバス（青・ストリップ非表示）。
+     * スライド中に先に青へすると前シーンの白帯が一瞬青になるため、
+     * 切替完了後に付与／解除してコンテンツと一緒に変える。
+     */
+    function setNewsCanvasMode_(on, delayMs) {
+        const contentArea = document.querySelector('.content-area');
+        if (newsCanvasTimerId_) { clearTimeout(newsCanvasTimerId_); newsCanvasTimerId_ = null; }
+        const apply = function () {
+            newsCanvasTimerId_ = null;
+            if (contentArea) contentArea.classList.toggle('news-canvas', !!on);
+        };
+        const wait = Math.max(0, Number(delayMs) || 0);
+        if (wait > 0) newsCanvasTimerId_ = setTimeout(apply, wait);
+        else apply();
+    }
+    function gotoAfterSceneNews_() {
+        setNewsCanvasMode_(false, SCENE_SLIDE_MS);
+        playSceneLogoThen_(function () {
+            if (!s3) { gotoAfterScene3_(); return; }
+            transitionToScene(s3, playScene3);
+        }, LOGO_BEFORE_MULTI_KINDS);
+    }
+    function playSceneNews() {
+        clearSceneNewsTimers_();
+        if (!sceneNews || !newsTrack || !window.SignageNews) {
+            gotoAfterSceneNews_();
+            return;
+        }
+        setNewsCanvasMode_(true, SCENE_SLIDE_MS);
+        const start = function () {
+            if (!buildSceneNewsTrack_()) {
+                gotoAfterSceneNews_();
+                return;
+            }
+            /* 最新3件を1周流す。開始・終了は各1秒静止してから次コンテンツへ */
+            runSceneScrollAfterHold_(function () {
+                let totalScrolled = 0;
+                const scrollTotal = sceneNewsSetWidth * SCENE_NEWS_LAPS;
+                const speed = getScrollSpeedPx_() * SCENE_NEWS_SPEED_MULT;
+                function tick() {
+                    totalScrolled += speed;
+                    applyScrollX_(newsTrack, wrapScrollX_(-totalScrolled, sceneNewsSetWidth));
+                    if (totalScrolled >= scrollTotal) {
+                        sceneNewsAnimId = null;
+                        applyScrollX_(newsTrack, wrapScrollX_(-scrollTotal, sceneNewsSetWidth));
+                        runAfterSceneEndHold_(gotoAfterSceneNews_);
+                        return;
+                    }
+                    sceneNewsAnimId = requestAnimationFrame(tick);
+                }
+                sceneNewsAnimId = requestAnimationFrame(tick);
+            });
+        };
+        if (typeof SignageNews.refresh === 'function') {
+            SignageNews.refresh().finally(start);
+        } else {
+            start();
+        }
+    }
+    /* 多言語直前: 横長のみ / only=logo用 */
+    const LOGO_AFTER_BRAND_KINDS = ['crest'];
+    const LOGO_BEFORE_MULTI_KINDS = ['wide'];
+    const LOGO_INTRO_KINDS = ['crest', 'wide'];
+    const LOGO_FACE_KINDS = ['wide'];
+    let logoFaceKindIdx_ = 0;
+    function getLogoFaceKindDef_(kind) {
+        const cfg = window.SIGNAGE_CONFIG || {};
+        const alt = cfg.logoAlt || '佐藤工業';
+        if (kind === 'crest') {
+            return {
+                src: cfg.logoSrc || './assets/sato_kogyo_logo_stack.png?v=6',
+                alt: alt,
+                cls: 'logo-face-crest'
+            };
+        }
+        return {
+            src: cfg.logoWideSrc || './assets/sato_kogyo_logo_wide.png?v=3',
+            alt: alt,
+            cls: 'logo-face-wide'
+        };
+    }
+    function getLogoFacePanelDefs_(kind) {
+        const one = getLogoFaceKindDef_(kind);
+        const defs = [];
+        for (let i = 0; i < SCENE_LOGO_PANEL_COUNT; i++) {
+            defs.push({ src: one.src, alt: i === 0 ? one.alt : '', cls: one.cls, dual: kind === 'crest' });
+        }
+        return defs;
+    }
+    function applyLogoFaceKindToRightPanel_(kind) {
+        const logoEl = document.getElementById('signage-logo');
+        if (!logoEl) return;
+        const cfg = window.SIGNAGE_CONFIG || {};
+        const src = cfg.logoSrc || './assets/sato_kogyo_logo_stack.png?v=6';
+        const alt = cfg.logoAlt || '佐藤工業';
+        if (logoEl.getAttribute('src') !== src) logoEl.src = src;
+        logoEl.alt = alt;
+    }
+    function logoFacePanelHtml_(d) {
+        const panelCls = 'logo-face-panel' + (d.dual ? ' logo-face-panel-crest' : '');
+        if (d.dual) {
+            return '<div class="' + panelCls + '">'
+                + '<img class="logo-face-img ' + d.cls + '" src="' + d.src + '" alt="' + d.alt + '" decoding="sync">'
+                + '<img class="logo-face-img ' + d.cls + '" src="' + d.src + '" alt="" decoding="sync">'
+                + '</div>';
+        }
+        return '<div class="' + panelCls + '"><img class="logo-face-img '
+            + d.cls + '" src="' + d.src + '" alt="' + d.alt + '" decoding="sync"></div>';
+    }
+    function ensureLogoFacePanels_(kind) {
+        if (!logoFaceTrack) return false;
+        const k = kind || 'wide';
+        const defs = getLogoFacePanelDefs_(k);
+        const n = SCENE_LOGO_PANEL_COUNT * 2;
+        const expectCls = (k === 'crest') ? 'logo-face-crest' : 'logo-face-wide';
+        const firstImg = logoFaceTrack.querySelector('.logo-face-img');
+        const expectDual = k === 'crest';
+        const hasDual = !!logoFaceTrack.querySelector('.logo-face-panel-crest');
+        const needRebuild = logoFaceTrack.children.length !== n
+            || logoFaceTrack.querySelector('.logo-face-rotator')
+            || !firstImg
+            || !firstImg.classList.contains(expectCls)
+            || hasDual !== expectDual;
+        if (needRebuild) {
+            let html = '';
+            for (let i = 0; i < n; i++) {
+                html += logoFacePanelHtml_(defs[i % defs.length]);
+            }
+            logoFaceTrack.innerHTML = html;
+        } else {
+            logoFaceTrack.querySelectorAll('.logo-face-panel').forEach(function (panel, i) {
+                const d = defs[i % defs.length];
+                panel.querySelectorAll('.logo-face-img').forEach(function (img, j) {
+                    img.className = 'logo-face-img ' + d.cls;
+                    if (img.getAttribute('src') !== d.src) img.src = d.src;
+                    img.alt = j === 0 ? d.alt : '';
+                });
+            });
+        }
+        applyLogoFaceKindToRightPanel_(k);
+        sceneLogoSetWidth = SCENE_LOGO_PANEL_COUNT * SCENE_LOGO_PANEL_W;
+        logoFaceTrack.style.width = (sceneLogoSetWidth * 2) + 'px';
+        return true;
+    }
+    function applyLogoFaceSpin_(scrolledPx) {
+        /* 横長ロゴ流しではパネル回転なし */
+    }
+    function clearLogoHoldTimer_() {
+        if (logoMatteTimerId_) { clearTimeout(logoMatteTimerId_); logoMatteTimerId_ = null; }
+    }
+    function logoActionHold_(fn) {
+        clearLogoHoldTimer_();
+        logoMatteTimerId_ = setTimeout(function () {
+            logoMatteTimerId_ = null;
+            if (typeof fn === 'function') fn();
+        }, LOGO_ACTION_HOLD_MS);
+    }
+    function playSceneLogo() {
+        const kinds = (logoFaceActiveKinds_ && logoFaceActiveKinds_.length)
+            ? logoFaceActiveKinds_ : LOGO_FACE_KINDS;
+        if (logoFaceKindIdx_ < 0 || logoFaceKindIdx_ >= kinds.length) logoFaceKindIdx_ = 0;
+        const kind = kinds[logoFaceKindIdx_];
+        if (!sceneLogo || !ensureLogoFacePanels_(kind)) {
+            gotoAfterSceneLogo_();
+            return;
+        }
+        if (sceneLogoAnimId) { cancelAnimationFrame(sceneLogoAnimId); sceneLogoAnimId = null; }
+        clearLogoHoldTimer_();
+        applyDisplayRefreshAtSceneEntry_();
+        const scrollTotal = sceneLogoSetWidth * SCENE_LOGO_LAPS;
+        let totalScrolled = 0;
+        applyScrollX_(logoFaceTrack, 0);
+        logoFaceTrack.style.transition = 'none';
+        if (isFullDemoStep_()) {
+            scheduleDemoStep_(function () {
+                logoFaceKindIdx_ += 1;
+                if (logoFaceKindIdx_ < kinds.length) playSceneLogo();
+                else { logoFaceKindIdx_ = 0; applyLogoFaceKindToRightPanel_('sato'); gotoAfterSceneLogo_(); }
+            });
+            return;
+        }
+
+        function goNextLogoOrExit_() {
+            logoFaceKindIdx_ += 1;
+            if (logoFaceKindIdx_ < kinds.length) {
+                playSceneLogo();
+                return;
+            }
+            logoFaceKindIdx_ = 0;
+            applyLogoFaceKindToRightPanel_('sato');
+            if (demoOnlyLoop_('logo', playSceneLogo)) return;
+            gotoAfterSceneLogo_();
+        }
+
+        function afterLogoScroll_() {
+            logoActionHold_(goNextLogoOrExit_);
+        }
+
+        function animateLogoFace() {
+            const speed = getScrollSpeedPx_();
+            advanceGlobalScroll_(speed);
+            totalScrolled += speed;
+            applyScrollX_(logoFaceTrack, wrapScrollX_(-totalScrolled, sceneLogoSetWidth));
+            if (totalScrolled >= scrollTotal) {
+                sceneLogoAnimId = null;
+                applyScrollX_(logoFaceTrack, wrapScrollX_(-scrollTotal, sceneLogoSetWidth));
+                stopLogoSpinInterval();
+                afterLogoScroll_();
+                return;
+            }
+            sceneLogoAnimId = requestAnimationFrame(animateLogoFace);
+        }
+
+        /* 入場1秒静止 → 横スクロール → 終了1秒静止 → 次へ */
+        logoActionHold_(function () {
+            sceneLogoAnimId = requestAnimationFrame(animateLogoFace);
+        });
     }
     function playScene2() {
         applyDisplayRefreshAtSceneEntry_();
@@ -7309,6 +8287,8 @@
             gotoSceneAfterScene2_();
             return;
         }
+        /* 開始は常に気象先頭（末尾ロゴが左端に来ない位置） */
+        snapGlobalScrollToLapStart_(scene2SetWidth);
         let totalScrolled = 0;
         applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
         applyGlobalScroll_(conveyor, scene2SetWidth);
@@ -7364,6 +8344,7 @@
             setTimeout(finishScene4, 500);
             return;
         }
+        snapGlobalScrollToLapStart_(scene4SetWidth);
         let totalScrolled = 0;
         applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
         applyGlobalScroll_(fcConveyor, scene4SetWidth);
@@ -7404,6 +8385,8 @@
             gotoSceneAfterScene5_();
             return;
         }
+        /* 開始は常に「今日」（末尾ロゴが左端に来ない位置） */
+        snapGlobalScrollToLapStart_(scene5SetWidth);
         let totalScrolled = 0;
         applyGlobalScroll_(d5Conveyor, scene5SetWidth);
         d5Conveyor.style.transition = 'none';
@@ -7526,7 +8509,7 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
         if (!el) return;
         el.style.display = sceneDisplayMode(el);
         el.classList.add('active');
@@ -7538,7 +8521,7 @@
         applyReviewEnv_();
         const badge = document.getElementById('demo-badge');
         const onlyLabels = SCENE_LABEL_BY_KEY;
-        if (badge && shouldShowDemoBadge_()) {
+        if (badge && shouldShowDemoBadge_() && DEMO_ONLY !== 'logo' && DEMO_ONLY !== 'brand') {
             badge.hidden = false;
             badge.textContent = '確認 · ' + (onlyLabels[DEMO_ONLY] || DEMO_ONLY);
         } else if (badge) {
@@ -7547,11 +8530,17 @@
         resetLogoRotation();
         function launchOnlyScene_() {
             switch (DEMO_ONLY) {
+                case 'brand': showOnlyScene_(sceneBrand, playSceneBrand); break;
                 case 's1': showOnlyScene_(s1, playScene1); break;
                 case 's2': showOnlyScene_(s2, playScene2); break;
                 case 's3': showOnlyScene_(s3, playScene3); break;
                 case 's4': showOnlyScene_(s4, playScene4); break;
                 case 's5': showOnlyScene_(s5, playScene5); break;
+                case 'logo':
+                    logoFaceKindIdx_ = 0;
+                    logoFaceActiveKinds_ = LOGO_INTRO_KINDS;
+                    showOnlyScene_(sceneLogo, playSceneLogo);
+                    break;
                 default: break;
             }
         }
@@ -7560,7 +8549,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -7586,7 +8575,8 @@
     function startSequence() {
         clearDemoStepTimer_();
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        activeSceneEl_ = null;
         transitionToScene(s1, playScene1);
     }
 
@@ -7602,6 +8592,7 @@
             if (logoEl.getAttribute('src') !== logoCfg.logoSrc) logoEl.src = logoCfg.logoSrc;
             logoEl.alt = logoCfg.logoAlt || '';
         }
+        ensureLogoFacePanels_();
         if (DEMO_ALERT_ONLY && !NO_HEAT_ALERT) {
             bootDisplayHold_ = false;
             setTimeout(startAlertOnlyDemo_, 300);
@@ -7637,33 +8628,40 @@
         updateClock();
         startClockTicker();
         startNetworkClockSync_();
+        if (window.SignageNews && typeof SignageNews.startAutoRefresh === 'function') {
+            SignageNews.startAutoRefresh();
+        }
         try {
             await Promise.race([
                 runScheduledFetch({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] }),
                 new Promise(function (resolve) { setTimeout(resolve, 3500); })
             ]);
-            if (s1) {
-                s1.style.display = sceneDisplayMode(s1);
-                s1.classList.add('active');
-            }
             flushInitialDisplay_();
             mainLoopStarted_ = true;
             scheduleDataRefresh();
-            playScene1();
+            if (s1) {
+                s1.style.display = sceneDisplayMode(s1);
+                s1.classList.add('active');
+                activeSceneEl_ = s1;
+                hideOtherScenes_(s1);
+                playScene1();
+            }
         } catch (err) {
             console.error('Init:', err);
             bootDisplayHold_ = false;
             if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'local-fallback');
             updateClock();
             refreshSignageBgIfChanged_(true);
-            if (s1) {
-                s1.style.display = sceneDisplayMode(s1);
-                s1.classList.add('active');
-            }
             startClockTicker();
             mainLoopStarted_ = true;
             scheduleDataRefresh();
-            playScene1();
+            if (s1) {
+                s1.style.display = sceneDisplayMode(s1);
+                s1.classList.add('active');
+                activeSceneEl_ = s1;
+                hideOtherScenes_(s1);
+                playScene1();
+            }
         } finally {
             bootDisplayHold_ = false;
         }
