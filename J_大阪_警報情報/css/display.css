@@ -40,16 +40,22 @@ body {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: var(--w-side) var(--w-front) var(--w-side);
+  grid-template-rows: var(--h-total);
   gap: 0;
   padding: 0;
   box-sizing: border-box;
   width: var(--w-total);
   height: var(--h-total);
+  min-width: var(--w-total);
+  min-height: var(--h-total);
+  max-width: var(--w-total);
+  max-height: var(--h-total);
   position: absolute;
   top: 0;
   left: 0;
+  overflow: hidden;
   transition: background-color 0.45s ease;
 }
 
@@ -85,36 +91,55 @@ body {
   background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 0;
+  width: 100%;
   height: var(--h-total);
-  flex-shrink: 0;
+  min-width: 0;
+  min-height: 0;
+  max-height: var(--h-total);
+  padding: var(--pad);
+  gap: 0;
+  overflow: hidden;
   box-sizing: border-box;
 }
 
-/* 左右端（128px）にカードを配置 — WBGTサインと同様 */
 .face--left,
 .face--right {
   width: var(--w-side);
-  padding: 10px 8px;
-  overflow: hidden;
-  justify-content: center;
-  align-items: center;
+  justify-content: stretch;
+  align-items: stretch;
 }
 
 .face--front {
   width: var(--w-front);
-  padding: 10px 8px;
-  gap: 8px;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--gap);
+  align-content: stretch;
+}
+
+.face--front .card {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.face--front .card--top,
+.face--front .card--bottom {
+  flex: none;
+  height: 100%;
+  padding: 6px 10px;
 }
 
 .card {
   background: var(--card);
-  border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(40, 30, 20, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   flex: 1;
   min-height: 0;
-  padding: 10px 12px;
+  min-width: 0;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -124,26 +149,28 @@ body {
 
 .face--left .card,
 .face--right .card {
-  height: 100%;
   width: 100%;
+  height: 100%;
   align-items: center;
   text-align: center;
-  padding: 12px 8px;
+  padding: 10px 6px;
 }
 
 .card-stage {
   position: relative;
   width: 100%;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 .card-stage .card {
   position: absolute;
   inset: 0;
-  height: auto;
-  border-radius: 14px;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
 }
 
 .face--left .stack,
@@ -206,14 +233,6 @@ body {
   }
 }
 
-.face--front .card--top {
-  flex: 1.15;
-}
-
-.face--front .card--bottom {
-  flex: 0.85;
-}
-
 .label {
   font-size: 11px;
   font-weight: 600;
@@ -222,7 +241,7 @@ body {
 }
 
 .value {
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 700;
   line-height: 1.05;
   color: var(--ink);
@@ -230,7 +249,7 @@ body {
 }
 
 .value--sm {
-  font-size: 28px;
+  font-size: 26px;
 }
 
 .unit {
@@ -310,7 +329,7 @@ body {
 }
 
 .level-num {
-  font-size: 40px;
+  font-size: 36px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -329,17 +348,18 @@ body {
   --accent: var(--special);
 }
 
-/* 中央上：流れ文字カード */
+/* 中央上：流れ文字（枠内スクロール・枠サイズ固定） */
 .ticker-wrap {
   position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
+  flex: 1 1 auto;
+  display: block;
   overflow: hidden;
-  margin-top: 4px;
-  border-radius: 8px;
+  margin-top: 2px;
+  border-radius: 6px;
   background: #fff5f5;
-  min-height: 42px;
+  min-height: 0;
+  height: 36px;
+  max-height: 36px;
 }
 
 .machine[data-active="false"] .ticker-wrap {
@@ -351,9 +371,8 @@ body {
 }
 
 .ticker-band {
-  position: relative;
-  width: 100%;
-  height: 42px;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   opacity: 1;
   background: transparent;
@@ -366,71 +385,109 @@ body {
 
 .marquee {
   display: inline-flex;
+  flex-wrap: nowrap;
   white-space: nowrap;
-  font-size: 22px;
+  width: max-content;
+  height: 36px;
+  font-size: 18px;
   font-weight: 700;
-  line-height: 42px;
+  line-height: 36px;
   color: #991b1b;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  will-change: transform;
+}
+
+.marquee.is-running {
+  animation: marquee-scroll var(--marquee-duration, 28s) linear infinite;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
 .machine[data-active="false"] .marquee {
   color: #9ca3af;
 }
 
-.marquee span {
-  padding-right: 64px;
+.marquee > span {
+  display: inline-block;
+  flex-shrink: 0;
+  padding-right: 40px;
 }
 
 .marquee .tag {
   color: #dc2626;
 }
 
-/* 中央下：発表中チップ（夜のニュースティッカー） */
+/* 中央下：発表中チップ（枠固定・中身だけ横スクロール） */
 .face--front .card--bottom.card--news {
   background: #ffffff;
+  padding: 6px 10px 4px;
 }
 
 .chip-ticker {
   position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
+  flex: 1 1 auto;
+  display: block;
   overflow: hidden;
-  margin-top: 4px;
-  min-height: 36px;
-  mask-image: linear-gradient(90deg, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  margin-top: 2px;
+  min-height: 0;
+  height: 30px;
+  max-height: 30px;
 }
 
 .chip-marquee {
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
+  width: max-content;
+  height: 30px;
   will-change: transform;
+}
+
+.chip-marquee.is-running {
+  animation: chip-scroll var(--chip-duration, 22s) linear infinite;
+}
+
+@keyframes chip-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
 .chip-track {
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
-  padding-right: 28px;
+  gap: 6px;
+  padding-right: 16px;
+  flex-shrink: 0;
+  height: 30px;
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  gap: 4px;
-  padding: 5px 12px;
+  gap: 2px;
+  padding: 3px 10px;
   border-radius: 999px;
   background: #f3f4f6;
   color: #374151;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   border: 1px solid #e5e7eb;
   white-space: nowrap;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  overflow: visible;
 }
 
 .chip.is-warning {
@@ -464,16 +521,17 @@ body {
   white-space: nowrap;
 }
 
-/* 夜（レベル5・黒背景）でも下カードは白でチップを流す */
 .machine[data-level="5"] .card--bottom.card--news {
   background: #ffffff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 .card-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--mute);
+  line-height: 1.2;
+  flex-shrink: 0;
 }
 
 /* グラフっぽい装飾（静的＋薄い動き） */
@@ -543,6 +601,8 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-top: 4px;
+  flex-shrink: 0;
+  gap: 8px;
 }
 
 .meta {

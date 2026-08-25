@@ -1,9 +1,11 @@
-/* サイネージ：原点 (0,0)、キャプチャ範囲 640×192 */
+/* サイネージ：原点 (0,0)、キャプチャ範囲 640×192 固定 */
 :root {
   --w-total: 640px;
   --h-total: 192px;
   --w-side: 128px;
   --w-front: 384px;
+  --pad: 8px;
+  --gap: 8px;
 }
 
 * {
@@ -16,6 +18,10 @@ html,
 body {
   width: var(--w-total);
   height: var(--h-total);
+  min-width: var(--w-total);
+  min-height: var(--h-total);
+  max-width: var(--w-total);
+  max-height: var(--h-total);
   overflow: hidden;
   background: #000;
 }
@@ -30,17 +36,22 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--w-side) var(--w-front) var(--w-side);
+  grid-template-rows: var(--h-total);
   width: var(--w-total);
   height: var(--h-total);
   overflow: hidden;
   border: 0;
   box-shadow: none;
   margin: 0;
+  padding: 0;
+  gap: 0;
 }
 
 .face {
   position: relative;
+  width: 100%;
   height: var(--h-total);
   overflow: hidden;
   flex-shrink: 0;

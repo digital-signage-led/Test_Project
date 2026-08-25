@@ -225,26 +225,31 @@ function stopMarquee() {
   marqueeRaf = 0;
   marqueeOffset = 0;
   marqueeLastTs = 0;
-  if (els.marquee) els.marquee.style.transform = "translateX(0)";
+  if (!els.marquee) return;
+  els.marquee.classList.remove("is-running");
+  els.marquee.style.transform = "translateX(0)";
+  els.marquee.style.removeProperty("--marquee-duration");
 }
 
+/** 二重トラック（A/B同一）で -50% ループ。サイネージ向けにCSSアニメ優先 */
 function startMarquee() {
   stopMarquee();
   if (!els.marquee || !els.marqueeTextA) return;
-  marqueeWidth = els.marqueeTextA.getBoundingClientRect().width;
-  if (marqueeWidth < 8) return;
 
-  const speed = marqueeSpeed();
-  const tick = (ts) => {
-    if (!marqueeLastTs) marqueeLastTs = ts;
-    const dt = (ts - marqueeLastTs) / 1000;
-    marqueeLastTs = ts;
-    marqueeOffset -= speed * dt;
-    if (marqueeOffset <= -marqueeWidth) marqueeOffset += marqueeWidth;
-    els.marquee.style.transform = `translateX(${marqueeOffset}px)`;
-    marqueeRaf = requestAnimationFrame(tick);
+  const run = () => {
+    const half = els.marqueeTextA.getBoundingClientRect().width;
+    if (half < 8) return;
+    const speed = marqueeSpeed();
+    const duration = Math.max(12, half / speed);
+    els.marquee.style.setProperty("--marquee-duration", `${duration}s`);
+    els.marquee.classList.add("is-running");
   };
-  marqueeRaf = requestAnimationFrame(tick);
+
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(run).catch(run);
+  } else {
+    requestAnimationFrame(() => requestAnimationFrame(run));
+  }
 }
 
 function stopChipTicker() {
@@ -252,10 +257,13 @@ function stopChipTicker() {
   chipRaf = 0;
   chipOffset = 0;
   chipLastTs = 0;
-  if (els.chipMarquee) els.chipMarquee.style.transform = "translateX(0)";
+  if (!els.chipMarquee) return;
+  els.chipMarquee.classList.remove("is-running");
+  els.chipMarquee.style.transform = "translateX(0)";
+  els.chipMarquee.style.removeProperty("--chip-duration");
 }
 
-/** 発表中チップのみを夜のニュースティッカーとして流す */
+/** 発表中チップのみをニュースティッカーとして流す（途中切れ防止） */
 function renderChipTicker(items) {
   const announced = (items || []).filter((item) => item && item.name);
   if (!els.alertList) return;
@@ -268,7 +276,10 @@ function renderChipTicker(items) {
   }
 
   const html = announced
-    .map((item) => `<span class="chip is-${item.theme || "advisory"}">${item.name}</span>`)
+    .map(
+      (item) =>
+        `<span class="chip is-${item.theme || "advisory"}">${item.short || item.name}</span>`,
+    )
     .join("");
   els.alertList.innerHTML = html;
   if (els.alertListB) els.alertListB.innerHTML = html;
@@ -281,20 +292,21 @@ function renderChipTicker(items) {
 function startChipTicker() {
   stopChipTicker();
   if (!els.chipMarquee || !els.alertList) return;
-  chipWidth = els.alertList.getBoundingClientRect().width;
-  if (chipWidth < 8) return;
 
-  const speed = Math.max(36, marqueeSpeed() * 0.55);
-  const tick = (ts) => {
-    if (!chipLastTs) chipLastTs = ts;
-    const dt = (ts - chipLastTs) / 1000;
-    chipLastTs = ts;
-    chipOffset -= speed * dt;
-    if (chipOffset <= -chipWidth) chipOffset += chipWidth;
-    els.chipMarquee.style.transform = `translateX(${chipOffset}px)`;
-    chipRaf = requestAnimationFrame(tick);
+  const run = () => {
+    const half = els.alertList.getBoundingClientRect().width;
+    if (half < 8) return;
+    const speed = Math.max(40, marqueeSpeed() * 0.5);
+    const duration = Math.max(14, half / speed);
+    els.chipMarquee.style.setProperty("--chip-duration", `${duration}s`);
+    els.chipMarquee.classList.add("is-running");
   };
-  chipRaf = requestAnimationFrame(tick);
+
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(run).catch(run);
+  } else {
+    run();
+  }
 }
 
 function flashNotify() {
@@ -409,7 +421,16 @@ async function refresh({ notifyOnChange = true } = {}) {
   }
 }
 
+function lockSignagePixels() {
+  const dpr = window.devicePixelRatio || 1;
+  document.documentElement.style.zoom = String(1 / dpr);
+}
+
 async function boot() {
+  lockSignagePixels();
+  window.addEventListener("resize", () => {
+    lockSignagePixels();
+  });
   try {
     areaNames = await fetchAreaNames();
   } catch {

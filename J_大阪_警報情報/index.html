@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
@@ -8,6 +8,17 @@
     />
     <title>大阪 警報情報</title>
     <link rel="stylesheet" href="./css/display.css" />
+    <script>
+      /* サイネージキャプチャ(物理640×192)と見た目を一致させる */
+      (function () {
+        function lockSignagePixels() {
+          var dpr = window.devicePixelRatio || 1;
+          document.documentElement.style.zoom = String(1 / dpr);
+        }
+        lockSignagePixels();
+        window.addEventListener("resize", lockSignagePixels);
+      })();
+    </script>
   </head>
   <body>
     <div

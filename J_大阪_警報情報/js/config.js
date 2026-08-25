@@ -10,6 +10,8 @@ export const CONFIG = {
   demoQuery: "demo",
   /** 既定: リアル＋デモを合流して流す */
   mixLiveAndDemoByDefault: true,
+  /** サイネージ: 物理ピクセル640×192に合わせる */
+  signagePixelLock: true,
   /** 発表中として扱う status */
   activeStatuses: new Set(["発表", "継続", "警報から注意報", "注意報から警報"]),
   /** 流れ文字の速さ（px/秒） */
