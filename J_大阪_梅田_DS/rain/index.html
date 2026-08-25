@@ -106,10 +106,20 @@
       height: 192px !important;
       max-width: 640px !important;
       max-height: 192px !important;
+      position: relative !important;
+      left: 0 !important;
+      top: 0 !important;
+      right: auto !important;
+      bottom: auto !important;
+      overflow: hidden !important;
+      background: #000 !important;
     }
     html.rain-embed #stage,
     body.rain-embed #stage {
       transform: none !important;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
     }
     body,
     body.native-640 {
@@ -716,6 +726,16 @@
   if (qs.has('zoom')) CFG.zoom = parseInt(qs.get('zoom'), 10) || CFG.zoom;
   if (qs.has('playMs')) CFG.playMs = parseInt(qs.get('playMs'), 10) || CFG.playMs;
 
+  /* mode=thunder / elem=thns … 雷ナウキャスト（活動度1〜4） */
+  var modeQ = String(qs.get('mode') || qs.get('elem') || 'rain').toLowerCase();
+  var isThunder = modeQ === 'thunder' || modeQ === 'thns' || modeQ === 'lts' || modeQ === '雷';
+  var TILE_ELEM = isThunder ? 'thns' : 'hrpns';
+  if (isThunder) {
+    CFG.futureMaxMin = 60; /* 雷ナウキャストは約1時間先まで */
+    CFG.pastMaxMin = 60;
+    document.title = '大阪 梅田 雷ナウキャスト 640×192｜自販機サイネージ';
+  }
+
   var native = window.__RAIN_NATIVE640__ !== false;
   var embedded = !!window.__RAIN_EMBED__;
   if (native) {
@@ -726,6 +746,43 @@
     document.documentElement.classList.add('rain-embed');
     document.body.classList.add('rain-embed');
   }
+  if (isThunder) {
+    document.documentElement.classList.add('thunder-mode');
+    document.body.classList.add('thunder-mode');
+  }
+
+  function applyThunderChrome_() {
+    if (!isThunder) return;
+    var leftTitle = document.querySelector('#faceLeft .side-title');
+    var rightKicker = document.querySelector('#faceRight .side-kicker');
+    var rightTitle = document.querySelector('#faceRight .side-title');
+    var tl = document.querySelector('.tl-labels');
+    var scale = document.querySelector('.rain-scale');
+    var legend = document.querySelector('.legend-mini .scale');
+    var labs = document.querySelector('.legend-mini .labs');
+    var toast = document.getElementById('toast');
+    var faceFront = document.getElementById('faceFront');
+    if (leftTitle) leftTitle.textContent = '雷の目安';
+    if (rightKicker) rightKicker.textContent = 'THUNDER';
+    if (rightTitle) rightTitle.textContent = '活動度';
+    if (tl) tl.innerHTML = '<span>−1h</span><span>いま</span><span>+1h 予測</span>';
+    if (scale) {
+      scale.innerHTML = '<span class="rs-lab">1</span><i></i><i></i><i></i><i></i><span class="rs-lab">4</span>';
+    }
+    if (legend) {
+      legend.innerHTML =
+        '<span style="background:#F2E700"></span>' +
+        '<span style="background:#FF8C00"></span>' +
+        '<span style="background:#FA2900"></span>' +
+        '<span style="background:#AB00AA"></span>';
+    }
+    if (labs) labs.innerHTML = '<span>1</span><span>2</span><span>3</span><span>4</span>';
+    if (toast) {
+      toast.innerHTML = '<div><div class="spinner"></div>雷ナウキャストを取得しています…</div>';
+    }
+    if (faceFront) faceFront.setAttribute('aria-label', '正面 雷ナウキャスト');
+  }
+  applyThunderChrome_();
 
   function fitStage() {
     var stage = document.getElementById('stage');
@@ -964,12 +1021,13 @@
   var radarMeta = { lagMin: 0, nowcLagMin: 0, source: 'nowc', modeLabel: '', fallback: false };
 
   function tileUrl(frame) {
-    if (frame.product === 'rasrf') {
+    if (!isThunder && frame.product === 'rasrf') {
       return 'https://www.jma.go.jp/bosai/jmatile/data/rasrf/'
         + frame.basetime + '/none/' + frame.validtime + '/surf/rasrf/{z}/{x}/{y}.png';
     }
+    var elem = isThunder ? 'thns' : 'hrpns';
     return 'https://www.jma.go.jp/bosai/jmatile/data/nowc/'
-      + frame.basetime + '/none/' + frame.validtime + '/surf/hrpns/{z}/{x}/{y}.png';
+      + frame.basetime + '/none/' + frame.validtime + '/surf/' + elem + '/{z}/{x}/{y}.png';
   }
 
   /** 雨判定用（CORS許可あり・直接取得） */
@@ -1011,6 +1069,12 @@
   var current = -1;
   var nowIndex = 0;
   var playTimer = null;
+  var playLoopCount = 0;
+  var playLoopsTarget = 2; /* 埋め込み時: この周回数で親へ終了通知 */
+  if (qs.has('loops')) {
+    var loopsQ = parseInt(qs.get('loops'), 10);
+    if (isFinite(loopsQ) && loopsQ >= 1 && loopsQ <= 10) playLoopsTarget = loopsQ;
+  }
   var amedasMarkers = [];
   var amedasTable = null;
   var rainEstimate = { level: 'none', minutes: null, label: '確認中', guide: '' };
@@ -1048,16 +1112,16 @@
       lagNote = '  ※配信遅延' + radarMeta.nowcLagMin + '分';
     }
     document.getElementById('metaLine').textContent =
-      '雨雲の動き  ' + fmtShort(f.validtime) + lagNote;
+      (isThunder ? '雷ナウキャスト  ' : '雨雲の動き  ') + fmtShort(f.validtime) + lagNote;
 
     var badge = document.getElementById('kindBadge');
     var kindText = document.getElementById('kindText');
     if (f.kind === 'now') {
       badge.textContent = 'いま'; badge.className = 'badge now';
-      kindText.textContent = radarMeta.modeLabel || '現在付近';
+      kindText.textContent = radarMeta.modeLabel || (isThunder ? '雷活動度' : '現在付近');
     } else if (f.kind === 'fc') {
       badge.textContent = '予測'; badge.className = 'badge fc';
-      kindText.textContent = 'これから〜約3時間';
+      kindText.textContent = isThunder ? 'これから〜約1時間' : 'これから〜約3時間';
     } else {
       badge.textContent = '過去1h'; badge.className = 'badge past';
       kindText.textContent = '約1時間前〜';
@@ -1083,8 +1147,29 @@
     if (!frames.length) return;
     playTimer = setTimeout(function () {
       var next = current + 1;
-      if (next >= frames.length) next = 0;
+      var wrapped = false;
+      if (next >= frames.length) {
+        next = 0;
+        wrapped = true;
+      }
       showFrame(next);
+      if (wrapped) {
+        playLoopCount += 1;
+        /* 親サイネージ: 既定周回完了で次シーンへ */
+        if (embedded && playLoopCount >= playLoopsTarget) {
+          try {
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({
+                type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
+                loops: playLoopCount,
+                mode: isThunder ? 'thunder' : 'rain'
+              }, '*');
+            }
+          } catch (eMsg) {}
+          stopPlay();
+          return;
+        }
+      }
       scheduleNext();
     }, frameDelay(current));
   }
@@ -1121,9 +1206,11 @@
     var nowcFresh = nowcLagMin <= CFG.staleMaxMin;
 
     radarMeta.nowcLagMin = Math.max(0, nowcLagMin);
-    radarMeta.fallback = !nowcFresh;
-    radarMeta.source = nowcFresh ? 'nowc' : 'rasrf';
-    radarMeta.modeLabel = nowcFresh ? '高解像度ナウキャスト' : '短時間予報';
+    radarMeta.fallback = !isThunder && !nowcFresh;
+    radarMeta.source = isThunder ? 'thns' : (nowcFresh ? 'nowc' : 'rasrf');
+    radarMeta.modeLabel = isThunder
+      ? '雷ナウキャスト'
+      : (nowcFresh ? '高解像度ナウキャスト' : '短時間予報');
 
     var seen = {};
     var list = [];
@@ -1144,7 +1231,11 @@
       });
     }
 
-    if (nowcFresh) {
+    if (isThunder) {
+      /* thns は targetTimes.elements に載らないことがあるが、同一時刻タイルは配信される */
+      n1.forEach(function (d) { add(d, 'past', 'thns'); });
+      n2.forEach(function (d) { add(d, 'fc', 'thns'); });
+    } else if (nowcFresh) {
       n1.forEach(function (d) { add(d, 'past', 'hrpns'); });
       n2.forEach(function (d) { add(d, 'fc', 'hrpns'); });
       /* +1h 以降〜+3h は短時間予報で延長 */
@@ -1249,18 +1340,50 @@
     pill.textContent = est.pill;
 
     var eta = document.getElementById('etaNum');
-    var mins = est.minutes;
-    if (mins == null || isNaN(mins)) mins = CFG.futureMaxMin;
-    mins = Math.max(0, Math.round(mins));
-    if (mins <= 0 && est.level === 'raining') {
-      eta.innerHTML = '今';
+    if (est.activityLabel) {
+      eta.innerHTML = est.activityLabel;
     } else {
-      eta.innerHTML = mins + '<small>分</small>';
+      var mins = est.minutes;
+      if (mins == null || isNaN(mins)) mins = CFG.futureMaxMin;
+      mins = Math.max(0, Math.round(mins));
+      if (mins <= 0 && est.level === 'raining') {
+        eta.innerHTML = '今';
+      } else {
+        eta.innerHTML = mins + '<small>分</small>';
+      }
     }
     document.getElementById('etaLabel').textContent = est.label;
     document.getElementById('etaSub').textContent = est.sub || '目安（公式予報ではない）';
     document.getElementById('guideLine').textContent = est.guide;
-    document.getElementById('guideSub').textContent = est.guideSub || '色が現場へ近づくと雨';
+    document.getElementById('guideSub').textContent = est.guideSub || (isThunder
+      ? '黄1・橙2・赤3・紫4'
+      : '色が現場へ近づくと雨');
+  }
+
+  function thunderLevelFromPixel(r, g, b, a) {
+    if (a < CFG.rainAlpha) return 0;
+    /* 気象庁 雷活動度色（おおよそ）: 黄→橙→赤→紫 */
+    if (r > 140 && b > 140 && g < 120) return 4; /* 紫系 */
+    if (r > 200 && g < 120 && b < 100) return 3; /* 赤系 */
+    if (r > 200 && g > 80 && g < 200 && b < 80) return 2; /* 橙系 */
+    if (r > 180 && g > 180 && b < 120) return 1; /* 黄系 */
+    if (a >= CFG.rainAlpha) return 1;
+    return 0;
+  }
+
+  function maxThunderLevel(imgData, px, py, r) {
+    var d = imgData.data;
+    var maxLv = 0;
+    for (var y = Math.max(0, py - r); y <= Math.min(255, py + r); y++) {
+      for (var x = Math.max(0, px - r); x <= Math.min(255, px + r); x++) {
+        var dx = x - px, dy = y - py;
+        if (dx * dx + dy * dy > r * r) continue;
+        var i = ((y * 256) + x) * 4;
+        var lv = thunderLevelFromPixel(d[i], d[i + 1], d[i + 2], d[i + 3]);
+        if (lv > maxLv) maxLv = lv;
+      }
+    }
+    return maxLv;
   }
 
   function pickSampleFrames(frameList, fromIdx) {
@@ -1274,7 +1397,55 @@
     return out;
   }
 
+  async function updateThunderEstimate(frameList) {
+    var defs = {
+      0: { level: 'none', pill: 'なし', label: '付近に雷活動なし', sub: '急変にも注意', guide: '活動度の色なし', guideSub: '黄1・橙2・赤3・紫4', activityLabel: '—', activity: 0 },
+      1: { level: 'soon', pill: '活動度1', label: '雷の可能性あり', sub: '空の様子に注意', guide: '今後雷の可能性', guideSub: '建物の中で待機できる準備を', activityLabel: '1', activity: 1 },
+      2: { level: 'approaching', pill: '活動度2', label: '雷あり・落雷の可能性', sub: '屋外作業は中断を検討', guide: '電光・雷鳴に注意', guideSub: '建物の中へ避難してください', activityLabel: '2', activity: 2 },
+      3: { level: 'raining', pill: '活動度3', label: 'やや激しい雷', sub: '直ちに安全を確保', guide: '落雷の可能性が高い', guideSub: '建物の中へ避難してください', activityLabel: '3', activity: 3 },
+      4: { level: 'raining', pill: '活動度4', label: '激しい雷', sub: '直ちに安全を確保', guide: '激しい落雷の恐れ', guideSub: '建物の中へ避難してください', activityLabel: '4', activity: 4 }
+    };
+    try {
+      if (!frameList || !frameList.length) throw new Error('no frames');
+      var idx = Math.max(0, Math.min(nowIndex, frameList.length - 1));
+      var tile = latLonToTilePixel(CFG.lat, CFG.lon, CFG.rainZoom);
+      var sampleFrames = pickSampleFrames(frameList, idx);
+      var levels = await Promise.all(sampleFrames.map(function (f) {
+        return loadTileImageData(f, tile).then(function (img) {
+          return maxThunderLevel(img, tile.px, tile.py, CFG.sampleR);
+        }).catch(function () { return 0; });
+      }));
+      var near = levels[0] || 0;
+      var peak = near;
+      for (var i = 0; i < levels.length; i++) {
+        if (levels[i] > peak) peak = levels[i];
+      }
+      var use = Math.max(near, peak >= 2 ? peak : near);
+      var est = Object.assign({}, defs[use] || defs[0]);
+      if (use === 0 && peak >= 1) {
+        est = Object.assign({}, defs[1]);
+        est.label = '予測範囲に雷の兆し';
+        est.sub = '正面の色の動きを確認';
+      }
+      applyEstimateUI(est);
+      console.log('[thunder-eta]', est.pill, 'near', near, 'peak', peak);
+    } catch (e) {
+      console.warn('[thunder-eta]', e.message || e);
+      applyEstimateUI(Object.assign({}, defs[0], {
+        pill: '確認中',
+        label: '雷活動度を確認中',
+        sub: '目安（公式予報ではない）',
+        guide: '正面の雷ナウキャストを確認',
+        guideSub: '黄1・橙2・赤3・紫4'
+      }));
+    }
+  }
+
   async function updateRainEstimate(frameList) {
+    if (isThunder) {
+      await updateThunderEstimate(frameList);
+      return;
+    }
     var horizonMin = CFG.futureMaxMin;
     try {
       if (!frameList || !frameList.length) throw new Error('no frames');
@@ -1393,6 +1564,7 @@
     stopPlay();
     clearRadarLayers();
     frames = next;
+    playLoopCount = 0;
 
     var markPct = frames.length <= 1 ? 0 : (nowIndex / (frames.length - 1)) * 100;
     document.getElementById('nowMark').style.left = markPct + '%';
@@ -1402,8 +1574,9 @@
     showFrame(0);
     scheduleNext();
     updateRainEstimate(frames);
-    scheduleRadarRefresh();
-    console.log('[radar]', radarMeta.source,
+    /* 埋め込み（親サイネージ）: 2周で終了するため途中 refresh で周回カウントをリセットしない */
+    if (!embedded) scheduleRadarRefresh();
+    console.log('[radar]', isThunder ? 'thunder' : 'rain', radarMeta.source,
       'activeLag', radarMeta.lagMin + 'm',
       'nowcLag', radarMeta.nowcLagMin + 'm',
       'frames', frames.length, 'nowIdx', nowIndex,
@@ -1515,7 +1688,9 @@
       });
 
       var foot = document.getElementById('amedasFoot');
-      if (nearest) {
+      if (isThunder) {
+        foot.innerHTML = '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>';
+      } else if (nearest) {
         foot.innerHTML = (nearest.name || 'アメダス') + '  ' + nearest.rain
           + ' mm<span>10分降水量 · ' + fmtClock(stamp) + '</span>';
       } else {
@@ -1523,7 +1698,9 @@
       }
     } catch (e) {
       console.warn('[amedas]', e.message || e);
-      document.getElementById('amedasFoot').innerHTML = 'アメダス取得待機…<span>10分降水量</span>';
+      document.getElementById('amedasFoot').innerHTML = isThunder
+        ? '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>'
+        : 'アメダス取得待機…<span>10分降水量</span>';
     }
   }
 
@@ -1531,12 +1708,14 @@
   async function boot() {
     var toast = document.getElementById('toast');
     toast.classList.remove('hidden');
-    toast.innerHTML = '<div><div class="spinner"></div>気象庁データに接続しています…</div>';
+    toast.innerHTML = isThunder
+      ? '<div><div class="spinner"></div>雷ナウキャストに接続しています…</div>'
+      : '<div><div class="spinner"></div>気象庁データに接続しています…</div>';
 
     var ok = await resolveApiBase();
     if (!ok) {
       toast.innerHTML =
-        '雨雲データを取得できません。<br>'
+        (isThunder ? '雷データを取得できません。<br>' : '雨雲データを取得できません。<br>')
         + '<span style="font-size:11px;color:#9bb0c9">'
         + '気象庁サイトへ直接接続できませんでした。<br>'
         + 'サイネージ／PCがインターネットに繋がっているか確認してください。<br>'
