@@ -40,22 +40,6 @@ body {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  display: grid;
-  grid-template-columns: var(--w-side) var(--w-front) var(--w-side);
-  grid-template-rows: var(--h-total);
-  gap: 0;
-  padding: 0;
-  box-sizing: border-box;
-  width: var(--w-total);
-  height: var(--h-total);
-  min-width: var(--w-total);
-  min-height: var(--h-total);
-  max-width: var(--w-total);
-  max-height: var(--h-total);
-  position: absolute;
-  top: 0;
-  left: 0;
-  overflow: hidden;
   transition: background-color 0.45s ease;
 }
 
@@ -91,45 +75,42 @@ body {
   background: transparent;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: var(--h-total);
   min-width: 0;
   min-height: 0;
-  max-height: var(--h-total);
-  padding: var(--pad);
-  gap: 0;
   overflow: hidden;
   box-sizing: border-box;
 }
 
+/* 端の128pxゾーンに白いカード。内側だけ少し余白 */
 .face--left,
 .face--right {
-  width: var(--w-side);
   justify-content: stretch;
   align-items: stretch;
+  padding: var(--face-pad-y) var(--face-pad-x-side);
 }
 
 .face--front {
-  width: var(--w-front);
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: var(--gap);
-  align-content: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  gap: var(--face-gap);
+  padding: var(--face-pad-y) var(--face-pad-x-front);
 }
 
 .face--front .card {
   min-width: 0;
   min-height: 0;
-  height: 100%;
-  max-height: 100%;
   overflow: hidden;
 }
 
-.face--front .card--top,
-.face--front .card--bottom {
-  flex: none;
-  height: 100%;
+.face--front .card--top {
+  flex: 1.15 1 0;
   padding: 6px 10px;
+}
+
+.face--front .card--bottom {
+  flex: 0.85 1 0;
+  padding: 6px 10px 4px;
 }
 
 .card {

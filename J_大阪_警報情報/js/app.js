@@ -4,7 +4,6 @@ import {
   buildMarqueeText,
   fetchAreaNames,
   fetchWarningData,
-  mergeLiveAndDemo,
   parseActiveWarnings,
 } from "./warnings.js";
 import { evacForLevel } from "./warning-codes.js";
@@ -31,21 +30,15 @@ const els = {
 const params = new URLSearchParams(location.search);
 const forceDemo = params.has(CONFIG.demoQuery) || params.get("mode") === "demo";
 const forceLive = params.has("live") || params.get("mode") === "live";
-/** 既定: リアル＋デモ。?demo=1 はデモのみ、?live=1 はリアルのみ */
-const mixMode = !forceDemo && !forceLive && CONFIG.mixLiveAndDemoByDefault;
+/** 既定: ライブ→デモのプレイリスト。?live=1 / ?demo=1 で固定 */
+const usePlaylist = !forceDemo && !forceLive && CONFIG.playlistByDefault !== false;
 
 /** @type {Map<string, string>} */
 let areaNames = new Map();
 /** @type {string} */
 let lastSignature = "";
 let marqueeRaf = 0;
-let marqueeOffset = 0;
-let marqueeLastTs = 0;
-let marqueeWidth = 0;
 let chipRaf = 0;
-let chipOffset = 0;
-let chipLastTs = 0;
-let chipWidth = 0;
 
 /** @type {any[]} */
 let cardItems = [];
@@ -53,6 +46,7 @@ let cardItemIndex = 0;
 let cardRotateTimer = 0;
 let cardsAnimating = false;
 let sideSwapped = false;
+let playlistGen = 0;
 
 function marqueeSpeed() {
   const custom = Number(els.machine?.dataset.speed);
@@ -223,15 +217,12 @@ function startCardRotation(items) {
 function stopMarquee() {
   if (marqueeRaf) cancelAnimationFrame(marqueeRaf);
   marqueeRaf = 0;
-  marqueeOffset = 0;
-  marqueeLastTs = 0;
   if (!els.marquee) return;
   els.marquee.classList.remove("is-running");
   els.marquee.style.transform = "translateX(0)";
   els.marquee.style.removeProperty("--marquee-duration");
 }
 
-/** 二重トラック（A/B同一）で -50% ループ。サイネージ向けにCSSアニメ優先 */
 function startMarquee() {
   stopMarquee();
   if (!els.marquee || !els.marqueeTextA) return;
@@ -240,7 +231,7 @@ function startMarquee() {
     const half = els.marqueeTextA.getBoundingClientRect().width;
     if (half < 8) return;
     const speed = marqueeSpeed();
-    const duration = Math.max(12, half / speed);
+    const duration = Math.max(8, half / speed);
     els.marquee.style.setProperty("--marquee-duration", `${duration}s`);
     els.marquee.classList.add("is-running");
   };
@@ -252,18 +243,28 @@ function startMarquee() {
   }
 }
 
+/** テロップ1周分の所要ミリ秒 */
+async function measureMarqueeOnePassMs() {
+  try {
+    if (document.fonts?.ready) await document.fonts.ready;
+  } catch {
+    /* ignore */
+  }
+  await waitMs(80);
+  const half = els.marqueeTextA?.getBoundingClientRect().width || 0;
+  if (half < 8) return 8_000;
+  return Math.max(5_000, Math.round((half / marqueeSpeed()) * 1000));
+}
+
 function stopChipTicker() {
   if (chipRaf) cancelAnimationFrame(chipRaf);
   chipRaf = 0;
-  chipOffset = 0;
-  chipLastTs = 0;
   if (!els.chipMarquee) return;
   els.chipMarquee.classList.remove("is-running");
   els.chipMarquee.style.transform = "translateX(0)";
   els.chipMarquee.style.removeProperty("--chip-duration");
 }
 
-/** 発表中チップのみをニュースティッカーとして流す（途中切れ防止） */
 function renderChipTicker(items) {
   const announced = (items || []).filter((item) => item && item.name);
   if (!els.alertList) return;
@@ -316,6 +317,16 @@ function flashNotify() {
   els.machine.classList.add("is-notifying");
 }
 
+function tagOsaka(state) {
+  return {
+    ...state,
+    items: (state.items || []).map((item) => ({
+      ...item,
+      areas: [CONFIG.displayArea],
+    })),
+  };
+}
+
 function render(state, opts = {}) {
   const active = state.items.length > 0;
   const top = state.items[0];
@@ -325,6 +336,7 @@ function render(state, opts = {}) {
   els.machine.dataset.active = active ? "true" : "false";
   els.machine.dataset.theme = theme;
   els.machine.dataset.level = String(alertLevelFromState(active, theme, maxLevel));
+  els.machine.dataset.phase = opts.phase || (active ? "live" : "idle");
 
   setText(els.cardUpdated, `更新 ${formatTime(state.reportDatetime)}`);
   setText(els.cardCount, `${state.items.length}件`);
@@ -335,8 +347,7 @@ function render(state, opts = {}) {
     stopChipTicker();
     stopCardRotation();
     renderChipTicker([]);
-    const idle =
-      "現在、発表中の警報・注意報はありません　　気象情報をご確認ください　　";
+    const idle = CONFIG.idleMarqueeText;
     if (els.marqueeTextA) els.marqueeTextA.innerHTML = idle;
     if (els.marqueeTextB) els.marqueeTextB.innerHTML = idle;
     requestAnimationFrame(() => {
@@ -371,53 +382,76 @@ function render(state, opts = {}) {
 
 async function loadLiveState() {
   const raw = await fetchWarningData(CONFIG.areaCode);
-  return parseActiveWarnings(raw, areaNames);
+  return tagOsaka(parseActiveWarnings(raw, areaNames));
 }
 
-async function refresh({ notifyOnChange = true } = {}) {
-  try {
-    let state;
-    if (forceDemo && !forceLive) {
-      state = buildDemoWarnings();
-      state.items = state.items.map((item) => ({
-        ...item,
-        areas: [CONFIG.displayArea],
-      }));
-    } else if (forceLive) {
-      state = await loadLiveState();
-      state.items = state.items.map((item) => ({
-        ...item,
-        areas: [CONFIG.displayArea],
-      }));
-    } else {
-      const demo = buildDemoWarnings();
-      let live = { items: [], headline: "", reportDatetime: "", publishingOffice: "" };
-      try {
-        live = await loadLiveState();
-      } catch (err) {
-        console.warn("ライブ取得失敗、デモのみで継続", err);
-      }
-      state = mergeLiveAndDemo(live, demo);
+function loadDemoState() {
+  return tagOsaka(buildDemoWarnings());
+}
+
+/**
+ * プレイリスト:
+ * 1) ライブ（発表なし→約5秒 / 発表あり→テロップ1周）
+ * 2) デモ1周
+ * 3) 最初に戻る
+ */
+async function runPlaylist() {
+  const gen = ++playlistGen;
+  while (gen === playlistGen) {
+    let live = {
+      items: [],
+      headline: "",
+      reportDatetime: new Date().toISOString(),
+      publishingOffice: "",
+    };
+    try {
+      live = await loadLiveState();
+    } catch (err) {
+      console.warn("ライブ取得失敗", err);
     }
 
+    const sig = signatureOf(live.items);
+    const changed = sig !== lastSignature;
+    lastSignature = sig || "idle";
+
+    if (live.items.length === 0) {
+      render(live, { notify: changed, phase: "idle" });
+      await waitMs(CONFIG.idleBeforeDemoMs || 5_000);
+    } else {
+      render(live, { notify: true, phase: "live" });
+      await waitMs(await measureMarqueeOnePassMs());
+    }
+    if (gen !== playlistGen) return;
+
+    const demo = loadDemoState();
+    render(demo, { notify: true, phase: "demo" });
+    await waitMs(await measureMarqueeOnePassMs());
+  }
+}
+
+async function refreshFixed({ demo = false, notifyOnChange = true } = {}) {
+  try {
+    const state = demo ? loadDemoState() : await loadLiveState();
     const sig = signatureOf(state.items);
     const changed = sig !== lastSignature;
     const becameActive =
       state.items.length > 0 && (lastSignature === "" || lastSignature === "idle");
     const newlyIssued = changed && state.items.some((i) => i.status === "発表");
     lastSignature = sig || "idle";
-
     render(state, {
-      notify: notifyOnChange && (becameActive || newlyIssued || mixMode || forceDemo),
+      notify: notifyOnChange && (becameActive || newlyIssued || demo),
+      phase: demo ? "demo" : state.items.length ? "live" : "idle",
     });
   } catch (err) {
     console.error(err);
-    const fallback = buildDemoWarnings();
-    fallback.items = fallback.items.map((item) => ({
-      ...item,
-      areas: [CONFIG.displayArea],
-    }));
-    render(fallback, { notify: true });
+    if (demo) {
+      render(loadDemoState(), { notify: true, phase: "demo" });
+    } else {
+      render(
+        { items: [], headline: "", reportDatetime: "", publishingOffice: "" },
+        { notify: false, phase: "idle" },
+      );
+    }
   }
 }
 
@@ -438,8 +472,17 @@ async function boot() {
   }
   tickClock();
   setInterval(tickClock, 1000);
-  await refresh({ notifyOnChange: true });
-  setInterval(() => refresh({ notifyOnChange: false }), CONFIG.pollIntervalMs);
+
+  if (usePlaylist) {
+    runPlaylist();
+    return;
+  }
+
+  await refreshFixed({ demo: forceDemo, notifyOnChange: true });
+  setInterval(
+    () => refreshFixed({ demo: forceDemo, notifyOnChange: false }),
+    CONFIG.pollIntervalMs,
+  );
 }
 
 boot();

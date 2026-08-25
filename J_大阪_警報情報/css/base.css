@@ -4,8 +4,11 @@
   --h-total: 192px;
   --w-side: 128px;
   --w-front: 384px;
-  --pad: 8px;
-  --gap: 8px;
+  /* 各面の内側余白のみ（面と面の間は 0） */
+  --face-pad-y: 6px;
+  --face-pad-x-side: 8px;
+  --face-pad-x-front: 4px;
+  --face-gap: 6px;
 }
 
 * {
@@ -23,7 +26,7 @@ body {
   max-width: var(--w-total);
   max-height: var(--h-total);
   overflow: hidden;
-  background: #000;
+  background: #2c3e50;
 }
 
 body {
@@ -32,36 +35,40 @@ body {
   padding: 0;
 }
 
+/* 左右を厳密に 128 | 384 | 128。外側余白・列ギャップなし */
 .machine {
   position: absolute;
   top: 0;
   left: 0;
-  display: grid;
-  grid-template-columns: var(--w-side) var(--w-front) var(--w-side);
-  grid-template-rows: var(--h-total);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
   width: var(--w-total);
   height: var(--h-total);
-  overflow: hidden;
-  border: 0;
-  box-shadow: none;
   margin: 0;
   padding: 0;
   gap: 0;
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
 }
 
 .face {
   position: relative;
-  width: 100%;
   height: var(--h-total);
   overflow: hidden;
   flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .face--left,
 .face--right {
   width: var(--w-side);
+  flex: 0 0 var(--w-side);
 }
 
 .face--front {
   width: var(--w-front);
+  flex: 0 0 var(--w-front);
 }
