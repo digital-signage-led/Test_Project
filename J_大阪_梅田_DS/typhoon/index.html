@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<!-- 大阪 防災・台風情報 3面 640×192（左128 | 正面384 | 右128）本番 -->
+<!-- 正面: 台風進路図（気象庁リアルタイム） / 左右: 要約 -->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta name="viewport" content="width=640, height=192, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="robots" content="noindex" />
+  <title>大阪 梅田 台風情報 640×192｜自販機サイネージ</title>
+  <script>
+  /* LED本番: 原点(0,0)・640×192固定。PC確認だけ ?preview=1 で拡大。embed=1 は親パネル内表示 */
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var host = location.hostname;
+    var localDev = host === 'localhost' || host === '127.0.0.1' || host === '';
+    var embedded = q.get('embed') === '1' || (window.parent && window.parent !== window);
+    var forcePreview = !embedded && q.get('preview') === '1';
+    var forceNative = embedded || (!forcePreview && (
+      q.get('signage') === '1' ||
+      q.get('native640') === '1' ||
+      !localDev
+    ));
+    function setSearch(params) {
+      if (embedded) return;
+      var next = location.href.split('?')[0].split('#')[0] + '?' + params.toString();
+      if (location.href.split('#')[0] !== next) {
+        history.replaceState(null, '', next);
+      }
+    }
+    window.__TY_EMBED__ = !!embedded;
+    if (forceNative) {
+      q.delete('preview');
+      q.set('signage', '1');
+      q.set('native640', '1');
+      if (embedded) q.set('embed', '1');
+      setSearch(q);
+      document.documentElement.classList.add('native-640');
+      if (embedded) document.documentElement.classList.add('ty-embed');
+      window.__TY_NATIVE640__ = true;
+    } else {
+      q.delete('native640');
+      q.delete('signage');
+      q.set('preview', '1');
+      setSearch(q);
+      document.documentElement.classList.add('browser-preview');
+      window.__TY_NATIVE640__ = false;
+    }
+  })();
+  </script>
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+  <style>
+    :root {
+      --w: 640px;
+      --h: 192px;
+      --face: 128px;
+      --front: 384px;
+      --ink: #f2f6fb;
+      --muted: #9aabbd;
+      --panel: #0e1624;
+      --accent: #3dd68c;
+      --now: #ffd166;
+      --fc: #5cc8ff;
+      --warn: #ff8a4c;
+      --danger: #ff5c7a;
+      --ty: #ff4d6a;
+      --ts: #ff9f43;
+      --td: #5cc8ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: "Meiryo UI", Meiryo, "Yu Gothic UI", sans-serif;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
+      -webkit-text-size-adjust: 100% !important;
+      text-size-adjust: 100% !important;
+      font-kerning: none;
+      font-feature-settings: "palt" 0, "pkna" 0;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    #stage, #stage * {
+      text-rendering: geometricPrecision;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    html.native-640, body.native-640 {
+      width: 100% !important;
+      height: 100% !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      max-width: none !important;
+      max-height: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      background: #000 !important;
+    }
+    html.ty-embed, html.ty-embed body,
+    body.ty-embed {
+      width: 640px !important;
+      height: 192px !important;
+      max-width: 640px !important;
+      max-height: 192px !important;
+    }
+    html.ty-embed #stage,
+    body.ty-embed #stage {
+      transform: none !important;
+    }
+    body,
+    body.native-640 {
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+    }
+    #stage,
+    body.native-640 #stage {
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 640px !important;
+      height: 192px !important;
+      margin: 0 !important;
+      transform-origin: 0 0 !important;
+    }
+
+    #stage {
+      width: var(--w);
+      height: var(--h);
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      overflow: hidden;
+      transform-origin: 0 0;
+      background: #000;
+    }
+    #stage.lv-ty { --stage-glow: rgba(255,77,106,.35); }
+    #stage.lv-ts { --stage-glow: rgba(255,159,67,.3); }
+    #stage.lv-td { --stage-glow: rgba(92,200,255,.28); }
+    #stage.lv-none { --stage-glow: rgba(61,214,140,.18); }
+    #stage.lv-err { --stage-glow: rgba(255,92,122,.4); }
+
+    .face {
+      position: relative;
+      height: 192px !important;
+      min-height: 192px !important;
+      max-height: 192px !important;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .face-side {
+      width: 128px !important;
+      flex: 0 0 128px;
+      background: linear-gradient(180deg, #152238 0%, #0c1420 100%);
+      display: flex;
+      flex-direction: column;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 0 18px var(--stage-glow, transparent);
+    }
+    .face-front {
+      width: 384px !important;
+      height: 192px !important;
+      background: #6a7078;
+      position: relative;
+      flex: 0 0 384px;
+      overflow: hidden;
+    }
+
+    .side-head {
+      flex: 0 0 34px;
+      height: 34px;
+      padding: 4px 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      overflow: hidden;
+    }
+    .side-kicker {
+      font-size: 9px;
+      letter-spacing: .06em;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .side-title {
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-top: 1px;
+    }
+    .side-body {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 4px 6px;
+      text-align: center;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .side-foot {
+      flex: 0 0 40px;
+      height: 40px;
+      padding: 4px 8px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #faceRight .side-foot {
+      flex: 0 0 52px;
+      height: 52px;
+      padding: 3px 6px 4px;
+      justify-content: flex-start;
+      gap: 1px;
+    }
+    .clock-lg {
+      font-size: 20px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .02em;
+      line-height: 1;
+    }
+    .clock-sub {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .swap-pane {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 5px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .35s ease;
+    }
+    .swap-pane.on {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .ty-num {
+      font-size: 28px;
+      font-weight: 900;
+      line-height: .95;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -.02em;
+    }
+    .ty-num small {
+      font-size: 12px;
+      font-weight: 800;
+      margin-left: 1px;
+    }
+    .ty-name {
+      margin-top: 3px;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.15;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ty-cat {
+      display: inline-block;
+      margin-top: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: .04em;
+    }
+    .ty-cat.TY { background: rgba(255,77,106,.22); color: #ff8da0; }
+    .ty-cat.STS { background: rgba(255,138,76,.22); color: var(--warn); }
+    .ty-cat.TS { background: rgba(255,159,67,.22); color: #ffb86b; }
+    .ty-cat.TD { background: rgba(92,200,255,.2); color: var(--fc); }
+    .ty-cat.NONE { background: rgba(61,214,140,.16); color: var(--accent); }
+    .ty-meta {
+      margin-top: 5px;
+      font-size: 10px;
+      color: #d5deea;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .ty-sub {
+      margin-top: 2px;
+      font-size: 9px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .impact-pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+      margin-bottom: 5px;
+    }
+    .impact-pill.ok { background: rgba(61,214,140,.18); color: var(--accent); }
+    .impact-pill.warn { background: rgba(255,209,102,.18); color: var(--now); }
+    .impact-pill.alert { background: rgba(255,138,76,.22); color: var(--warn); }
+    .impact-pill.danger { background: rgba(255,92,122,.22); color: var(--danger); }
+    .impact-main {
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1.15;
+    }
+    .impact-sub {
+      margin-top: 4px;
+      font-size: 10px;
+      color: #d5deea;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .impact-note {
+      margin-top: 3px;
+      font-size: 9px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    #map {
+      position: absolute;
+      left: 0; top: 0; z-index: 0;
+      width: 384px !important;
+      height: 168px !important;
+      background: #6a7078 !important;
+    }
+    #map.leaflet-container {
+      width: 384px !important;
+      height: 168px !important;
+      background: #6a7078 !important;
+    }
+    .leaflet-basemap-pane { z-index: 200 !important; }
+    .leaflet-veil-pane {
+      z-index: 350 !important;
+      background: rgba(90, 96, 104, 0.55) !important;
+      pointer-events: none !important;
+    }
+    .leaflet-ty-pane { z-index: 450 !important; }
+    .leaflet-label-pane { z-index: 470 !important; }
+    .leaflet-place-pane { z-index: 480 !important; }
+    .leaflet-control-attribution,
+    .leaflet-control-zoom { display: none !important; }
+
+    .front-overlay {
+      position: absolute;
+      left: 0; top: 0;
+      width: 384px; height: 192px;
+      z-index: 10000;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .front-top {
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      background: linear-gradient(180deg, rgba(8,12,20,.78), transparent);
+    }
+    .front-meta {
+      font-size: 11px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 1px 3px #000;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 270px;
+    }
+    .badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,.16);
+      color: #d0d8e4;
+    }
+    .badge.live { background: var(--now); color: #3a2c00; }
+    .badge.err { background: rgba(255,92,122,.85); color: #fff; }
+
+    .front-foot {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 24px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      background: rgba(8,12,20,.9);
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .foot-ticker {
+      display: flex;
+      white-space: nowrap;
+      will-change: transform;
+      animation: tyTicker 28s linear infinite;
+    }
+    .foot-ticker span {
+      display: inline-block;
+      padding: 0 28px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 24px;
+      color: #e8eef6;
+      letter-spacing: .02em;
+    }
+    @keyframes tyTicker {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .src-credit {
+      position: absolute;
+      left: 6px;
+      bottom: 26px;
+      z-index: 10001;
+      pointer-events: none;
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(230, 236, 244, .88);
+      text-shadow: 0 1px 2px #000;
+    }
+
+    .toast {
+      position: absolute;
+      left: 0; top: 0;
+      width: 384px; height: 192px;
+      z-index: 10050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10,14,22,.88);
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 12px;
+    }
+    .toast.hidden { display: none; }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.25);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      margin: 0 auto 8px;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .ty-x {
+      width: 18px; height: 18px;
+      position: relative;
+    }
+    .ty-x::before, .ty-x::after {
+      content: '';
+      position: absolute;
+      left: 8px; top: 1px;
+      width: 2px; height: 16px;
+      background: #ff2d55;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+    }
+    .ty-x::before { transform: rotate(45deg); }
+    .ty-x::after { transform: rotate(-45deg); }
+    .td-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #5cc8ff;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.4);
+    }
+    .ty-label {
+      background: transparent !important;
+      border: none !important;
+    }
+    .ty-label > span {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      color: #fff;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(10,14,22,.72);
+      white-space: nowrap;
+      line-height: 1.15;
+      text-shadow: 0 1px 2px #000;
+    }
+    .osaka-pin {
+      width: 12px; height: 12px;
+    }
+    .osaka-pin > i {
+      display: block;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #9dffc4, var(--accent) 55%, #1e8a55);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 0 8px rgba(61,214,140,.55);
+    }
+    .osaka-label {
+      background: transparent !important;
+      border: none !important;
+    }
+    .osaka-label > span {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 900;
+      color: #9dffc4;
+      letter-spacing: .08em;
+      text-shadow: 0 0 3px #000, 0 1px 2px #000;
+      white-space: nowrap;
+    }
+    .src-note {
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--muted);
+      line-height: 1.2;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage" class="lv-none">
+    <section class="face face-side" id="faceLeft" aria-label="左面">
+      <div class="side-head">
+        <div class="side-kicker">UMEDA · TYPHOON</div>
+        <div class="side-title" id="leftTitle">台風情報</div>
+      </div>
+      <div class="side-body">
+        <div class="swap-pane on" id="leftTyPane">
+          <div class="ty-num" id="leftTyNum">—<small>号</small></div>
+          <div class="ty-name" id="leftTyName">取得中</div>
+          <div class="ty-cat NONE" id="leftTyCat">確認中</div>
+          <div class="ty-meta" id="leftTyMeta">データ読込中</div>
+          <div class="ty-sub" id="leftTySub">気象庁リアルタイム</div>
+        </div>
+        <div class="swap-pane" id="leftImpactPane">
+          <div class="impact-pill ok" id="leftImpactPill">確認中</div>
+          <div class="impact-main" id="leftImpactMain">大阪への影響</div>
+          <div class="impact-sub" id="leftImpactSub">距離・強風域を確認</div>
+          <div class="impact-note" id="leftImpactNote">梅田サイネージ</div>
+        </div>
+      </div>
+      <div class="side-foot">
+        <div class="clock-lg" id="frameClock">--:--</div>
+        <div class="clock-sub" id="kindText">発表時刻</div>
+      </div>
+    </section>
+
+    <section class="face face-front" id="faceFront" aria-label="正面 台風進路">
+      <div id="map"></div>
+      <div class="src-credit">出典：気象庁 / 地理院</div>
+      <div class="front-overlay">
+        <div class="front-top">
+          <div class="front-meta" id="metaLine">台風進路図</div>
+          <div class="badge" id="kindBadge">読込中</div>
+        </div>
+        <div class="front-foot">
+          <div class="foot-ticker" id="footTicker">
+            <span id="footA">台風情報を取得しています…</span>
+            <span id="footB">台風情報を取得しています…</span>
+          </div>
+        </div>
+      </div>
+      <div class="toast" id="toast">
+        <div>
+          <div class="spinner"></div>
+          台風データを取得しています…
+        </div>
+      </div>
+    </section>
+
+    <section class="face face-side" id="faceRight" aria-label="右面">
+      <div class="side-head">
+        <div class="side-kicker">OSAKA IMPACT</div>
+        <div class="side-title" id="rightTitle">大阪影響</div>
+      </div>
+      <div class="side-body">
+        <div class="swap-pane on" id="rightImpactPane">
+          <div class="impact-pill ok" id="rightImpactPill">確認中</div>
+          <div class="impact-main" id="rightImpactMain">大阪への影響</div>
+          <div class="impact-sub" id="rightImpactSub">距離・強風域を確認</div>
+          <div class="impact-note" id="rightImpactNote">梅田サイネージ</div>
+        </div>
+        <div class="swap-pane" id="rightTyPane">
+          <div class="ty-num" id="rightTyNum">—<small>号</small></div>
+          <div class="ty-name" id="rightTyName">取得中</div>
+          <div class="ty-cat NONE" id="rightTyCat">確認中</div>
+          <div class="ty-meta" id="rightTyMeta">データ読込中</div>
+          <div class="ty-sub" id="rightTySub">気象庁リアルタイム</div>
+        </div>
+      </div>
+      <div class="side-foot">
+        <div class="clock-lg" id="rightClock">--:--</div>
+        <div class="clock-sub" id="viewText">広域表示</div>
+        <div class="src-note">出典：気象庁・地理院</div>
+      </div>
+    </section>
+  </div>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script>
+(function () {
+  'use strict';
+
+  if (typeof L === 'undefined') {
+    document.getElementById('toast').innerHTML = '地図ライブラリ読込失敗<br>vendor/leaflet を確認してください';
+    return;
+  }
+
+  var CFG = {
+    width: 640,
+    height: 192,
+    refreshMs: 5 * 60 * 1000,
+    viewMs: 5000,
+    sideSwapMs: 6000,
+    osaka: [34.702485, 135.495951],
+    wideSW: [8, 110],
+    wideNE: [48, 155],
+    wideCenter: [30, 132],
+    nearSW: [24, 120],
+    nearNE: [42, 147],
+    nearCenter: [34.5, 133.5],
+    jamBase: 'https://www.jma.go.jp/bosai/typhoon/data'
+  };
+
+  var qs = new URLSearchParams(location.search);
+  if (qs.has('lat')) {
+    var qLat = parseFloat(qs.get('lat'));
+    if (isFinite(qLat) && qLat >= 20 && qLat <= 46) CFG.osaka[0] = qLat;
+  }
+  if (qs.has('lon')) {
+    var qLon = parseFloat(qs.get('lon'));
+    if (isFinite(qLon) && qLon >= 122 && qLon <= 154) CFG.osaka[1] = qLon;
+  }
+  if (qs.has('viewMs')) CFG.viewMs = parseInt(qs.get('viewMs'), 10) || CFG.viewMs;
+  if (qs.has('sideSwapMs')) CFG.sideSwapMs = parseInt(qs.get('sideSwapMs'), 10) || CFG.sideSwapMs;
+
+  var native = window.__TY_NATIVE640__ !== false;
+  var embedded = !!window.__TY_EMBED__;
+  if (native) {
+    document.documentElement.classList.add('native-640');
+    document.body.classList.add('native-640');
+  }
+  if (embedded) {
+    document.documentElement.classList.add('ty-embed');
+    document.body.classList.add('ty-embed');
+  }
+
+  function fitStage() {
+    var stage = document.getElementById('stage');
+    stage.style.left = '0';
+    stage.style.top = '0';
+    stage.style.marginLeft = '0';
+    stage.style.marginTop = '0';
+    stage.style.transformOrigin = '0 0';
+    if (embedded) {
+      stage.style.transform = 'none';
+      return;
+    }
+    if (native) {
+      var vw = window.innerWidth || CFG.width;
+      var vh = window.innerHeight || CFG.height;
+      var sx = vw / CFG.width;
+      var sy = vh / CFG.height;
+      if (!isFinite(sx) || sx <= 0) sx = 1;
+      if (!isFinite(sy) || sy <= 0) sy = 1;
+      var s = Math.max(sx, sy);
+      stage.style.transform = (Math.abs(s - 1) < 0.01) ? 'none' : ('scale(' + s + ')');
+      return;
+    }
+    var sp = Math.min(window.innerWidth / CFG.width, window.innerHeight / CFG.height);
+    if (!isFinite(sp) || sp <= 0) sp = 1;
+    stage.style.transform = 'scale(' + sp + ')';
+  }
+
+  function ensureNativeViewport(done) {
+    if (!native || embedded) {
+      fitStage();
+      if (done) done();
+      return;
+    }
+    try {
+      window.moveTo(0, 0);
+      var chromeX = Math.max(0, window.outerWidth - window.innerWidth);
+      var chromeY = Math.max(0, window.outerHeight - window.innerHeight);
+      window.resizeTo(CFG.width + chromeX, CFG.height + chromeY);
+      window.moveTo(0, 0);
+    } catch (e1) {}
+    fitStage();
+    if (done) done();
+  }
+
+  fitStage();
+  var fixingViewport = false;
+  window.addEventListener('resize', function () {
+    if (native) {
+      if (fixingViewport) {
+        fitStage();
+        fixMapSize();
+        return;
+      }
+      fixingViewport = true;
+      ensureNativeViewport(function () {
+        fixMapSize();
+        fixingViewport = false;
+      });
+      return;
+    }
+    fitStage();
+    fixMapSize();
+  });
+
+  var GSI_PALE = 'https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png';
+  var map = null;
+  var baseLayer = null;
+  var layerGroup = null;
+  var storms = [];
+  var viewPlaylist = [];
+  var viewIdx = 0;
+  var viewTimer = null;
+  var sideMode = 0;
+  var sideTimer = null;
+  var focusStormId = null;
+  var lastIssueText = '';
+
+  function $(id) { return document.getElementById(id); }
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function nowClock() {
+    var d = new Date();
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  function fmtIssue(jst) {
+    if (!jst) return '';
+    var m = String(jst).match(/T(\d{2}):(\d{2})/);
+    if (!m) return '';
+    return m[1] + ':' + m[2] + '発表';
+  }
+
+  function catRank(cat) {
+    var c = String(cat || '').toUpperCase();
+    if (c === 'TY') return 4;
+    if (c === 'STS') return 3;
+    if (c === 'TS') return 2;
+    if (c === 'TD' || c === 'L' || c === 'LOW') return 1;
+    return 0;
+  }
+
+  function catLabel(cat) {
+    var c = String(cat || '').toUpperCase();
+    if (c === 'TY') return '台風';
+    if (c === 'STS') return '強い熱帯低気圧';
+    if (c === 'TS') return '熱帯低気圧(台風級)';
+    if (c === 'TD') return '熱帯低気圧';
+    return '情報なし';
+  }
+
+  function tyNumberText(n) {
+    var s = String(n || '');
+    if (/^\d{4}$/.test(s)) return String(parseInt(s.slice(2), 10));
+    if (/^\d+$/.test(s)) return String(parseInt(s, 10));
+    return '—';
+  }
+
+  function haversineKm(a, b) {
+    var R = 6371;
+    var toRad = Math.PI / 180;
+    var dLat = (b[0] - a[0]) * toRad;
+    var dLon = (b[1] - a[1]) * toRad;
+    var lat1 = a[0] * toRad;
+    var lat2 = b[0] * toRad;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+
+  function setStageLevel(lv) {
+    var stage = $('stage');
+    stage.classList.remove('lv-ty', 'lv-ts', 'lv-td', 'lv-none', 'lv-err');
+    stage.classList.add(lv || 'lv-none');
+  }
+
+  function showToast(html, hide) {
+    var el = $('toast');
+    if (hide) {
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    if (html) el.innerHTML = html;
+  }
+
+  function fixMapSize() {
+    if (!map) return;
+    var el = $('map');
+    el.style.width = '384px';
+    el.style.height = '168px';
+    map.invalidateSize({ animate: false, pan: false });
+  }
+
+  function initMap() {
+    if (map) return;
+    var el = $('map');
+    el.style.width = '384px';
+    el.style.height = '168px';
+    map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      touchZoom: false,
+      fadeAnimation: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false
+    });
+    map.createPane('basemap');
+    map.getPane('basemap').style.zIndex = 200;
+    map.createPane('veil');
+    map.getPane('veil').style.zIndex = 350;
+    map.getPane('veil').style.pointerEvents = 'none';
+    map.getPane('veil').style.background = 'rgba(90, 96, 104, 0.55)';
+    map.createPane('ty');
+    map.getPane('ty').style.zIndex = 450;
+    map.getPane('ty').style.pointerEvents = 'none';
+    map.createPane('labels');
+    map.getPane('labels').style.zIndex = 470;
+    map.getPane('labels').style.pointerEvents = 'none';
+    map.createPane('places');
+    map.getPane('places').style.zIndex = 480;
+    map.getPane('places').style.pointerEvents = 'none';
+
+    map.fitBounds(L.latLngBounds(CFG.wideSW, CFG.wideNE), { animate: false, padding: [4, 4] });
+    map.invalidateSize({ animate: false, pan: false });
+
+    baseLayer = L.tileLayer(GSI_PALE, {
+      pane: 'basemap',
+      maxZoom: 12,
+      maxNativeZoom: 12,
+      opacity: 0.92,
+      keepBuffer: 4,
+      updateWhenIdle: false,
+      errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
+      className: 'gsi-base'
+    }).addTo(map);
+
+    layerGroup = L.layerGroup().addTo(map);
+
+    L.marker(CFG.osaka, {
+      interactive: false,
+      pane: 'places',
+      icon: L.divIcon({
+        className: '',
+        html: '<div class="osaka-pin"><i></i></div>',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      })
+    }).addTo(map);
+
+    L.marker(CFG.osaka, {
+      interactive: false,
+      pane: 'places',
+      icon: L.divIcon({
+        className: 'osaka-label',
+        html: '<span>大阪</span>',
+        iconSize: [1, 1],
+        iconAnchor: [-8, 14]
+      })
+    }).addTo(map);
+
+    fixMapSize();
+    setTimeout(fixMapSize, 100);
+    setTimeout(fixMapSize, 400);
+  }
+
+  function destPoint(lat, lon, bearingDeg, distM) {
+    var R = 6371000;
+    var brng = bearingDeg * Math.PI / 180;
+    var lat1 = lat * Math.PI / 180;
+    var lon1 = lon * Math.PI / 180;
+    var ang = distM / R;
+    var lat2 = Math.asin(Math.sin(lat1) * Math.cos(ang) + Math.cos(lat1) * Math.sin(ang) * Math.cos(brng));
+    var lon2 = lon1 + Math.atan2(
+      Math.sin(brng) * Math.sin(ang) * Math.cos(lat1),
+      Math.cos(ang) - Math.sin(lat1) * Math.sin(lat2)
+    );
+    return [lat2 * 180 / Math.PI, ((lon2 * 180 / Math.PI + 540) % 360) - 180];
+  }
+
+  function arcLatLngs(center, radiusM, startDeg, endDeg, step) {
+    step = step || 4;
+    var pts = [];
+    var a0 = startDeg;
+    var a1 = endDeg;
+    if (a1 < a0) a1 += 360;
+    for (var a = a0; a <= a1 + 0.0001; a += step) {
+      pts.push(destPoint(center[0], center[1], a % 360, radiusM));
+    }
+    return pts;
+  }
+
+  function drawWarningArea(group, area, color, weight, fillOpacity) {
+    if (!area) return;
+    if (area.center && area.radius) {
+      L.circle(area.center, {
+        radius: area.radius,
+        color: color,
+        weight: weight || 1.2,
+        opacity: 0.9,
+        fillColor: color,
+        fillOpacity: fillOpacity == null ? 0.08 : fillOpacity,
+        pane: 'ty',
+        interactive: false
+      }).addTo(group);
+    }
+    if (area.arc && area.arc.length) {
+      area.arc.forEach(function (seg) {
+        var c = seg[0];
+        var r = seg[1];
+        var ang = seg[2] || [0, 360];
+        var pts = arcLatLngs(c, r, ang[0], ang[1], 5);
+        if (pts.length >= 2) {
+          L.polyline(pts, {
+            color: color,
+            weight: weight || 1.4,
+            opacity: 0.85,
+            pane: 'ty',
+            interactive: false
+          }).addTo(group);
+        }
+      });
+    }
+    if (area.line && area.line.length) {
+      area.line.forEach(function (ln) {
+        if (ln && ln.length >= 2) {
+          L.polyline(ln, {
+            color: color,
+            weight: weight || 1.2,
+            opacity: 0.75,
+            dashArray: '4 3',
+            pane: 'ty',
+            interactive: false
+          }).addTo(group);
+        }
+      });
+    }
+  }
+
+  function placeLabels(candidates) {
+    /* simple collision avoidance in screen space */
+    var placed = [];
+    var mapSize = map.getSize();
+    candidates.forEach(function (c) {
+      var pt = map.latLngToContainerPoint(c.ll);
+      var w = (c.text.length * 7) + 10;
+      var h = 14;
+      var offsets = [
+        [10, -12], [-w - 4, -12], [10, 8], [-w - 4, 8],
+        [14, -22], [-w - 8, -22], [14, 18], [-w - 8, 18]
+      ];
+      var chosen = offsets[0];
+      for (var i = 0; i < offsets.length; i++) {
+        var ox = offsets[i][0];
+        var oy = offsets[i][1];
+        var rect = { x: pt.x + ox, y: pt.y + oy, w: w, h: h };
+        if (rect.x < 2 || rect.y < 2 || rect.x + rect.w > mapSize.x - 2 || rect.y + rect.h > mapSize.y - 2) continue;
+        var hit = false;
+        for (var j = 0; j < placed.length; j++) {
+          var p = placed[j];
+          if (!(rect.x + rect.w < p.x || p.x + p.w < rect.x || rect.y + rect.h < p.y || p.y + p.h < rect.y)) {
+            hit = true;
+            break;
+          }
+        }
+        if (!hit) { chosen = offsets[i]; break; }
+      }
+      var finalRect = { x: pt.x + chosen[0], y: pt.y + chosen[1], w: w, h: h };
+      placed.push(finalRect);
+      L.marker(c.ll, {
+        interactive: false,
+        pane: 'labels',
+        icon: L.divIcon({
+          className: 'ty-label',
+          html: '<span>' + c.text + '</span>',
+          iconSize: [1, 1],
+          iconAnchor: [-chosen[0], -chosen[1]]
+        })
+      }).addTo(layerGroup);
+    });
+  }
+
+  function analysisPart(spec) {
+    return (spec || []).find(function (p) { return p && p.advancedHours === 0; }) || null;
+  }
+
+  function titlePart(spec) {
+    return (spec || []).find(function (p) { return p && p.part === 'title'; }) || null;
+  }
+
+  function forecastAnalysis(fc) {
+    return (fc || []).find(function (p) { return p && p.advancedHours === 0; }) || null;
+  }
+
+  function buildStorm(meta, spec, fc) {
+    var title = titlePart(spec) || {};
+    var an = analysisPart(spec) || {};
+    var fan = forecastAnalysis(fc) || {};
+    var cat = (an.category && an.category.en) || meta.category || (title.category && title.category.en) || 'TD';
+    var center = (an.position && an.position.deg) || fan.center || null;
+    var galeKm = 0;
+    if (an.galeWarning && an.galeWarning.length) {
+      an.galeWarning.forEach(function (g) {
+        var r = g && g.range && g.range.km;
+        if (r != null && r > galeKm) galeKm = r;
+      });
+    } else if (fan.galeWarningArea && fan.galeWarningArea.radius) {
+      galeKm = fan.galeWarningArea.radius / 1000;
+    }
+    var stormKm = 0;
+    if (an.stormWarning && an.stormWarning.length) {
+      an.stormWarning.forEach(function (g) {
+        var r = g && g.range && g.range.km;
+        if (r != null && r > stormKm) stormKm = r;
+      });
+    } else if (fan.stormWarningArea && fan.stormWarningArea.arc && fan.stormWarningArea.arc[0]) {
+      stormKm = (fan.stormWarningArea.arc[0][1] || 0) / 1000;
+    }
+    var distKm = center ? haversineKm(CFG.osaka, center) : null;
+    var inGale = distKm != null && galeKm > 0 && distKm <= galeKm;
+    var inStorm = distKm != null && stormKm > 0 && distKm <= stormKm;
+    var closest = distKm;
+    var fcCenters = [];
+    (fc || []).forEach(function (p) {
+      if (p && p.center && p.advancedHours != null) {
+        fcCenters.push(p.center);
+        var d = haversineKm(CFG.osaka, p.center);
+        if (closest == null || d < closest) closest = d;
+      }
+    });
+    return {
+      id: meta.tropicalCyclone,
+      meta: meta,
+      spec: spec,
+      forecast: fc,
+      title: title,
+      analysis: an,
+      fan: fan,
+      cat: String(cat).toUpperCase(),
+      nameJp: (title.name && title.name.jp) || '名称未定',
+      number: title.typhoonNumber || meta.typhoonNumber || '',
+      center: center,
+      galeKm: galeKm,
+      stormKm: stormKm,
+      distKm: distKm,
+      closestKm: closest,
+      inGale: inGale,
+      inStorm: inStorm,
+      intensity: an.intensity || '-',
+      pressure: an.pressure || '—',
+      location: an.location || '',
+      course: an.course || '',
+      speed: an.speed || null,
+      issue: (title.issue && title.issue.JST) || meta.issue || '',
+      fcCenters: fcCenters
+    };
+  }
+
+  function impactFor(storm) {
+    if (!storm || storm.distKm == null) {
+      return {
+        pill: '確認中', cls: 'ok',
+        main: '影響を確認中',
+        sub: '位置データ待機',
+        note: '大阪・梅田'
+      };
+    }
+    var d = Math.round(storm.distKm);
+    var c = Math.round(storm.closestKm != null ? storm.closestKm : storm.distKm);
+    if (storm.inStorm) {
+      return {
+        pill: '暴風域内', cls: 'danger',
+        main: '暴風に注意',
+        sub: '中心まで約' + d + 'km',
+        note: '最接近見込み 約' + c + 'km'
+      };
+    }
+    if (storm.inGale) {
+      return {
+        pill: '強風域内', cls: 'alert',
+        main: '強風に注意',
+        sub: '中心まで約' + d + 'km',
+        note: '最接近見込み 約' + c + 'km'
+      };
+    }
+    if (c <= 300) {
+      return {
+        pill: '接近の可能性', cls: 'warn',
+        main: '動向に注意',
+        sub: '現在 約' + d + 'km',
+        note: '最接近見込み 約' + c + 'km'
+      };
+    }
+    if (c <= 600) {
+      return {
+        pill: '監視', cls: 'warn',
+        main: '影響は限定的',
+        sub: '現在 約' + d + 'km',
+        note: '最接近見込み 約' + c + 'km'
+      };
+    }
+    return {
+      pill: '直接影響小', cls: 'ok',
+      main: '大阪は離れている',
+      sub: '現在 約' + d + 'km',
+      note: '最接近見込み 約' + c + 'km'
+    };
+  }
+
+  function speedText(speed) {
+    if (!speed) return '';
+    if (speed.note && speed.note.jp) return speed.note.jp;
+    if (speed['km/h']) return '時速' + speed['km/h'] + 'km';
+    return '';
+  }
+
+  function fillTyPane(prefix, storm) {
+    if (!storm) {
+      $(prefix + 'TyNum').innerHTML = '—<small>号</small>';
+      $(prefix + 'TyName').textContent = '発表なし';
+      $(prefix + 'TyCat').className = 'ty-cat NONE';
+      $(prefix + 'TyCat').textContent = '台風なし';
+      $(prefix + 'TyMeta').textContent = '現在アクティブな台風はありません';
+      $(prefix + 'TySub').textContent = '気象庁リアルタイム';
+      return;
+    }
+    $(prefix + 'TyNum').innerHTML = tyNumberText(storm.number) + '<small>号</small>';
+    $(prefix + 'TyName').textContent = storm.nameJp;
+    $(prefix + 'TyCat').className = 'ty-cat ' + (storm.cat || 'NONE');
+    var catTxt = catLabel(storm.cat);
+    if (storm.intensity && storm.intensity !== '-') catTxt += '・' + storm.intensity;
+    $(prefix + 'TyCat').textContent = catTxt;
+    var meta = [];
+    if (storm.pressure && storm.pressure !== '—') meta.push(storm.pressure + 'hPa');
+    if (storm.analysis && storm.analysis.maximumWind && storm.analysis.maximumWind.sustained) {
+      meta.push('最大風速' + storm.analysis.maximumWind.sustained['m/s'] + 'm/s');
+    }
+    $(prefix + 'TyMeta').textContent = meta.join(' / ') || (storm.location || '');
+    var sub = [];
+    if (storm.course) sub.push(storm.course);
+    var sp = speedText(storm.speed);
+    if (sp) sub.push(sp);
+    $(prefix + 'TySub').textContent = sub.join(' · ') || (storm.location || '進路図を表示中');
+  }
+
+  function fillImpactPane(prefix, storm) {
+    var imp = impactFor(storm);
+    $(prefix + 'ImpactPill').className = 'impact-pill ' + imp.cls;
+    $(prefix + 'ImpactPill').textContent = imp.pill;
+    $(prefix + 'ImpactMain').textContent = imp.main;
+    $(prefix + 'ImpactSub').textContent = imp.sub;
+    $(prefix + 'ImpactNote').textContent = imp.note;
+  }
+
+  function focusedStorm() {
+    if (!storms.length) return null;
+    if (focusStormId) {
+      for (var i = 0; i < storms.length; i++) {
+        if (storms[i].id === focusStormId) return storms[i];
+      }
+    }
+    var best = storms[0];
+    for (var j = 1; j < storms.length; j++) {
+      if (catRank(storms[j].cat) > catRank(best.cat)) best = storms[j];
+      else if (catRank(storms[j].cat) === catRank(best.cat) &&
+        (storms[j].distKm != null) && (best.distKm == null || storms[j].distKm < best.distKm)) best = storms[j];
+    }
+    return best;
+  }
+
+  function updateSidePanels() {
+    var s = focusedStorm();
+    fillTyPane('left', s);
+    fillTyPane('right', s);
+    fillImpactPane('left', s);
+    fillImpactPane('right', s);
+    $('leftTitle').textContent = sideMode === 0 ? '台風情報' : '大阪影響';
+    $('rightTitle').textContent = sideMode === 0 ? '大阪影響' : '台風情報';
+  }
+
+  function applySideSwap() {
+    var leftTy = $('leftTyPane');
+    var leftImp = $('leftImpactPane');
+    var rightTy = $('rightTyPane');
+    var rightImp = $('rightImpactPane');
+    if (sideMode === 0) {
+      leftTy.classList.add('on'); leftImp.classList.remove('on');
+      rightImp.classList.add('on'); rightTy.classList.remove('on');
+    } else {
+      leftImp.classList.add('on'); leftTy.classList.remove('on');
+      rightTy.classList.add('on'); rightImp.classList.remove('on');
+    }
+    updateSidePanels();
+  }
+
+  function startSideSwap() {
+    if (sideTimer) clearInterval(sideTimer);
+    sideMode = 0;
+    applySideSwap();
+    sideTimer = setInterval(function () {
+      sideMode = sideMode ? 0 : 1;
+      applySideSwap();
+    }, CFG.sideSwapMs);
+  }
+
+  function setFootText(text) {
+    var t = text || '台風情報';
+    $('footA').textContent = t;
+    $('footB').textContent = t;
+  }
+
+  function summaryLine() {
+    if (!storms.length) return '現在、発表中の台風・熱帯低気圧はありません。　大阪 梅田サイネージ';
+    var parts = storms.map(function (s) {
+      var n = tyNumberText(s.number);
+      var d = s.distKm != null ? ('大阪まで約' + Math.round(s.distKm) + 'km') : '';
+      return '台風' + n + '号' + s.nameJp + '（' + catLabel(s.cat) + '）' +
+        (s.location ? ' ' + s.location : '') +
+        (d ? ' / ' + d : '');
+    });
+    return parts.join('　　') + '　　出典：気象庁';
+  }
+
+  function drawStorms() {
+    if (!layerGroup) return;
+    layerGroup.clearLayers();
+    var labels = [];
+
+    storms.forEach(function (s) {
+      var fan = s.fan || {};
+      var track = fan.track || {};
+      if (track.preTyphoon && track.preTyphoon.length >= 2) {
+        L.polyline(track.preTyphoon, {
+          color: '#8aa0b8', weight: 1.4, opacity: 0.75, dashArray: '3 4',
+          pane: 'ty', interactive: false
+        }).addTo(layerGroup);
+      }
+      if (track.typhoon && track.typhoon.length >= 2) {
+        L.polyline(track.typhoon, {
+          color: '#ff3355', weight: 2.2, opacity: 0.95,
+          pane: 'ty', interactive: false
+        }).addTo(layerGroup);
+      }
+
+      var fcPts = [];
+      (s.forecast || []).forEach(function (p) {
+        if (!p || p.advancedHours == null) return;
+        if (p.center) fcPts.push(p.center);
+        if (p.probabilityCircle && p.center && p.probabilityCircle.radius) {
+          L.circle(p.center, {
+            radius: p.probabilityCircle.radius,
+            color: '#5cc8ff',
+            weight: 1,
+            opacity: 0.7,
+            fillColor: '#5cc8ff',
+            fillOpacity: 0.05,
+            pane: 'ty',
+            interactive: false
+          }).addTo(layerGroup);
+          var tangents = p.probabilityCircle.tangent || p.probabilityCircle.tangent_3h || [];
+          tangents.forEach(function (ln) {
+            if (ln && ln.length >= 2) {
+              L.polyline(ln, {
+                color: '#5cc8ff', weight: 1, opacity: 0.65, dashArray: '2 3',
+                pane: 'ty', interactive: false
+              }).addTo(layerGroup);
+            }
+          });
+        }
+      });
+      if (fcPts.length >= 2) {
+        L.polyline(fcPts, {
+          color: '#5cc8ff', weight: 1.6, opacity: 0.85, dashArray: '5 4',
+          pane: 'ty', interactive: false
+        }).addTo(layerGroup);
+      }
+
+      if (fan.galeWarningArea) drawWarningArea(layerGroup, fan.galeWarningArea, '#ffd166', 1.2, 0.06);
+      if (fan.stormWarningArea) drawWarningArea(layerGroup, fan.stormWarningArea, '#ff5c7a', 1.5, 0.08);
+
+      if (s.center) {
+        var isTd = catRank(s.cat) <= 1;
+        L.marker(s.center, {
+          interactive: false,
+          pane: 'ty',
+          icon: L.divIcon({
+            className: '',
+            html: isTd ? '<div class="td-dot"></div>' : '<div class="ty-x"></div>',
+            iconSize: isTd ? [12, 12] : [18, 18],
+            iconAnchor: isTd ? [6, 6] : [9, 9]
+          })
+        }).addTo(layerGroup);
+        labels.push({
+          ll: s.center,
+          text: '台風' + tyNumberText(s.number) + '号 ' + s.nameJp
+        });
+      }
+    });
+
+    placeLabels(labels);
+  }
+
+  function applyView(view) {
+    if (!map || !view) return;
+    focusStormId = view.stormId || null;
+    $('viewText').textContent = view.label || '';
+    $('metaLine').textContent = view.meta || '台風進路図';
+    if (view.bounds) {
+      map.fitBounds(view.bounds, { animate: false, padding: [6, 6], maxZoom: view.maxZoom || 8 });
+    } else if (view.center) {
+      map.setView(view.center, view.zoom || 5, { animate: false });
+    }
+    fixMapSize();
+    updateSidePanels();
+  }
+
+  function buildPlaylist() {
+    var list = [];
+    list.push({
+      id: 'wide',
+      label: '日本広域',
+      meta: '台風進路図（広域）',
+      bounds: L.latLngBounds(CFG.wideSW, CFG.wideNE),
+      maxZoom: 5,
+      stormId: null
+    });
+    list.push({
+      id: 'near',
+      label: '日本近傍',
+      meta: '台風進路図（近傍）',
+      bounds: L.latLngBounds(CFG.nearSW, CFG.nearNE),
+      maxZoom: 6,
+      stormId: null
+    });
+    storms.forEach(function (s) {
+      if (!s.center) return;
+      var pts = [s.center];
+      (s.fcCenters || []).slice(0, 6).forEach(function (c) { pts.push(c); });
+      pts.push(CFG.osaka);
+      var b = L.latLngBounds(pts);
+      b = b.pad(0.55);
+      list.push({
+        id: 'storm-' + s.id,
+        label: '台風' + tyNumberText(s.number) + '号',
+        meta: '台風' + tyNumberText(s.number) + '号 ' + s.nameJp + '（' + catLabel(s.cat) + '）',
+        bounds: b,
+        maxZoom: 7,
+        stormId: s.id
+      });
+    });
+    viewPlaylist = list;
+  }
+
+  function startViews() {
+    if (viewTimer) clearInterval(viewTimer);
+    viewIdx = 0;
+    if (!viewPlaylist.length) buildPlaylist();
+    applyView(viewPlaylist[0]);
+    viewTimer = setInterval(function () {
+      if (!viewPlaylist.length) return;
+      viewIdx = (viewIdx + 1) % viewPlaylist.length;
+      applyView(viewPlaylist[viewIdx]);
+    }, CFG.viewMs);
+  }
+
+  function updateClocks() {
+    var t = nowClock();
+    $('frameClock').textContent = t;
+    $('rightClock').textContent = t;
+    $('kindText').textContent = lastIssueText || '発表時刻';
+  }
+
+  function stageFromStorms() {
+    if (!storms.length) {
+      setStageLevel('lv-none');
+      return;
+    }
+    var best = 0;
+    storms.forEach(function (s) { best = Math.max(best, catRank(s.cat)); });
+    if (best >= 4) setStageLevel('lv-ty');
+    else if (best >= 2) setStageLevel('lv-ts');
+    else setStageLevel('lv-td');
+  }
+
+  async function fetchJson(url) {
+    var res = await fetch(url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + url);
+    return res.json();
+  }
+
+  async function loadAll() {
+    showToast('<div><div class="spinner"></div>台風データを取得しています…</div>');
+    try {
+      var target = await fetchJson(CFG.jamBase + '/targetTc.json');
+      if (!Array.isArray(target)) target = [];
+      var next = [];
+      for (var i = 0; i < target.length; i++) {
+        var m = target[i];
+        if (!m || !m.tropicalCyclone) continue;
+        var id = m.tropicalCyclone;
+        var spec = await fetchJson(CFG.jamBase + '/' + id + '/specifications.json');
+        var fc = await fetchJson(CFG.jamBase + '/' + id + '/forecast.json');
+        next.push(buildStorm(m, spec, fc));
+      }
+      next.sort(function (a, b) {
+        var r = catRank(b.cat) - catRank(a.cat);
+        if (r) return r;
+        var da = a.distKm == null ? 1e9 : a.distKm;
+        var db = b.distKm == null ? 1e9 : b.distKm;
+        return da - db;
+      });
+      storms = next;
+      stageFromStorms();
+      drawStorms();
+      buildPlaylist();
+      startViews();
+      updateSidePanels();
+      setFootText(summaryLine());
+      var focus = focusedStorm();
+      lastIssueText = focus ? fmtIssue(focus.issue) : '発表なし';
+      $('kindBadge').className = 'badge live';
+      $('kindBadge').textContent = storms.length ? ('発表 ' + storms.length + '件') : '発表なし';
+      showToast('', true);
+    } catch (err) {
+      console.error(err);
+      setStageLevel('lv-err');
+      $('kindBadge').className = 'badge err';
+      $('kindBadge').textContent = '取得失敗';
+      setFootText('台風データの取得に失敗しました。通信を確認してください。');
+      showToast('<div>台風データの取得に失敗しました<br>しばらくして再試行します</div>');
+    }
+    updateClocks();
+  }
+
+  function boot() {
+    ensureNativeViewport(function () {
+      initMap();
+      startSideSwap();
+      updateClocks();
+      setInterval(updateClocks, 1000);
+      loadAll();
+      setInterval(loadAll, CFG.refreshMs);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+  </script>
+</body>
+</html>
