@@ -1,0 +1,56 @@
+/* サイネージ：原点 (0,0)、キャプチャ範囲 640×192 */
+:root {
+  --w-total: 640px;
+  --h-total: 192px;
+  --w-side: 128px;
+  --w-front: 384px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: var(--w-total);
+  height: var(--h-total);
+  overflow: hidden;
+  background: #000;
+}
+
+body {
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+.machine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: var(--w-total);
+  height: var(--h-total);
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+.face {
+  position: relative;
+  height: var(--h-total);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.face--left,
+.face--right {
+  width: var(--w-side);
+}
+
+.face--front {
+  width: var(--w-front);
+}

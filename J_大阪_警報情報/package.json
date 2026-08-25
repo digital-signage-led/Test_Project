@@ -1,0 +1,10 @@
+{
+  "name": "osaka-vending-warning-display",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "description": "大阪府 気象警報の自販機三面表示（640×192）"
+}
