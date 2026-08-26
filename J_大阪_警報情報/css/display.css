@@ -81,35 +81,51 @@ body {
   box-sizing: border-box;
 }
 
-/* 端の128pxゾーンに白いカード。内側だけ少し余白 */
+/* 左右128px：上下5px・左右端8px・折り目側8px（固定） */
 .face--left,
 .face--right {
   justify-content: stretch;
   align-items: stretch;
   padding: var(--face-pad-y) var(--face-pad-x-side);
+  box-sizing: border-box;
 }
 
+.face--left .card-stage,
+.face--right .card-stage {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 正面384px：上下カード均等 + 隙間5px固定（gridで再描画時も不変） */
 .face--front {
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
-  gap: var(--face-gap);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) var(--face-gap) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  align-content: stretch;
+  justify-items: stretch;
+  gap: 0;
   padding: var(--face-pad-y) var(--face-pad-x-front);
+  box-sizing: border-box;
 }
 
 .face--front .card {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
+  flex: none;
 }
 
 .face--front .card--top {
-  flex: 1.15 1 0;
+  grid-row: 1;
   padding: 6px 10px;
 }
 
 .face--front .card--bottom {
-  flex: 0.85 1 0;
+  grid-row: 3;
   padding: 6px 10px 4px;
 }
 
@@ -428,11 +444,17 @@ body {
   align-items: center;
   width: max-content;
   height: 30px;
+  gap: 0;
   will-change: transform;
 }
 
 .chip-marquee.is-running {
   animation: chip-scroll var(--chip-duration, 22s) linear infinite;
+}
+
+.chip-marquee.is-static {
+  transform: none;
+  animation: none;
 }
 
 @keyframes chip-scroll {
@@ -448,8 +470,11 @@ body {
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
-  padding-right: 16px;
+  /* 項目間・トラック末尾（次の先頭との間）を同じ隙間に */
+  gap: var(--chip-gap, 8px);
+  padding: 0;
+  padding-right: var(--chip-gap, 8px);
+  margin: 0;
   flex-shrink: 0;
   height: 30px;
 }
@@ -459,6 +484,7 @@ body {
   align-items: center;
   flex-shrink: 0;
   gap: 2px;
+  margin: 0;
   padding: 3px 10px;
   border-radius: 999px;
   background: #f3f4f6;
@@ -493,6 +519,17 @@ body {
   background: #000000;
   border-color: #111;
   color: #fff;
+}
+
+.chip.is-demo {
+  background: #1e3a5f;
+  border-color: #334155;
+  color: #fff;
+}
+
+.machine[data-phase="demo"] .card-title {
+  color: #1e3a5f;
+  font-weight: 700;
 }
 
 .chip-empty {

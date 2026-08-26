@@ -4,11 +4,18 @@
   --h-total: 192px;
   --w-side: 128px;
   --w-front: 384px;
-  /* 各面の内側余白のみ（面と面の間は 0） */
-  --face-pad-y: 6px;
+  /*
+   * 隙間仕様（整数px固定・再描画/サイネージでも不変）:
+   * - 正面上下カード間: 5px（上下カード高さは均等）
+   * - 左右↔正面（折り目）: 12px = 側面内側8px + 正面外側4px
+   * - 上下外周: 5px
+   * - 左右端外周: 8px
+   */
+  --face-pad-y: 5px;
   --face-pad-x-side: 8px;
   --face-pad-x-front: 4px;
-  --face-gap: 6px;
+  --face-gap: 5px;
+  --chip-gap: 8px;
 }
 
 * {

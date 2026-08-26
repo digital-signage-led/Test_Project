@@ -16,19 +16,25 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
   let headline = "";
   let reportDatetime = "";
   let publishingOffice = "";
+  let newestMs = -Infinity;
 
   for (const entry of payload) {
     if (!entry || typeof entry !== "object") continue;
     const warning = entry.warning;
     if (!warning) continue;
 
-    if (entry.headlineText) headline = entry.headlineText;
-    if (entry.reportDatetime) reportDatetime = entry.reportDatetime;
-    if (entry.publishingOffice) publishingOffice = entry.publishingOffice;
+    const t = entry.reportDatetime ? Date.parse(entry.reportDatetime) : NaN;
+    if (Number.isFinite(t) && t >= newestMs) {
+      newestMs = t;
+      if (entry.headlineText) headline = entry.headlineText;
+      if (entry.reportDatetime) reportDatetime = entry.reportDatetime;
+      if (entry.publishingOffice) publishingOffice = entry.publishingOffice;
+    }
 
     const class20 = Array.isArray(warning.class20Items) ? warning.class20Items : [];
     const class10 = Array.isArray(warning.class10Items) ? warning.class10Items : [];
-    const areas = class20.length ? class20 : class10;
+    // 両方ある場合は両方から収集（発表中を取りこぼさない）
+    const areas = [...class20, ...class10];
 
     for (const area of areas) {
       const areaCode = String(area.areaCode || "");
@@ -55,7 +61,6 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
         }
         const item = byCode.get(key);
         item.areas.add(areaName);
-        // より新しい status を優先（発表 > 継続）
         if (kind.status === "発表") item.status = kind.status;
       }
     }
@@ -126,16 +131,16 @@ export function buildMarqueeText(state) {
   return `${head}${parts.join("　　／　　")}　　気象情報にご注意ください${office}　　`;
 }
 
-/** デモ用（大阪）— 河川氾濫・大雨・土砂災害・高潮＋避難レベル */
+/** デモ用（大阪）— 文言に必ず「デモ」を含め、本番と取り違えないようにする */
 export function buildDemoWarnings() {
   return {
     items: [
       {
         code: "33",
-        name: "レベル５大雨特別警報",
+        name: "【デモ】レベル５大雨特別警報",
         category: "特別警報",
         level: 5,
-        short: "大雨特別",
+        short: "大雨特別（デモ）",
         hazard: "大雨",
         areas: ["大阪"],
         status: "発表",
@@ -143,10 +148,10 @@ export function buildDemoWarnings() {
       },
       {
         code: "51",
-        name: "レベル５氾濫特別警報",
+        name: "【デモ】レベル５氾濫特別警報",
         category: "特別警報",
         level: 5,
-        short: "氾濫特別",
+        short: "氾濫特別（デモ）",
         hazard: "河川氾濫",
         areas: ["大阪"],
         status: "発表",
@@ -154,10 +159,10 @@ export function buildDemoWarnings() {
       },
       {
         code: "49",
-        name: "レベル４土砂災害危険警報",
+        name: "【デモ】レベル４土砂災害危険警報",
         category: "危険警報",
         level: 4,
-        short: "土砂危険",
+        short: "土砂危険（デモ）",
         hazard: "土砂災害",
         areas: ["大阪"],
         status: "発表",
@@ -165,10 +170,10 @@ export function buildDemoWarnings() {
       },
       {
         code: "48",
-        name: "レベル４高潮危険警報",
+        name: "【デモ】レベル４高潮危険警報",
         category: "危険警報",
         level: 4,
-        short: "高潮危険",
+        short: "高潮危険（デモ）",
         hazard: "高潮",
         areas: ["大阪"],
         status: "発表",
@@ -176,10 +181,10 @@ export function buildDemoWarnings() {
       },
       {
         code: "03",
-        name: "レベル３大雨警報",
+        name: "【デモ】レベル３大雨警報",
         category: "警報",
         level: 3,
-        short: "大雨警報",
+        short: "大雨警報（デモ）",
         hazard: "大雨",
         areas: ["大阪"],
         status: "発表",
@@ -187,10 +192,10 @@ export function buildDemoWarnings() {
       },
       {
         code: "14",
-        name: "雷注意報",
+        name: "【デモ】雷注意報",
         category: "注意報",
         level: 2,
-        short: "雷注意報",
+        short: "雷注意報（デモ）",
         hazard: "雷",
         areas: ["大阪"],
         status: "発表",
@@ -198,9 +203,9 @@ export function buildDemoWarnings() {
       },
     ],
     headline:
-      "大阪府にレベル５大雨特別警報・レベル５氾濫特別警報が発表されています。命の危険、直ちに安全を確保してください。",
+      "【デモ】これはデモ表示です。本番の気象庁発表ではありません。大阪府にレベル５大雨特別警報・レベル５氾濫特別警報が発表されている想定です。",
     reportDatetime: new Date().toISOString(),
-    publishingOffice: "大阪管区気象台（デモ）",
+    publishingOffice: "デモ（本番の気象庁発表ではありません）",
   };
 }
 

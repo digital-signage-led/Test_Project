@@ -30,7 +30,7 @@ async function proxyJson(url) {
 function send(res, status, body, type = "text/plain; charset=utf-8") {
   res.writeHead(status, {
     "Content-Type": type,
-    "Cache-Control": "no-store",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
     "Access-Control-Allow-Origin": "*",
   });
   res.end(body);
@@ -84,5 +84,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`大阪 警報情報（本番）: http://${HOST}:${PORT}/`);
-  console.log(`デモ確認:              http://${HOST}:${PORT}/?demo=1`);
+  console.log(`プレイリスト:          http://${HOST}:${PORT}/?signage=1`);
+  console.log(`警報デモのみ:          http://${HOST}:${PORT}/?demo=1`);
+  console.log(`地震デモのみ:          http://${HOST}:${PORT}/?quake=1`);
 });

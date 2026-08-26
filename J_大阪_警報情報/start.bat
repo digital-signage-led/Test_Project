@@ -8,6 +8,8 @@ start "osaka-warning-server" cmd /c "node server.mjs"
 timeout /t 1 /nobreak >nul
 
 REM ブラウザ枠なし・左上(0,0)・640x192 で開く（Edge優先 → Chrome）
+REM プレイリスト: 本番10秒 → 警報デモ → 地震デモ → 繰り返し
+REM ※ ?quake=1 だと地震のみになるので付けない
 set URL=http://127.0.0.1:8080/?signage=1
 
 where msedge >nul 2>&1
