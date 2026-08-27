@@ -31,6 +31,7 @@ const els = {
   cardLevelPill: $("cardLevelPill"),
   cardLevelNum: $("cardLevelNum"),
   cardLevelUnit: $("cardLevelUnit"),
+  cardLevelLabel: $("cardLevelLabel"),
   titleTicker: $("titleTicker"),
   titleAlerts: $("titleAlerts"),
   quakeStage: $("quakeStage"),
@@ -171,7 +172,10 @@ function isDemoPhase() {
 }
 
 function applyLevelCard(item, active) {
+  const levelCard = $("sideCardLevel");
   if (!active || !item) {
+    levelCard?.classList.remove("is-no-level");
+    setText(els.cardLevelLabel, "レベル");
     setText(els.cardLevelPill, "なし");
     setText(els.cardLevelNum, "—");
     setText(els.cardLevelUnit, "発表なし");
@@ -179,8 +183,13 @@ function applyLevelCard(item, active) {
   }
   const evac = evacForLevel(item.level || 1);
   const demo = isDemoPhase();
+  const hasLevel = item.hasAlertLevel === true && !!item.level;
+
+  // 大雨・土砂・高潮・氾濫：レベル数字あり／雷など：種別表示（数字なし）
+  levelCard?.classList.toggle("is-no-level", !hasLevel);
+  setText(els.cardLevelLabel, hasLevel ? "レベル" : "種別");
   setText(els.cardLevelPill, demo ? "デモ" : item.category);
-  setText(els.cardLevelNum, item.level ? String(item.level) : "!");
+  setText(els.cardLevelNum, hasLevel ? String(item.level) : "");
   setText(
     els.cardLevelUnit,
     demo
@@ -419,16 +428,38 @@ function render(state, opts = {}) {
     stopMarquee();
     stopChipTicker();
     stopCardRotation();
-    renderChipTicker([]);
-    const idle = CONFIG.idleMarqueeText;
-    if (els.marqueeTextA) els.marqueeTextA.innerHTML = idle;
-    if (els.marqueeTextB) els.marqueeTextB.innerHTML = idle;
+    const fail = opts.fetchError;
+    if (fail) {
+      if (els.alertList) {
+        els.alertList.innerHTML = `<span class="chip-empty">取得失敗</span>`;
+      }
+      if (els.alertListB) els.alertListB.innerHTML = "";
+      els.chipMarquee?.classList.add("is-static");
+      setText(els.cardCount, "—");
+      setText(els.cardLevelUnit, "取得失敗");
+      const failText =
+        "警報データを取得できません　start.bat か node server.mjs で http://127.0.0.1:8080/ を開いてください　　";
+      if (els.marqueeTextA) els.marqueeTextA.innerHTML = failText;
+      if (els.marqueeTextB) els.marqueeTextB.innerHTML = failText;
+    } else {
+      renderChipTicker([]);
+      const idle = CONFIG.idleMarqueeText;
+      if (els.marqueeTextA) els.marqueeTextA.innerHTML = idle;
+      if (els.marqueeTextB) els.marqueeTextB.innerHTML = idle;
+    }
     requestAnimationFrame(() => {
       requestAnimationFrame(() => startMarquee());
     });
     animateSideCards(() => {
       resetSidePositions();
-      applySidePair(null, false, { doSwap: false });
+      if (fail) {
+        setText(els.cardLevelPill, "—");
+        setText(els.cardLevelNum, "!");
+        setText(els.cardLevelUnit, "取得失敗");
+        tickClock();
+      } else {
+        applySidePair(null, false, { doSwap: false });
+      }
     });
     if (opts.notify) flashNotify();
     return;
@@ -493,10 +524,12 @@ async function runPlaylist() {
       reportDatetime: new Date().toISOString(),
       publishingOffice: "",
     };
+    let fetchError = false;
     try {
       live = await loadLiveState();
     } catch (err) {
       console.warn("ライブ取得失敗", err);
+      fetchError = true;
     }
 
     const sig = signatureOf(live.items);
@@ -504,8 +537,9 @@ async function runPlaylist() {
     lastSignature = sig || "idle";
 
     render(live, {
-      notify: changed || live.items.length > 0,
+      notify: !fetchError && (changed || live.items.length > 0),
       phase: live.items.length ? "live" : "idle",
+      fetchError,
     });
     await waitMs(CONFIG.livePhaseMs || 10_000);
     if (gen !== playlistGen) return;
@@ -555,7 +589,7 @@ async function refreshFixed({ demo = false, notifyOnChange = true } = {}) {
     } else {
       render(
         { items: [], headline: "", reportDatetime: "", publishingOffice: "" },
-        { notify: false, phase: "idle" },
+        { notify: false, phase: "idle", fetchError: true },
       );
     }
   }

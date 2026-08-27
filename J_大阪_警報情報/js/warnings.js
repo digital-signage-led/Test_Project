@@ -3,6 +3,7 @@ import { resolveWarning, themeForLevel, evacForLevel } from "./warning-codes.js"
 
 /**
  * 令和8年体系 r8 JSON から発表中の警報・注意報を抽出する
+ * targetAreaCode がある場合は当該市区町村（class20）のみ対象
  * @param {unknown} payload
  * @param {Map<string, string>} areaNames
  */
@@ -10,6 +11,8 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
   if (!Array.isArray(payload)) {
     return { items: [], headline: "", reportDatetime: "", publishingOffice: "" };
   }
+
+  const target = CONFIG.targetAreaCode ? String(CONFIG.targetAreaCode) : "";
 
   /** @type {Map<string, { code: string, name: string, category: string, level: number, short: string, areas: Set<string>, status: string }>} */
   const byCode = new Map();
@@ -23,27 +26,24 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
     const warning = entry.warning;
     if (!warning) continue;
 
-    const t = entry.reportDatetime ? Date.parse(entry.reportDatetime) : NaN;
-    if (Number.isFinite(t) && t >= newestMs) {
-      newestMs = t;
-      if (entry.headlineText) headline = entry.headlineText;
-      if (entry.reportDatetime) reportDatetime = entry.reportDatetime;
-      if (entry.publishingOffice) publishingOffice = entry.publishingOffice;
-    }
-
     const class20 = Array.isArray(warning.class20Items) ? warning.class20Items : [];
     const class10 = Array.isArray(warning.class10Items) ? warning.class10Items : [];
-    // 両方ある場合は両方から収集（発表中を取りこぼさない）
-    const areas = [...class20, ...class10];
+    // 市区町村指定時は class20 のみ（街の防災情報ページと同じ）
+    const areas = target
+      ? class20.filter((a) => String(a.areaCode) === target)
+      : [...class20, ...class10];
 
+    let hitActive = false;
     for (const area of areas) {
       const areaCode = String(area.areaCode || "");
-      const areaName = areaNames.get(areaCode) || areaCode;
+      const areaName =
+        areaNames.get(areaCode) || (target ? CONFIG.displayArea : areaCode);
       const kinds = Array.isArray(area.kinds) ? area.kinds : [];
 
       for (const kind of kinds) {
         if (!kind || !kind.code) continue;
         if (!CONFIG.activeStatuses.has(kind.status)) continue;
+        hitActive = true;
 
         const meta = resolveWarning(kind.code);
         const key = String(kind.code).padStart(2, "0");
@@ -55,6 +55,7 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
             level: meta.level,
             short: meta.short,
             hazard: meta.hazard || "",
+            hasAlertLevel: meta.hasAlertLevel === true,
             areas: new Set(),
             status: kind.status,
           });
@@ -63,6 +64,15 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
         item.areas.add(areaName);
         if (kind.status === "発表") item.status = kind.status;
       }
+    }
+
+    if (!hitActive) continue;
+    const t = entry.reportDatetime ? Date.parse(entry.reportDatetime) : NaN;
+    if (Number.isFinite(t) && t >= newestMs) {
+      newestMs = t;
+      if (entry.headlineText) headline = entry.headlineText;
+      if (entry.reportDatetime) reportDatetime = entry.reportDatetime;
+      if (entry.publishingOffice) publishingOffice = entry.publishingOffice;
     }
   }
 
@@ -78,34 +88,61 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
 }
 
 export async function fetchWarningData(areaCode = CONFIG.areaCode) {
-  const res = await fetch(`/api/warning?code=${encodeURIComponent(areaCode)}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(`警報データ取得失敗 (${res.status})`);
+  const code = encodeURIComponent(areaCode);
+  const urls = [
+    `/api/warning?code=${code}`,
+    `http://127.0.0.1:8080/api/warning?code=${code}`,
+    `https://www.jma.go.jp/bosai/warning/data/r8/${code}.json`,
+  ];
+
+  let lastErr = null;
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        lastErr = new Error(`警報データ取得失敗 (${res.status}) ${url}`);
+        continue;
+      }
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+    }
   }
-  return res.json();
+  throw lastErr || new Error("警報データ取得失敗");
 }
 
 export async function fetchAreaNames() {
-  const res = await fetch("/api/area", { cache: "no-store" });
-  if (!res.ok) return new Map();
-  const data = await res.json();
-  const map = new Map();
+  const urls = [
+    "/api/area",
+    "http://127.0.0.1:8080/api/area",
+    "https://www.jma.go.jp/bosai/common/const/area.json",
+  ];
 
-  const class20 = data?.class20s || {};
-  for (const [code, info] of Object.entries(class20)) {
-    if (info?.name) map.set(code, info.name);
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const map = new Map();
+
+      const class20 = data?.class20s || {};
+      for (const [code, info] of Object.entries(class20)) {
+        if (info?.name) map.set(code, info.name);
+      }
+      const class10 = data?.class10s || {};
+      for (const [code, info] of Object.entries(class10)) {
+        if (info?.name) map.set(code, info.name);
+      }
+      const offices = data?.offices || {};
+      for (const [code, info] of Object.entries(offices)) {
+        if (info?.name) map.set(code, info.name);
+      }
+      return map;
+    } catch {
+      /* try next */
+    }
   }
-  const class10 = data?.class10s || {};
-  for (const [code, info] of Object.entries(class10)) {
-    if (info?.name) map.set(code, info.name);
-  }
-  const offices = data?.offices || {};
-  for (const [code, info] of Object.entries(offices)) {
-    if (info?.name) map.set(code, info.name);
-  }
-  return map;
+  return new Map();
 }
 
 /**
@@ -142,6 +179,7 @@ export function buildDemoWarnings() {
         level: 5,
         short: "大雨特別（デモ）",
         hazard: "大雨",
+        hasAlertLevel: true,
         areas: ["大阪"],
         status: "発表",
         theme: "special",
@@ -153,6 +191,7 @@ export function buildDemoWarnings() {
         level: 5,
         short: "氾濫特別（デモ）",
         hazard: "河川氾濫",
+        hasAlertLevel: true,
         areas: ["大阪"],
         status: "発表",
         theme: "special",
@@ -164,6 +203,7 @@ export function buildDemoWarnings() {
         level: 4,
         short: "土砂危険（デモ）",
         hazard: "土砂災害",
+        hasAlertLevel: true,
         areas: ["大阪"],
         status: "発表",
         theme: "danger",
@@ -175,6 +215,7 @@ export function buildDemoWarnings() {
         level: 4,
         short: "高潮危険（デモ）",
         hazard: "高潮",
+        hasAlertLevel: true,
         areas: ["大阪"],
         status: "発表",
         theme: "danger",
@@ -186,6 +227,7 @@ export function buildDemoWarnings() {
         level: 3,
         short: "大雨警報（デモ）",
         hazard: "大雨",
+        hasAlertLevel: true,
         areas: ["大阪"],
         status: "発表",
         theme: "warning",
@@ -195,8 +237,9 @@ export function buildDemoWarnings() {
         name: "【デモ】雷注意報",
         category: "注意報",
         level: 2,
-        short: "雷注意報（デモ）",
+        short: "雷（デモ）",
         hazard: "雷",
+        hasAlertLevel: false,
         areas: ["大阪"],
         status: "発表",
         theme: "advisory",

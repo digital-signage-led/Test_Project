@@ -332,6 +332,21 @@ body {
   letter-spacing: -0.03em;
 }
 
+/* レベル数字のない情報（雷など）：名称を大きく、数字欄は出さない */
+#sideCardLevel.is-no-level .level-num {
+  display: none;
+}
+
+#sideCardLevel.is-no-level .unit {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink);
+  margin-top: 8px;
+  margin-bottom: 0;
+  letter-spacing: -0.02em;
+}
+
 .machine[data-active="true"][data-theme="advisory"] {
   --accent: var(--advisory);
 }

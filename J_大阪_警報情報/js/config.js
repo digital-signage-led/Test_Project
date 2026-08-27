@@ -1,9 +1,14 @@
 export const CONFIG = {
-  /** 大阪府（府県予報区） */
+  /** 大阪府（府県予報区）— JSON 取得用 */
   areaCode: "270000",
   areaLabel: "大阪府",
+  /**
+   * 表示対象の市区町村（二次細分）
+   * 気象庁: https://www.jma.go.jp/bosai/#pattern=default&area_type=class20s&area_code=2710000
+   */
+  targetAreaCode: "2710000",
   /** サイネージ上の地域表示 */
-  displayArea: "大阪",
+  displayArea: "大阪市",
   /** 警報ポーリング間隔（ミリ秒）※ライブ固定モード用 */
   pollIntervalMs: 60_000,
   /** デモ（?demo=1） / ライブのみ（?live=1） / 地震デモ（?quake=1） */
@@ -31,5 +36,5 @@ export const CONFIG = {
   chipScrollMinCount: 1,
   /** 発表なしテロップ */
   idleMarqueeText:
-    "現在、大阪府では警報・注意報は発表されていません　　気象情報をご確認ください　　",
+    "現在、大阪市では警報・注意報は発表されていません　　気象情報をご確認ください　　",
 };

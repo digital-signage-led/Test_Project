@@ -172,8 +172,9 @@ body.is-quake {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 148px 1fr 148px;
-  gap: 8px;
+  /* 天気の左右カード幅に合わせる: 128 - 8*2 = 112px、折り目相当 gap 12px */
+  grid-template-columns: 112px minmax(0, 1fr) 112px;
+  gap: 12px;
   padding: 8px;
   position: relative;
   z-index: 1;
