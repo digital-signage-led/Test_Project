@@ -3,8 +3,11 @@ import {
   buildDemoWarnings,
   buildMarqueeText,
   fetchAreaNames,
+  fetchFloodData,
   fetchWarningData,
+  mergeWarningStates,
   parseActiveWarnings,
+  parseFloodWarnings,
 } from "./warnings.js";
 import { evacForLevel } from "./warning-codes.js";
 import {
@@ -489,7 +492,15 @@ function render(state, opts = {}) {
 
 async function loadLiveState() {
   const raw = await fetchWarningData(CONFIG.areaCode);
-  return tagOsaka(parseActiveWarnings(raw, areaNames));
+  let weather = parseActiveWarnings(raw, areaNames);
+  try {
+    const floodRaw = await fetchFloodData();
+    const flood = parseFloodWarnings(floodRaw, CONFIG.targetAreaCode);
+    weather = mergeWarningStates(weather, flood);
+  } catch (err) {
+    console.warn("氾濫データ取得失敗", err);
+  }
+  return tagOsaka(weather);
 }
 
 function loadDemoState() {

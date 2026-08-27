@@ -87,6 +87,137 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
   return { items, headline, reportDatetime, publishingOffice };
 }
 
+/** 指定河川洪水予報（氾濫）JSON — bosai/flood */
+const FLOOD_CODE_MAP = {
+  /* flood_xml の item.code → 警報コード体系 */
+  "20": "18", // レベル２氾濫注意報
+  "30": "04", // レベル３氾濫警報（想定）
+  "40": "40", // レベル４氾濫危険警報（想定）
+  "50": "51", // レベル５氾濫特別警報（想定）
+};
+
+export async function fetchFloodData() {
+  const urls = [
+    "/api/flood",
+    "http://127.0.0.1:8080/api/flood",
+    "https://www.jma.go.jp/bosai/flood/data/r8/flood_xml.json",
+  ];
+  let lastErr = null;
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        lastErr = new Error(`氾濫データ取得失敗 (${res.status})`);
+        continue;
+      }
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error("氾濫データ取得失敗");
+}
+
+/**
+ * 氾濫注意報・警報（河川単位）を市区町村向けに抽出
+ * @param {unknown} payload
+ * @param {string} targetAreaCode
+ */
+export function parseFloodWarnings(payload, targetAreaCode = CONFIG.targetAreaCode) {
+  if (!Array.isArray(payload)) {
+    return { items: [], headline: "", reportDatetime: "", publishingOffice: "" };
+  }
+  const target = String(targetAreaCode || "");
+  /** @type {Map<string, any>} */
+  const byCode = new Map();
+  let reportDatetime = "";
+  let publishingOffice = "";
+  let newestMs = -Infinity;
+
+  for (const entry of payload) {
+    if (!entry || typeof entry !== "object") continue;
+    const name = String(entry.item?.name || "");
+    if (!name || name.includes("解除")) continue;
+    if (entry.infoType === "取消") continue;
+
+    const areas = Array.isArray(entry.class20Codes)
+      ? entry.class20Codes.map(String)
+      : [];
+    if (target && !areas.includes(target)) continue;
+
+    const floodCode = String(entry.item?.code || "").padStart(2, "0");
+    const warnCode = FLOOD_CODE_MAP[floodCode] || floodCode;
+    const meta = resolveWarning(warnCode);
+    const river = entry.riverName || entry.item?.areas?.[0]?.name || "河川";
+    const key = warnCode;
+
+    if (!byCode.has(key) || (meta.level || 0) >= (byCode.get(key).level || 0)) {
+      byCode.set(key, {
+        code: key,
+        name: meta.name.startsWith("レベル") ? meta.name : name.replace(/（発表）$/, ""),
+        category: meta.category,
+        level: meta.level,
+        short: meta.short,
+        hazard: meta.hazard || "河川氾濫",
+        hasAlertLevel: true,
+        areas: new Set([river]),
+        status: "発表",
+        theme: themeForLevel(meta.level),
+        source: "flood",
+      });
+    } else {
+      byCode.get(key).areas.add(river);
+    }
+
+    const t = entry.reportDatetime ? Date.parse(entry.reportDatetime) : NaN;
+    if (Number.isFinite(t) && t >= newestMs) {
+      newestMs = t;
+      reportDatetime = entry.reportDatetime || reportDatetime;
+      publishingOffice = entry.publishingOffice || publishingOffice;
+    }
+  }
+
+  const items = [...byCode.values()].map((item) => ({
+    ...item,
+    areas: [...item.areas],
+  }));
+
+  return { items, headline: "", reportDatetime, publishingOffice };
+}
+
+/** 警報・注意報と氾濫情報を合流（同一コードは高いレベル優先） */
+export function mergeWarningStates(base, extra) {
+  const byCode = new Map();
+  for (const item of base.items || []) {
+    byCode.set(item.code, { ...item, areas: [...(item.areas || [])] });
+  }
+  for (const item of extra.items || []) {
+    const prev = byCode.get(item.code);
+    if (!prev || (item.level || 0) > (prev.level || 0)) {
+      byCode.set(item.code, {
+        ...item,
+        areas: [...new Set([...(prev?.areas || []), ...(item.areas || [])])],
+      });
+    } else {
+      prev.areas = [...new Set([...prev.areas, ...(item.areas || [])])];
+    }
+  }
+  const items = [...byCode.values()].sort(
+    (a, b) => b.level - a.level || a.name.localeCompare(b.name, "ja"),
+  );
+  const reportDatetime =
+    [base.reportDatetime, extra.reportDatetime]
+      .filter(Boolean)
+      .sort()
+      .at(-1) || base.reportDatetime || extra.reportDatetime || "";
+  return {
+    items,
+    headline: base.headline || extra.headline || "",
+    reportDatetime,
+    publishingOffice: base.publishingOffice || extra.publishingOffice || "",
+  };
+}
+
 export async function fetchWarningData(areaCode = CONFIG.areaCode) {
   const code = encodeURIComponent(areaCode);
   const urls = [

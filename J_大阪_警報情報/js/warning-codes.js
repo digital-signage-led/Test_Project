@@ -12,7 +12,7 @@ export const WARNING_CODES = {
   "30": { name: "レベル３氾濫警報", category: "警報", level: 3, short: "氾濫警報", hazard: "河川氾濫", hasAlertLevel: true },
   "31": { name: "レベル３氾濫警報", category: "警報", level: 3, short: "氾濫警報", hazard: "河川氾濫", hasAlertLevel: true },
   "04": { name: "レベル３氾濫警報", category: "警報", level: 3, short: "氾濫警報", hazard: "河川氾濫", hasAlertLevel: true },
-  "18": { name: "レベル２氾濫注意報", category: "注意報", level: 2, short: "氾濫注意", hazard: "河川氾濫", hasAlertLevel: true },
+  "18": { name: "レベル２氾濫注意報", category: "注意報", level: 2, short: "氾濫［レベル２］", hazard: "河川氾濫", hasAlertLevel: true },
 
   /* 大雨 */
   "33": { name: "レベル５大雨特別警報", category: "特別警報", level: 5, short: "大雨特別", hazard: "大雨", hasAlertLevel: true },
