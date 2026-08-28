@@ -63,7 +63,10 @@
             --stage-w: 640px;
             --stage-h: 192px;
             --ui-font: "Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif;
-            --wx-gap: 8px; /* WBGT 左右余白＝天気カードと同一 */
+            --wx-gap: 5px; /* 天気カード外周・折り目・正面上下カード間を同一 */
+            --wx-card-gap: 5px;
+            --wx-side-card-w: 118px; /* 128 - gap*2 */
+            --wx-side-card-h: 182px; /* 192 - gap*2 */
         }
         body { margin: 0; padding: 0; background-color: #1a1a1a; overflow: hidden; font-family: "Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif; }
         .demo-badge {
@@ -123,20 +126,20 @@
             top: 0 !important;
             box-sizing: border-box !important;
         }
-        /* 改修:左右天気カード 上下5px・左右8px（WEBと同一） */
+        /* 改修:左右天気カード 上下左右とも --wx-card-gap（折り目も同一） */
         html.native-640 #weather-panel .face:not(.front),
         body.native-640 #weather-panel .face:not(.front) {
             width: 128px !important;
             height: 192px !important;
-            padding: 5px 8px !important;
+            padding: var(--wx-card-gap, 5px) !important;
             box-sizing: border-box !important;
         }
         html.native-640 #weather-panel .face:not(.front) .card,
         body.native-640 #weather-panel .face:not(.front) .card {
-            width: 112px !important;
-            height: 182px !important;
-            max-width: 112px !important;
-            max-height: 182px !important;
+            width: var(--wx-side-card-w, 118px) !important;
+            height: var(--wx-side-card-h, 182px) !important;
+            max-width: var(--wx-side-card-w, 118px) !important;
+            max-height: var(--wx-side-card-h, 182px) !important;
             box-sizing: border-box !important;
         }
         /* 数値幅揺れで隙間が変わらないよう等幅数字 */
@@ -2495,17 +2498,17 @@ html.wx-no-anim #weather-panel .side-pane {
 }
 #weather-panel .face {
   height: 192px;
-  padding: 5px; /* 正面：外周 5px */
+  padding: var(--wx-card-gap, 5px); /* 外周＝カード間と同一 */
   overflow: hidden;
   min-width: 0;
   box-sizing: border-box;
 }
 /*
  * 改修:左右カードは WEB/サイネージ同一ピクセル
- * 128×192 面内に 112×182（上下5px・左右8px）。正面外周も上下5px
+ * 隙間はすべて --wx-card-gap（外周・折り目・正面上下）。折り目は側面の内側余白のみ。
  */
 #weather-panel .face:not(.front) {
-  padding: 5px 8px;
+  padding: var(--wx-card-gap, 5px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2517,20 +2520,19 @@ html.wx-no-anim #weather-panel .side-pane {
   box-sizing: border-box;
 }
 #weather-panel .face:not(.front) .card {
-  width: 112px !important;
-  max-width: 112px !important;
-  min-width: 112px !important;
-  height: 182px !important;
-  max-height: 182px !important;
-  min-height: 182px !important;
-  flex: 0 0 112px;
+  width: var(--wx-side-card-w, 118px) !important;
+  max-width: var(--wx-side-card-w, 118px) !important;
+  min-width: var(--wx-side-card-w, 118px) !important;
+  height: var(--wx-side-card-h, 182px) !important;
+  max-height: var(--wx-side-card-h, 182px) !important;
+  min-height: var(--wx-side-card-h, 182px) !important;
+  flex: 0 0 var(--wx-side-card-w, 118px);
   margin: 0;
 }
 /*
- * 正面の左右余白は WBGT（.s4-body-front の左右4px）に合わせる。
- * 折り目基準: サイドカード8px + 正面4px = 12px（左右対称・WBGT同一）
+ * 正面の左右余白は 0。折り目の隙間は左右面の内側 padding のみ＝ --wx-card-gap。
  */
-#weather-panel .face.front { padding: 5px 4px; }
+#weather-panel .face.front { padding: var(--wx-card-gap, 5px) 0; }
 #weather-panel .face.front .card-front {
   width: 100%; height: 100%; background: transparent; border: none; box-shadow: none;
 }
@@ -2749,15 +2751,15 @@ html.wx-no-anim #weather-panel .side-pane {
 #frontFlow {
   position: relative; width: 100%; height: 100%; overflow: hidden;
 }
-/* 上下2枚 + 間隙5px。左に縦タイトル、右に本文（タイトルはカード左端から少し内側） */
+/* 上下2枚 + 間隙 var(--wx-card-gap)。左に縦タイトル、右に本文（タイトルはカード左端から少し内側） */
 #weather-panel .flow-card {
   position: absolute; left: 0; right: 0; top: 0;
-  height: calc((100% - 5px) / 2);
+  height: calc((100% - var(--wx-card-gap, 5px)) / 2);
   background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
   box-shadow: var(--shadow); overflow: hidden; padding: 4px 8px 4px 6px;
   display: flex; flex-direction: row; align-items: stretch; min-height: 0;
   opacity: 0;
-  transform: translate3d(0, calc(-100% - 5px), 0) scale(0.94);
+  transform: translate3d(0, calc(-100% - var(--wx-card-gap, 5px)), 0) scale(0.94);
   transform-origin: center center;
   transition: transform .85s cubic-bezier(.22, 1, .36, 1), opacity .65s cubic-bezier(.22, 1, .36, 1);
   backface-visibility: hidden;
@@ -2765,16 +2767,16 @@ html.wx-no-anim #weather-panel .side-pane {
   box-sizing: border-box;
 }
 #weather-panel .flow-card.is-top { display: flex !important; transform: translate3d(0, 0, 0) scale(1); opacity: 1; z-index: 3; visibility: visible; }
-#weather-panel .flow-card.is-bottom { display: flex !important; transform: translate3d(0, calc(100% + 5px), 0) scale(1); opacity: 1; z-index: 2; visibility: visible; }
-#weather-panel .flow-card.is-enter { display: flex !important; transform: translate3d(0, calc(-100% - 5px), 0) scale(0.94); opacity: 0; z-index: 4; visibility: visible; }
-#weather-panel .flow-card.is-exit { display: flex !important; transform: translate3d(0, calc(200% + 10px), 0) scale(0.94); opacity: 0; z-index: 1; visibility: visible; pointer-events: none; }
+#weather-panel .flow-card.is-bottom { display: flex !important; transform: translate3d(0, calc(100% + var(--wx-card-gap, 5px)), 0) scale(1); opacity: 1; z-index: 2; visibility: visible; }
+#weather-panel .flow-card.is-enter { display: flex !important; transform: translate3d(0, calc(-100% - var(--wx-card-gap, 5px)), 0) scale(0.94); opacity: 0; z-index: 4; visibility: visible; }
+#weather-panel .flow-card.is-exit { display: flex !important; transform: translate3d(0, calc(200% + 2 * var(--wx-card-gap, 5px)), 0) scale(0.94); opacity: 0; z-index: 1; visibility: visible; pointer-events: none; }
 /*
  * 待機カードは画面外＋透明で保持。
  * display:none / visibility:hidden だと次の cascade で transition が消える（LED Chromium）。
  */
 #weather-panel .flow-card.is-wait {
   display: flex !important;
-  transform: translate3d(0, calc(-100% - 5px), 0) scale(0.94);
+  transform: translate3d(0, calc(-100% - var(--wx-card-gap, 5px)), 0) scale(0.94);
   opacity: 0;
   visibility: visible;
   z-index: 0;
@@ -4291,7 +4293,7 @@ html.wx-no-anim #weather-panel .side-pane {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 34.702485;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.495951;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + '&v=20260825th1';
+            + '&lon=' + encodeURIComponent(String(lon)) + '&v=20260828th1';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {

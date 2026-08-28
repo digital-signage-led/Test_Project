@@ -1184,6 +1184,32 @@
     });
   }
 
+  /** jmatile UTC 14桁 */
+  function formatNowcUtc(ms) {
+    var d = new Date(ms);
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return '' + d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate())
+      + p(d.getUTCHours()) + p(d.getUTCMinutes()) + p(d.getUTCSeconds());
+  }
+
+  /** 雷ナウキャスト(thns)は10分刻みのみ配信 */
+  function isThnsTenMinTime(vt) {
+    var s = String(vt || '');
+    if (!/^\d{14}$/.test(s)) return false;
+    return Number(s.slice(12, 14)) === 0 && Number(s.slice(10, 12)) % 10 === 0;
+  }
+
+  function latestThnsBasetime(n1) {
+    for (var i = (n1 || []).length - 1; i >= 0; i--) {
+      var vt = String(n1[i].validtime || n1[i].basetime || '');
+      if (isThnsTenMinTime(vt)) return vt;
+    }
+    var d = new Date();
+    var m = d.getUTCMinutes();
+    d.setUTCMinutes(m - (m % 10), 0, 0);
+    return formatNowcUtc(d.getTime());
+  }
+
   /**
    * 再生範囲は「いまの時計」基準:
    * - 過去: 最大 pastMaxMin（60分）
@@ -1232,9 +1258,53 @@
     }
 
     if (isThunder) {
-      /* thns は targetTimes.elements に載らないことがあるが、同一時刻タイルは配信される */
-      n1.forEach(function (d) { add(d, 'past', 'thns'); });
-      n2.forEach(function (d) { add(d, 'fc', 'thns'); });
+      /*
+       * thns は 10 分刻みのみ。hrpns の 5 分コマ／:05 basetime を使うと 404 →
+       * 地図に色があるコマと「活動なし」判定が食い違う。
+       */
+      var thBase = latestThnsBasetime(n1);
+      var thBaseMs = parseNowcMs(thBase);
+      n1.forEach(function (d) {
+        var vt = String(d.validtime || '');
+        if (!isThnsTenMinTime(vt)) return;
+        var ms = parseNowcMs(vt);
+        if (ms == null || ms < pastCut || ms > wall + 3 * 60000) return;
+        if (seen[vt]) return;
+        seen[vt] = 1;
+        list.push({
+          basetime: vt,
+          validtime: vt,
+          kind: 'past',
+          product: 'thns',
+          ms: ms
+        });
+      });
+      if (thBaseMs != null && !seen[thBase]) {
+        seen[thBase] = 1;
+        list.push({
+          basetime: thBase,
+          validtime: thBase,
+          kind: 'past',
+          product: 'thns',
+          ms: thBaseMs
+        });
+      }
+      if (thBaseMs != null) {
+        for (var step = 10; step <= 60; step += 10) {
+          var vtMs = thBaseMs + step * 60000;
+          if (vtMs > futureCut) break;
+          var vt = formatNowcUtc(vtMs);
+          if (seen[vt]) continue;
+          seen[vt] = 1;
+          list.push({
+            basetime: thBase,
+            validtime: vt,
+            kind: 'fc',
+            product: 'thns',
+            ms: vtMs
+          });
+        }
+      }
     } else if (nowcFresh) {
       n1.forEach(function (d) { add(d, 'past', 'hrpns'); });
       n2.forEach(function (d) { add(d, 'fc', 'hrpns'); });
@@ -1413,12 +1483,26 @@
       var levels = await Promise.all(sampleFrames.map(function (f) {
         return loadTileImageData(f, tile).then(function (img) {
           return maxThunderLevel(img, tile.px, tile.py, CFG.sampleR);
-        }).catch(function () { return 0; });
+        }).catch(function () { return -1; }); /* -1 = タイル取得失敗（活動なしと混同しない） */
       }));
-      var near = levels[0] || 0;
+      var ok = levels.filter(function (lv) { return lv >= 0; });
+      if (!ok.length) {
+        applyEstimateUI({
+          level: 'none',
+          pill: '確認中',
+          label: '雷活動を確認中',
+          sub: 'タイル取得を再試行します',
+          guide: '活動度の取得待ち',
+          guideSub: '黄1・橙2・赤3・紫4',
+          activityLabel: '—',
+          activity: 0
+        });
+        return;
+      }
+      var near = ok[0] || 0;
       var peak = near;
-      for (var i = 0; i < levels.length; i++) {
-        if (levels[i] > peak) peak = levels[i];
+      for (var i = 0; i < ok.length; i++) {
+        if (ok[i] > peak) peak = ok[i];
       }
       var use = Math.max(near, peak >= 2 ? peak : near);
       var est = Object.assign({}, defs[use] || defs[0]);
@@ -1428,7 +1512,7 @@
         est.sub = '正面の色の動きを確認';
       }
       applyEstimateUI(est);
-      console.log('[thunder-eta]', est.pill, 'near', near, 'peak', peak);
+      console.log('[thunder-eta]', est.pill, 'near', near, 'peak', peak, 'ok', ok.length);
     } catch (e) {
       console.warn('[thunder-eta]', e.message || e);
       applyEstimateUI(Object.assign({}, defs[0], {
