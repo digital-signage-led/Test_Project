@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>台風情報</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&display=optional">
+  <style>
+    html, body { margin: 0; background: #111111; color: #eee; font-family: "Noto Sans JP", "Hiragino Sans", sans-serif; box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body.native { width: 512px; height: 128px; overflow: hidden; }
+    .hint { padding: 16px 20px 8px; font-size: 13px; color: #aaa; }
+    .hint a { color: #9cf; }
+    .canvas { width: 512px; height: 128px; overflow: hidden; box-sizing: border-box; }
+    body:not(.native) .canvas { margin: 12px 20px; box-shadow: 0 0 0 1px #333; }
+    .qk-pair { width: 512px; height: 128px; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; background: #111111; color: #fff; }
+    .qk-pair.qk-mode-integrated { background: #0e1a16; }
+    .qk-badges { flex-shrink: 0; height: 30px; width: 512px; position: relative; overflow: hidden; background: #0F6B4C; }
+    .qk-badge-track {
+      position: absolute; top: 0; left: 0; height: 100%;
+      display: flex; align-items: center; width: max-content; white-space: nowrap;
+      animation: badge-flow 16s linear infinite;
+    }
+    .qk-badge-seg { display: inline-flex; align-items: center; height: 100%; gap: 36px; padding: 0 36px; flex: 0 0 auto; }
+    .qk-badge-txt { font-size: 17px; font-weight: 900; letter-spacing: 0.06em; color: #FFFFFF; }
+    @keyframes badge-flow {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+    .qk-body { flex: 1; min-height: 0; height: 98px; position: relative; overflow: hidden; width: 512px; }
+    .qk-track { position: absolute; top: 0; left: 0; height: 100%; display: flex; }
+    .qk-track-burst { align-items: center; white-space: nowrap; }
+    .qk-track-obs { align-items: stretch; }
+    .qk-mode-exclusive .qk-track-obs, .qk-mode-integrated .qk-track-burst, .qk-mode-exclusive .qk-foot { display: none; }
+    .qk-seg { display: inline-flex; align-items: center; height: 100%; gap: 14px; padding: 0 36px 0 10px; }
+    .qk-icon {
+      width: 72px; height: 72px; flex-shrink: 0; position: relative;
+      background: #4A90E2; border-radius: 18px; overflow: hidden;
+    }
+    .qk-icon img {
+      position: absolute; inset: 0; width: 72px; height: 72px; display: block;
+      animation: spin 2.4s linear infinite;
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .qk-msg { font-size: 34px; font-weight: 900; letter-spacing: 0.02em; line-height: 1.05; white-space: nowrap; color: #FFFFFF; }
+    .qk-obs { width: 128px; flex: 0 0 128px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-right: 1px solid rgba(255,255,255,.14); }
+    .qk-obs-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.78); }
+    .qk-obs-val { font-size: 32px; font-weight: 900; color: #fff; text-align: center; max-width: 120px; }
+    .qk-obs-val.sm { font-size: 18px; white-space: normal; line-height: 1.12; }
+    .qk-obs-val.accent { color: #FFE600; font-size: 26px; }
+    .qk-foot { height: 20px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; background: #fff9f0; color: #1a1a1a; font-size: 12px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <p class="hint" id="hint">台風情報　·　<a href="./index-5face.html">5面へ</a>　·　<a href="?mode=exclusive">ティッカー</a> / <a href="?mode=panel">4面</a> / <a href="?demo=1">デモ</a></p>
+  <div class="canvas">
+    <div class="qk-pair qk-mode-exclusive" id="shell">
+      <div class="qk-badges"><div class="qk-badge-track" id="badgeTrack">
+        <div class="qk-badge-seg"></div><div class="qk-badge-seg"></div>
+      </div></div>
+      <div class="qk-body">
+        <div class="qk-track qk-track-burst" id="burst">
+          <div class="qk-seg"><div class="qk-icon"><img class="qk-typhoon-swirl" src="./typhoon-swirl.png" width="72" height="72" alt=""></div><span class="qk-msg">--</span></div>
+          <div class="qk-seg"><div class="qk-icon"><img class="qk-typhoon-swirl" src="./typhoon-swirl.png" width="72" height="72" alt=""></div><span class="qk-msg">--</span></div>
+        </div>
+        <div class="qk-track qk-track-obs" id="obs">
+          <div class="qk-obs"><div class="qk-obs-label">対象</div><div class="qk-obs-val sm" data-k="area">--</div></div>
+          <div class="qk-obs"><div class="qk-obs-label">情報</div><div class="qk-obs-val accent" data-k="kind">台風</div></div>
+          <div class="qk-obs"><div class="qk-obs-label">発表</div><div class="qk-obs-val" data-k="time">--</div></div>
+          <div class="qk-obs"><div class="qk-obs-label">号数</div><div class="qk-obs-val" data-k="serial">--</div></div>
+          <div class="qk-obs"><div class="qk-obs-label">対象</div><div class="qk-obs-val sm" data-k="area">--</div></div>
+          <div class="qk-obs"><div class="qk-obs-label">情報</div><div class="qk-obs-val accent" data-k="kind">台風</div></div>
+          <div class="qk-obs"><div class="qk-obs-label">発表</div><div class="qk-obs-val" data-k="time">--</div></div>
+          <div class="qk-obs"><div class="qk-obs-label">号数</div><div class="qk-obs-val" data-k="serial">--</div></div>
+        </div>
+      </div>
+      <div class="qk-foot"><span id="footL">出典：気象庁</span><span>岸和田</span></div>
+    </div>
+  </div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  if (q.get('native640') === '1' || q.get('embed') === '1') {
+    document.body.classList.add('native');
+    var h = document.getElementById('hint');
+    if (h) h.style.display = 'none';
+  }
+  var panel = (q.get('mode') || '') === 'panel';
+  var forceDemo = q.get('demo') === '1';
+  var fallbackDemo = q.get('fallback') === 'demo';
+  var JMA_BASE = 'https://www.jma.go.jp/bosai/typhoon/data';
+
+  function clockFromDate(d) {
+    if (!(d instanceof Date) || isNaN(d.getTime())) d = new Date();
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  function parseWhen(v) {
+    if (!v) return new Date();
+    if (v instanceof Date) return isNaN(v.getTime()) ? new Date() : v;
+    if (typeof v === 'string') {
+      var d = new Date(v);
+      return isNaN(d.getTime()) ? new Date() : d;
+    }
+    if (v.JST) return parseWhen(v.JST);
+    if (v.UTC) return parseWhen(v.UTC);
+    return new Date();
+  }
+  function formatAnnounce(d) {
+    d = parseWhen(d);
+    return d.getFullYear() + '年' +
+      String(d.getMonth() + 1).padStart(2, '0') + '月' +
+      String(d.getDate()).padStart(2, '0') + '日' +
+      String(d.getHours()).padStart(2, '0') + '時' +
+      String(d.getMinutes()).padStart(2, '0') + '分発表';
+  }
+  function typhoonNoFromId_(num) {
+    var s = String(num || '');
+    if (/^\d{4}$/.test(s)) return String(Number(s.slice(2)));
+    if (/^\d+$/.test(s)) return String(Number(s));
+    return '';
+  }
+  function badgeTitle(no, nameJp, when) {
+    var head = no ? ('台風第' + no + '号') : '台風情報';
+    if (nameJp) head += '(' + nameJp + ')';
+    return head + '　' + formatAnnounce(when);
+  }
+  function movePhrase(analysis) {
+    var course = analysis && analysis.course ? String(analysis.course) : '';
+    var speed = analysis && analysis.speed;
+    var note = speed && speed.note && (speed.note.jp || speed.note);
+    if (note) return String(note);
+    var kmh = speed && (speed['km/h'] || speed.kmh);
+    if (course && kmh) return course + 'へ時速およそ' + kmh + 'km';
+    if (course && course !== '不定') return course + 'へ進行';
+    return '通過・接近中';
+  }
+  function demo() {
+    var announced = new Date(2026, 8, 1, 10, 20, 0);
+    return {
+      title: badgeTitle('24', 'クロヴァン', announced),
+      msg: '台風第24号「クロヴァン」が九州南部の南付近を通過・接近中　最大風速およそ35m/s。暴風・高波・大雨に注意して下さい（気象庁）',
+      area: '九州南部の南',
+      time: '10:20',
+      serial: '第24号'
+    };
+  }
+  function emptyLive() {
+    var now = new Date();
+    return {
+      title: '台風情報　' + formatAnnounce(now),
+      msg: 'ただいま発表中の台風はありません（気象庁）',
+      area: '岸和田',
+      time: clockFromDate(now),
+      serial: '--'
+    };
+  }
+  function payloadFromSpec(spec, meta) {
+    if (!Array.isArray(spec)) return null;
+    var title = spec.find(function (x) { return x && x.part === 'title'; }) || {};
+    var analysis = spec.find(function (x) {
+      return x && x.part && (x.part.en === 'Analysis' || x.part.jp === '実況');
+    }) || {};
+    var cat = (analysis.category && analysis.category.jp) || (title.category && title.category.jp) || '';
+    if (/温帯低気圧/.test(cat) && !/台風/.test(cat)) return null;
+    var raw = String(title.typhoonNumber || (meta && meta.typhoonNumber) || (meta && meta.tropicalCyclone) || '');
+    var no = typhoonNoFromId_(raw);
+    var nameJp = (title.name && title.name.jp) || '';
+    var loc = analysis.location || '日本の南';
+    var sus = analysis.maximumWind && analysis.maximumWind.sustained;
+    var ms = sus && sus['m/s'];
+    var kt = sus && sus.kt;
+    var wind = (ms != null && isFinite(Number(ms)))
+      ? Math.round(Number(ms))
+      : (kt != null && isFinite(Number(kt)) ? Math.round(Number(kt) * 0.5144) : null);
+    var when = parseWhen((title.issue && (title.issue.JST || title.issue.UTC)) || analysis.validtime);
+    var head = no ? ('台風第' + no + '号') : (cat || '台風情報');
+    var name = nameJp ? '「' + nameJp + '」' : '';
+    var w = wind != null ? ('　最大風速およそ' + wind + 'm/s') : '';
+    return {
+      title: badgeTitle(no, nameJp, when),
+      msg: head + name + 'は' + loc + 'にあって' + movePhrase(analysis) + w + '。暴風・高波・大雨に注意して下さい（気象庁）',
+      area: loc,
+      time: clockFromDate(when),
+      serial: no ? ('第' + no + '号') : '--',
+      serialNum: no ? Number(no) : 0
+    };
+  }
+  function apply(p) {
+    var shell = document.getElementById('shell');
+    shell.className = 'qk-pair' + (panel ? ' qk-mode-integrated' : ' qk-mode-exclusive');
+    document.querySelectorAll('.qk-badge-seg').forEach(function (seg) {
+      seg.innerHTML = '';
+      for (var i = 0; i < 3; i++) {
+        var b = document.createElement('div');
+        b.className = 'qk-badge-txt';
+        b.textContent = p.title;
+        seg.appendChild(b);
+      }
+    });
+    document.querySelectorAll('.qk-msg').forEach(function (el) { el.textContent = p.msg; });
+    document.querySelectorAll('[data-k="area"]').forEach(function (el) { el.textContent = p.area; });
+    document.querySelectorAll('[data-k="time"]').forEach(function (el) { el.textContent = p.time; });
+    document.querySelectorAll('[data-k="serial"]').forEach(function (el) { el.textContent = p.serial; });
+    document.getElementById('footL').textContent = '出典：気象庁　' + p.time;
+  }
+  function measure(sel) {
+    var el = document.querySelector(sel);
+    if (!el) return 512;
+    el.style.width = 'auto';
+    return Math.max(512, Math.ceil(el.offsetWidth));
+  }
+  function startScroll() {
+    document.querySelectorAll('#burst .qk-seg').forEach(function (s) { s.style.width = 'auto'; });
+    var segW = panel ? 512 : Math.max(520, measure('#burst .qk-seg'));
+    document.querySelectorAll('#burst .qk-seg').forEach(function (s) {
+      s.style.flex = '0 0 ' + segW + 'px';
+      s.style.width = segW + 'px';
+    });
+    var x = 0;
+    var track = panel ? document.getElementById('obs') : document.getElementById('burst');
+    function step() {
+      x -= 1.6;
+      var lap = panel ? 512 : segW;
+      if (x <= -lap) x += lap;
+      track.style.transform = 'translate3d(' + Math.round(x) + 'px,0,0)';
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function notifyParent(status, payload) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'kishiwada-typhoon', status: status, payload: payload || null }, '*');
+      }
+    } catch (_) {}
+  }
+  function fetchJson(url) {
+    return fetch(url, { cache: 'no-store', mode: 'cors' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+  function fetchLiveBest() {
+    return fetchJson(JMA_BASE + '/targetTc.json').then(function (targets) {
+      var list = Array.isArray(targets) ? targets : [];
+      if (!list.length) return null;
+      return Promise.all(list.map(function (t) {
+        var id = t && (t.tropicalCyclone || t);
+        if (typeof id !== 'string') return Promise.resolve(null);
+        return fetchJson(JMA_BASE + '/' + id + '/specifications.json')
+          .then(function (spec) { return payloadFromSpec(spec, t); })
+          .catch(function () { return null; });
+      })).then(function (rows) {
+        var best = null;
+        rows.forEach(function (row) {
+          if (!row) return;
+          if (!best || (row.serialNum || 0) >= (best.serialNum || 0)) best = row;
+        });
+        return best;
+      });
+    });
+  }
+  function show(p) {
+    apply(p);
+    startScroll();
+  }
+
+  if (forceDemo) {
+    show(demo());
+    notifyParent('demo');
+    return;
+  }
+  fetchLiveBest()
+    .then(function (p) {
+      if (p) {
+        show(p);
+        notifyParent('ok', p);
+        return;
+      }
+      show(fallbackDemo ? demo() : emptyLive());
+      notifyParent(fallbackDemo ? 'demo' : 'none');
+    })
+    .catch(function () {
+      show(fallbackDemo ? demo() : emptyLive());
+      notifyParent(fallbackDemo ? 'demo' : 'error');
+    });
+})();
+</script>
+</body>
+</html>

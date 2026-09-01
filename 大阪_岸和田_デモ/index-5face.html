@@ -11,7 +11,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v1 -->
-    <title>WBGT Signage 5面 - 岸和田</title>
+    <title>WBGT Signage 5面 - 岸和田 · デジタルサイネージ</title>
     <link rel="preload" as="image" href="./assets/greencross_logo.png?v=1">
     <link rel="preload" as="image" href="./assets/greencross_foot_name.svg?v=2">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=optional">
@@ -947,7 +947,7 @@
             height: auto; padding: 0;
         }
         /* --- 熱中症アラート（256×128モジュール×2。各256内で同じ文言が追随して流れる） --- */
-        #sceneAlert.active { display: block; }
+        #sceneAlert, #sceneAlert.active { display: none !important; }
 
         /* 現場お知らせ — ナウキャストと同じ2段（上24px・本文104px） */
         #sceneMessage {
@@ -1038,6 +1038,12 @@
         .ha-pair.ha-special .ha-l2 { color: #FFFFFF; }
         /* --- 大雨警報（256×128×2・熱中症アラートと同型） --- */
         #sceneRainWarn.active { display: block; }
+        #sceneTyphoon.active { display: block; }
+        #sceneTyphoon { background: #111111; }
+        #typhoon-frame {
+            display: block; width: 512px; height: 128px; border: 0; margin: 0; padding: 0;
+            background: #111111; overflow: hidden;
+        }
         .ra-pair { width: 512px; height: 128px; display: flex; flex-direction: row; font-family: "Noto Sans JP", sans-serif; }
         body.native-640:not(.layout-512) .ra-pair { width: 640px; }
         .ra-unit {
@@ -2007,7 +2013,7 @@
         </div>
     </div>
 
-    <div class="scene" id="sceneAlert">
+    <div class="scene" id="sceneAlert" hidden aria-hidden="true">
         <div class="ha-pair ha-warning" id="ha-pair">
             <div class="ha-unit">
                 <div class="ha-line top"></div>
@@ -2100,6 +2106,9 @@
                 <div class="ra-line bottom"></div>
             </div>
         </div>
+    </div>
+    <div class="scene" id="sceneTyphoon">
+        <iframe id="typhoon-frame" title="台風情報" src="about:blank" width="512" height="128" scrolling="no"></iframe>
     </div>
     <div class="scene" id="scene1"><script>(function(){var o=(new URLSearchParams(location.search).get('only')||'').toLowerCase();if(!o||o==='s1'||o==='1'||o==='clock'){var s=document.getElementById('scene1');if(s)s.classList.add('active');}})();</script>
         <div class="scene1-state active" id="s1-stateA">
@@ -2533,6 +2542,10 @@
     const DEMO_SIGNAGE = demoParam === '1' || demoParam === 'all' || demoParam === 'full';
     const DEMO_ALERT_ONLY = demoParam === 'alert';  /* demo=alert のときだけサンプル。only= は本番データ */
     const DEMO_RAINWARN_ONLY = demoParam === 'rainwarn' || query.get('only') === 'rainwarn';
+    const DEMO_TYPHOON_ONLY = demoParam === 'typhoon' || query.get('only') === 'typhoon' || query.get('only') === 'ty' || query.get('only') === 'tc';
+    const PLAY_TYPHOON_DEMO = query.get('typhoon') === '1' || query.get('typhoon') === 'demo';
+    /** 本番: 気象庁に発表があるときだけ一周に入れる。?typhoon=demo で固定デモ */
+    const TYPHOON_DISABLED = query.get('notyphoon') === '1' || query.get('typhoon') === '0';
     const WBGT_ONLY = query.get('wbgtOnly') === '1';
     /** 大雨警報シーンを有効化 */
     const SITE_CFG = window.SignageConfig || {};
@@ -2622,8 +2635,11 @@
     /** 表示・取得スケジュールは常に日本標準時 */
     const CLOCK_TZ = 'Asia/Tokyo';
     const NO_JMA_WARN = false;
-    /** 熱中症アラートシーンを有効化（環境省発表時に表示） */
-    const NO_HEAT_ALERT = false;
+    /** デモ: 一周に注意報→警報→危険警報→特別警報を必ず流す。?nowarn=1 または ?rainwarn= 指定時は無効 */
+    const DEMO_WARN_ADVISORY_WARNING = query.get('nowarn') !== '1';
+    const DEMO_WARN_LEVELS = ['advisory', 'warning', 'danger', 'special'];
+    /** 熱中症アラートは仕様削除。発表があっても表示しない */
+    const NO_HEAT_ALERT = true;
     const RAIN_HERO_OFF = query.get('rainhero') === '0';
     /* 既定: 警報・注意報情報（色付き3段 ra-hero）。?rainwhite=1 で白ベース一覧 */
     const RAIN_WHITE_DESIGN = query.get('rainwhite') === '1';
@@ -2632,20 +2648,20 @@
     /*
      * 流れる順の表示番号（順序は変えずラベルのみ）
      *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
-     *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
+     *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → 注意報→警報→危険警報→特別警報 → 台風（気象庁に発表があるとき） → シーン1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
      */
     function normalizeOnlyParam_(raw) {
         if (raw == null || raw === '') return null;
         const v = String(raw).toLowerCase();
-        if (v === 'alert') return 'alert';
         if (v === 'rainwarn') return 'rainwarn';
+        if (v === 'typhoon' || v === 'ty' || v === 'tc') return 'typhoon';
         if (v === 'message' || v === 'msg') return 'message';
         const map = { '1': 's1', '2': 's2', '3': 's4', '4': 's5', '5': 's3', s1: 's1', s2: 's2', s3: 's3', s4: 's4', s5: 's5' };
         return map[v] || null;
     }
     const SCENE_LABEL_BY_KEY = {
-        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', alert: '熱中症アラート', rainwarn: '大雨警報', message: 'メッセージ'
+        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', rainwarn: '大雨警報', typhoon: '台風情報', message: 'メッセージ'
     };
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
     /* only= 指定時は HTML 初期の時計(scene1.active)を即座に消し、誤表示を防ぐ */
@@ -2740,6 +2756,8 @@
     const DEMO_RAIN_PASS_ORDER = ['hero', 'white'];
     let demoRainPassIdx_ = 0;
     function isDemoFullRainLoop_() {
+        /* 岸和田デモは注意報→警報→危険警報→特別警報。早期注意と白ベース通しは出さない */
+        if (DEMO_WARN_ADVISORY_WARNING && !parseRainWarnParam_().length) return false;
         return DEMO_SIGNAGE && !DEMO_ONLY && !DEMO_RAINWARN_ONLY && !NO_JMA_WARN;
     }
     function demoRainPassKind_() {
@@ -3325,7 +3343,76 @@
     const s5 = document.getElementById('scene5');
     const sceneAlert = document.getElementById('sceneAlert');
     const sceneRainWarn = document.getElementById('sceneRainWarn');
+    const sceneTyphoon = document.getElementById('sceneTyphoon');
     const sceneMessage = document.getElementById('sceneMessage');
+    const TYPH_EXCLUSIVE_MS = 60000;
+    let typhoonHoldTimerId_ = null;
+    let typhoonPlayedThisLoop_ = false;
+    let typhoonLiveActive_ = false;
+    function typhoonFrameSrc_() {
+        const q = new URLSearchParams();
+        q.set('native640', '1');
+        q.set('embed', '1');
+        if ((query.get('mode') || '') === 'panel') q.set('mode', 'panel');
+        if (query.get('typhoon') === 'demo') {
+            q.set('demo', '1');
+        } else {
+            q.set('live', '1');
+            if (PLAY_TYPHOON_DEMO || DEMO_TYPHOON_ONLY) q.set('fallback', 'demo');
+        }
+        return './typhoon.html?' + q.toString();
+    }
+    function shouldPlayTyphoonInLoop_() {
+        if (!sceneTyphoon || typhoonPlayedThisLoop_) return false;
+        if (TYPHOON_DISABLED) return false;
+        if (DEMO_ONLY && DEMO_ONLY !== 'typhoon') return false;
+        if (typeof WBGT_ONLY !== 'undefined' && WBGT_ONLY) return false;
+        if (typeof loopAllows_ === 'function' && LOOP_RESTRICT && !loopAllows_('typhoon')) return false;
+        if (PLAY_TYPHOON_DEMO || DEMO_TYPHOON_ONLY) return true;
+        return typhoonLiveActive_;
+    }
+    async function updateTyphoonFromJma_() {
+        if (TYPHOON_DISABLED) {
+            typhoonLiveActive_ = false;
+            return;
+        }
+        if (PLAY_TYPHOON_DEMO || DEMO_TYPHOON_ONLY) {
+            typhoonLiveActive_ = true;
+            return;
+        }
+        try {
+            const res = await fetch('https://www.jma.go.jp/bosai/typhoon/data/targetTc.json', { cache: 'no-store', mode: 'cors' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const targets = await res.json();
+            const list = Array.isArray(targets) ? targets : [];
+            typhoonLiveActive_ = list.some(function (t) {
+                const cat = String((t && t.category) || '').toUpperCase();
+                return cat !== 'EX' && cat !== 'LPA';
+            });
+            console.log('[台風情報]', typhoonLiveActive_ ? ('発表中 ' + list.length + '件') : '発表なし');
+        } catch (e) {
+            console.warn('[台風情報] 取得失敗:', e.message || e);
+            typhoonLiveActive_ = false;
+        }
+    }
+    function playSceneTyphoon() {
+        const frame = document.getElementById('typhoon-frame');
+        if (frame) frame.src = typhoonFrameSrc_();
+        applySignageLogoPanel_();
+        if (typeof stepLogo90 === 'function') stepLogo90(420, true);
+        if (DEMO_TYPHOON_ONLY || DEMO_ONLY === 'typhoon') return;
+        if (typhoonHoldTimerId_ != null) clearTimeout(typhoonHoldTimerId_);
+        typhoonHoldTimerId_ = setTimeout(function () {
+            typhoonHoldTimerId_ = null;
+            finishMainLoopToS1_();
+        }, TYPH_EXCLUSIVE_MS);
+    }
+    function preloadTyphoonFrame_() {
+        if (!shouldPlayTyphoonInLoop_() && !typhoonLiveActive_ && !PLAY_TYPHOON_DEMO && !DEMO_TYPHOON_ONLY) return;
+        if (DEMO_ONLY && DEMO_ONLY !== 'typhoon') return;
+        const frame = document.getElementById('typhoon-frame');
+        if (frame) frame.src = typhoonFrameSrc_();
+    }
     let siteMsgAnimId = null;
     let siteMsgHoldTimer = null;
     const d5Conveyor = document.getElementById('d5-conveyor');
@@ -3959,7 +4046,9 @@
     }
     function lockHeroSegNaturalW_(segSel) {
         const el = document.querySelector('#sceneRainWarn ' + segSel);
-        const w = Math.max(heroViewportW_(), measureHeroSegNaturalW_(el));
+        const natural = measureHeroSegNaturalW_(el);
+        /* ビューポート幅まで伸ばすと短い文言のあとに空白ができる。自然幅でループする */
+        const w = natural > 8 ? natural : heroViewportW_();
         applyHeroSegLoopW_(segSel, w);
         return w;
     }
@@ -4475,12 +4564,18 @@
     if (NO_JMA_WARN && rainWarnPreviewUnlock_ && !rainWarnActive.length) {
         rainWarnActive = ['warning'];
     }
-    if ((!NO_JMA_WARN || rainWarnPreviewUnlock_) && DEMO_SIGNAGE && !DEMO_ONLY && !parseRainWarnParam_().length) {
-        rainWarnActive = isDemoFullRainLoop_() ? RAIN_WARN_ORDER.slice() : ['warning', 'danger', 'special'];
-        if (isDemoFullRainLoop_()) rainWarnKindActive = JMA_L3_KINDS.slice();
+    if (DEMO_WARN_ADVISORY_WARNING && !DEMO_ONLY && !DEMO_RAINWARN_ONLY && !parseRainWarnParam_().length) {
+        rainWarnActive = DEMO_WARN_LEVELS.slice();
+    } else if ((!NO_JMA_WARN || rainWarnPreviewUnlock_) && DEMO_SIGNAGE && !DEMO_ONLY && !parseRainWarnParam_().length) {
+        rainWarnActive = DEMO_WARN_LEVELS.slice();
     }
     let rainWarnKindActive = parseWarnKindParam_();
-    const rainWarnForced = (!NO_JMA_WARN || rainWarnPreviewUnlock_) && (parseRainWarnParam_().length > 0 || DEMO_SIGNAGE || DEMO_RAINWARN_ONLY);
+    const rainWarnForced = (!NO_JMA_WARN || rainWarnPreviewUnlock_) && (
+        parseRainWarnParam_().length > 0
+        || DEMO_SIGNAGE
+        || DEMO_RAINWARN_ONLY
+        || (DEMO_WARN_ADVISORY_WARNING && !DEMO_ONLY)
+    );
     const warnKindForced = !!(query.get('warntype') || query.get('warnkind'));
     function buildRainWhiteDemoQueue_() {
         const q = [];
@@ -4646,6 +4741,12 @@
             if (f.length) return f;
         }
         if (levelKindAllMode_(levelKey)) return order;
+        if (DEMO_WARN_ADVISORY_WARNING && !warnKindForced && !parseRainWarnParam_().length && !isRainWarnAllLevels_()) {
+            if (levelKey === 'advisory') return ['heavyrain'];
+            if (levelKey === 'warning') return ['rain'];
+            if (levelKey === 'danger') return ['heavyrain'];
+            if (levelKey === 'special') return ['rain'];
+        }
         if (levelKey === 'warning') {
             if (!rainWarnForced) return rainWarnKindActive.length ? rainWarnKindActive : ['rain'];
             return rainWarnKindActive.length > 1 ? rainWarnKindActive : JMA_L3_KIND_ORDER.slice();
@@ -5046,6 +5147,16 @@
             playSceneRainWarn(0);
             return;
         }
+        if (DEMO_TYPHOON_ONLY || DEMO_ONLY === 'typhoon') {
+            if (sceneTyphoon) transitionToScene(sceneTyphoon, playSceneTyphoon);
+            return;
+        }
+        if (shouldPlayTyphoonInLoop_()) {
+            typhoonPlayedThisLoop_ = true;
+            transitionToScene(sceneTyphoon, playSceneTyphoon);
+            return;
+        }
+        typhoonPlayedThisLoop_ = false;
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
         loopSkipGuard_ = 0;
         if (tryPlayLoopScene_('s1', s1, playScene1)) return;
@@ -5223,8 +5334,22 @@
                         });
                         return;
                     } else {
-                        raAnimId = null; raFlow_ = null;
-                        runAfterSceneEndHold_(finishMainLoopToS1_);
+                        raFlow_.midLaps = 0;
+                        raFlow_.warnIdx += 1;
+                        if (raFlow_.warnIdx >= rainWarnActive.length) {
+                            raAnimId = null; raFlow_ = null;
+                            runAfterSceneEndHold_(finishMainLoopToS1_);
+                            return;
+                        }
+                        raAnimId = null;
+                        holdThenNextContent_(function () {
+                            setRainWarn_(raFlow_.warnIdx, 0);
+                            const midW2 = raFlow_.midBandW || RA_WHITE_BAND_W;
+                            raFlow_.midBandX = wrapScrollX_(globalScrollX_, midW2);
+                            if (raFlow_.heroBundle) applyRaHeroMidX_(raFlow_.midBandX);
+                        }, function () {
+                            raAnimId = requestAnimationFrame(step);
+                        });
                         return;
                     }
                 }
@@ -5329,7 +5454,7 @@
         const seedLevel = (parseRainWarnParam_()[0]) || (rainWarnActive[0]) || 'warning';
         rainWarnActive = [seedLevel];
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneMessage].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneTyphoon, sceneMessage].forEach(hideSceneEl);
         if (sceneRainWarn) {
             sceneRainWarn.style.display = 'block';
             sceneRainWarn.classList.add('active');
@@ -6225,7 +6350,7 @@
         if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
         if ((DEMO_ONLY && DEMO_ONLY !== 's1') || DEMO_RAINWARN_ONLY || DEMO_ALERT_ONLY) {
-            [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneMessage].forEach(hideSceneEl);
+            [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneTyphoon, sceneMessage].forEach(hideSceneEl);
             return;
         }
         if (s1) {
@@ -6341,6 +6466,10 @@
                     const sWarn = performance.now();
                     await updateRainWarnFromGas_();
                     timings['大雨警報'] = Math.round(performance.now() - sWarn);
+                    const sTy = performance.now();
+                    await updateTyphoonFromJma_();
+                    if (typhoonLiveActive_ || PLAY_TYPHOON_DEMO || DEMO_TYPHOON_ONLY) preloadTyphoonFrame_();
+                    timings['台風情報'] = Math.round(performance.now() - sTy);
                     jmaOk = true;
                 } catch (error) {
                     console.error('JMA fetch error:', error);
@@ -7456,7 +7585,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneTyphoon') return 'block';
         if (el.id === 'sceneMessage') return 'flex';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         return 'flex';
@@ -7527,14 +7656,9 @@
         if (tryPlayLoopScene_('s2', s2, playScene2)) return;
         gotoSceneAfterScene2_();
     }
-    /* シーン3（多言語WBGT）の後 → シーン1 */
+    /* シーン3（多言語WBGT）の後 → 大雨／シーン1（熱中症アラートは出さない） */
     function gotoAfterScene3Tail_() {
         if (WBGT_ONLY) { finishMainLoopToS1_(); return; }
-        if (wbgtNormalDisplay_() && heatAlertActive.length && sceneAlert) {
-            prepHeatAlert_(0);
-            transitionToScene(sceneAlert, () => playSceneAlert(0));
-            return;
-        }
         gotoAfterRainWarnOrScene1_();
     }
     function gotoAfterScene3_() {
@@ -7587,6 +7711,11 @@
     }
     /* 各256×128内：256pxスロット×2が中央揃えで流れ、1周256pxでシームレス */
     function playSceneAlert(startIdx) {
+        if (NO_HEAT_ALERT) {
+            if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
+            gotoAfterRainWarnOrScene1_();
+            return;
+        }
         if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
         if (!heatAlertActive.length) {
             if (DEMO_ALERT_ONLY) return;
@@ -7672,18 +7801,7 @@
         });
     }
     function startAlertOnlyDemo_() {
-        resetLogoRotation();
-        [s1, s2, s3, s4, s5].forEach(hideSceneEl);
-        if (sceneAlert) {
-            sceneAlert.style.display = 'block';
-            sceneAlert.classList.add('active');
-            sceneAlert.style.transform = 'translateX(0px)';
-        }
-        const badge = document.getElementById('demo-badge');
-        if (badge && shouldShowDemoBadge_()) { badge.hidden = false; badge.textContent = '確認 · 熱中症アラート'; }
-        else if (badge) { badge.hidden = true; }
-        if (!DEMO_EMBED) document.title = '熱中症アラート デモ';
-        playSceneAlert(0);
+        gotoAfterRainWarnOrScene1_();
     }
     function splitT3Message_(text) {
         const s = String(text || '').trim();
@@ -8673,7 +8791,7 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneMessage].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneTyphoon, sceneMessage].forEach(hideSceneEl);
         if (!el) return;
         el.style.display = sceneDisplayMode(el);
         el.classList.add('active');
@@ -8703,6 +8821,7 @@
                 case 's3': showOnlyScene_(s3, playScene3); break;
                 case 's4': showOnlyScene_(s4, playScene4); break;
                 case 's5': showOnlyScene_(s5, playScene5); break;
+                case 'typhoon': showOnlyScene_(sceneTyphoon, playSceneTyphoon); break;
                 default: break;
             }
         }
@@ -8719,11 +8838,15 @@
             startRainWarnOnlyDemo_();
             return;
         }
+        if (typeof DEMO_TYPHOON_ONLY !== 'undefined' && DEMO_TYPHOON_ONLY) {
+            showOnlyScene_(sceneTyphoon, playSceneTyphoon);
+            return;
+        }
         if (typeof DEMO_EVAC_ONLY !== 'undefined' && DEMO_EVAC_ONLY && typeof startEvacOnlyDemo_ === 'function') {
             startEvacOnlyDemo_();
             return;
         }
-        if (typeof DEMO_ALERT_ONLY !== 'undefined' && DEMO_ALERT_ONLY && typeof startAlertOnlyDemo_ === 'function') {
+        if (typeof DEMO_ALERT_ONLY !== 'undefined' && DEMO_ALERT_ONLY && !NO_HEAT_ALERT && typeof startAlertOnlyDemo_ === 'function') {
             startAlertOnlyDemo_();
             return;
         }
@@ -8752,7 +8875,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneMessage].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneTyphoon, sceneMessage].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -8782,7 +8905,7 @@
         }
         clearDemoStepTimer_();
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneMessage].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneTyphoon, sceneMessage].forEach(hideSceneEl);
         loopSkipGuard_ = 0;
         if (tryPlayLoopScene_('s1', s1, playScene1)) return;
         gotoSceneAfterScene1_();
@@ -8813,6 +8936,11 @@
         if (DEMO_RAINWARN_ONLY) {
             bootDisplayHold_ = false;
             setTimeout(startRainWarnOnlyDemo_, 300);
+            return;
+        }
+        if (DEMO_TYPHOON_ONLY) {
+            bootDisplayHold_ = false;
+            setTimeout(function () { showOnlyScene_(sceneTyphoon, playSceneTyphoon); }, 200);
             return;
         }
         if (DEMO_SIGNAGE_ACTIVE) {
