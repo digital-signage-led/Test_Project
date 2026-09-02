@@ -81,7 +81,7 @@
   height: 128px;
   width: max-content;
   white-space: nowrap;
-  animation: scroll-rtl 49s linear infinite;
+  animation: scroll-rtl 64s linear infinite;
 }
 
 .banner.pause .track {
@@ -91,7 +91,7 @@
 
 @keyframes scroll-rtl {
   0%,
-  2.041% {
+  1.563% {
     transform: translateX(0);
   }
   100% {
