@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>週間工程表 デモ 512×128</title>
+  <link rel="stylesheet" href="banners.css">
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #000000;
+      overflow: hidden;
+    }
+    #root {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 512px;
+      height: 128px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="banners.js"></script>
+  <script>
+    document.getElementById("root").innerHTML = renderBanner(1, {
+      loop: true,
+      pause: false
+    });
+  </script>
+</body>
+</html>

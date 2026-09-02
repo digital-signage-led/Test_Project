@@ -1,0 +1,201 @@
+@font-face {
+  font-family: "Noto Sans JP Sign";
+  src: url("NotoSansJP-VF.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.banner {
+  width: 512px;
+  height: 128px;
+  overflow: hidden;
+  background: #edeee9;
+  color: #202020;
+  font-family: "Noto Sans JP Sign", "Yu Gothic", "Yu Gothic UI", sans-serif;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.banner::before,
+.banner::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 512px;
+  height: 4px;
+  background: #4a913c;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.banner::before {
+  top: 0;
+}
+
+.banner::after {
+  bottom: 0;
+}
+
+.banner.solo .sep,
+.banner.solo .flow {
+  display: none;
+}
+
+.banner.solo .row {
+  padding: 0 20px;
+}
+
+.banner.solo .item {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 472px;
+  height: 128px;
+  gap: 8px;
+}
+
+.banner.solo .main,
+.banner.solo .next-work {
+  font-size: 52px;
+  letter-spacing: 0.08em;
+}
+
+.banner.solo .wareki {
+  font-size: 28px;
+}
+
+.banner.solo .youbi,
+.banner.solo .colon {
+  font-size: 30px;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  height: 128px;
+  width: max-content;
+  white-space: nowrap;
+  animation: scroll-rtl 49s linear infinite;
+}
+
+.banner.pause .track {
+  animation: none;
+  transform: translateX(var(--scroll, 0));
+}
+
+@keyframes scroll-rtl {
+  0%,
+  2.041% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  height: 128px;
+  flex-shrink: 0;
+  padding: 0 16px 0 14px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.meta,
+.work-line {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.item:not(.is-now) .next-work {
+  margin-left: 8px;
+}
+
+.wareki {
+  font-size: 32px;
+  font-weight: 800;
+  color: #202020;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.colon {
+  font-size: 48px;
+  font-weight: 800;
+  color: #202020;
+  line-height: 1;
+  margin: 0 8px 0 4px;
+}
+
+.youbi {
+  font-size: 40px;
+  font-weight: 800;
+  color: #4a913c;
+  line-height: 1;
+}
+
+.youbi-sat {
+  color: #2b6cb0;
+}
+
+.youbi-sun {
+  color: #c43c3c;
+}
+
+.play {
+  width: 48px;
+  height: 48px;
+  margin: 0 16px 0 14px;
+  flex-shrink: 0;
+}
+
+.play svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.main {
+  font-size: 72px;
+  font-weight: 900;
+  color: #202020;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.sep {
+  width: 6px;
+  height: 80px;
+  margin: 0 36px;
+  background: #4a913c;
+  flex-shrink: 0;
+}
+
+.flow {
+  display: flex;
+  align-items: center;
+  margin: 0 18px 0 16px;
+  flex-shrink: 0;
+}
+
+.next-work {
+  font-size: 56px;
+  font-weight: 800;
+  color: #202020;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  margin-left: 14px;
+}

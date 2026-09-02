@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>週間工程表 イメージ 7点</title>
+  <link rel="stylesheet" href="banners.css">
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #000000;
+    }
+    body {
+      font-family: "Yu Gothic UI", "Yu Gothic", sans-serif;
+      color: #c8c8c8;
+      padding: 28px;
+    }
+    h1 { font-size: 18px; margin: 0 0 6px; color: #e8e8e8; }
+    p { font-size: 13px; color: #8a8a8a; margin: 0 0 18px; }
+    .stage {
+      width: 512px;
+      height: 128px;
+      overflow: hidden;
+      margin-bottom: 18px;
+      background: #000000;
+    }
+    h2 {
+      font-size: 13px;
+      margin: 0 0 8px;
+      color: #8a8a8a;
+    }
+  </style>
+</head>
+<body>
+  <h1>【週間工程表　イメージ】</h1>
+  <p>デモ版　512×128　7件　右→左スクロール</p>
+  <div class="stage" id="live"></div>
+  <div id="days"></div>
+  <script src="banners.js"></script>
+  <script>
+    document.getElementById("live").innerHTML = renderBanner(1, { loop: true, pause: false });
+    const box = document.getElementById("days");
+    DAYS.forEach((day, i) => {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = `<h2>${day.wareki}（${day.youbi}）：${day.work}</h2><div class="stage"></div>`;
+      wrap.querySelector(".stage").innerHTML = renderBanner(1, { day: i, pause: true, loop: false });
+      box.appendChild(wrap);
+    });
+  </script>
+</body>
+</html>
