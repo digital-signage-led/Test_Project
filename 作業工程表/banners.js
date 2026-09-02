@@ -1,8 +1,8 @@
 const PLAY = `
 <span class="play" aria-hidden="true">
   <svg viewBox="0 0 34 34">
-    <circle cx="17" cy="17" r="17" fill="#4A913C"/>
-    <polygon points="13,9 13,25 26,17" fill="#EDEEE9"/>
+    <circle class="play-bg" cx="17" cy="17" r="17"/>
+    <polygon class="play-tri" points="13,9 13,25 26,17"/>
   </svg>
 </span>`;
 
@@ -21,6 +21,7 @@ const DAYS = [
 
 function item(day) {
   const workClass = day.current ? "main" : "next-work";
+  const holiday = day.work === "全休日" ? " holiday" : "";
   return `
   <div class="item${day.current ? " is-now" : ""}">
     <span class="meta">
@@ -30,7 +31,7 @@ function item(day) {
     </span>
     <span class="work-line">
       ${day.current ? PLAY : ""}
-      <span class="${workClass}">${day.work}</span>
+      <span class="${workClass}${holiday}">${day.work}</span>
     </span>
   </div>`;
 }

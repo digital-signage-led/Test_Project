@@ -57,22 +57,22 @@
   justify-content: center;
   width: 472px;
   height: 128px;
-  gap: 8px;
+  gap: 4px;
 }
 
 .banner.solo .main,
 .banner.solo .next-work {
-  font-size: 52px;
+  font-size: 70px;
   letter-spacing: 0.08em;
 }
 
 .banner.solo .wareki {
-  font-size: 28px;
+  font-size: 40px;
 }
 
 .banner.solo .youbi,
 .banner.solo .colon {
-  font-size: 30px;
+  font-size: 44px;
 }
 
 .track {
@@ -124,8 +124,19 @@
   margin-left: 8px;
 }
 
+.item:not(.is-now) .wareki,
+.item:not(.is-now) .colon {
+  color: #202020;
+}
+
+.item.is-now .work-line {
+  background: #4a913c;
+  padding: 4px 20px 4px 14px;
+  margin-left: 6px;
+}
+
 .wareki {
-  font-size: 32px;
+  font-size: 44px;
   font-weight: 800;
   color: #202020;
   line-height: 1;
@@ -133,7 +144,7 @@
 }
 
 .colon {
-  font-size: 48px;
+  font-size: 64px;
   font-weight: 800;
   color: #202020;
   line-height: 1;
@@ -141,7 +152,7 @@
 }
 
 .youbi {
-  font-size: 40px;
+  font-size: 56px;
   font-weight: 800;
   color: #4a913c;
   line-height: 1;
@@ -156,9 +167,9 @@
 }
 
 .play {
-  width: 48px;
-  height: 48px;
-  margin: 0 16px 0 14px;
+  width: 64px;
+  height: 64px;
+  margin: 0 16px 0 4px;
   flex-shrink: 0;
 }
 
@@ -168,17 +179,33 @@
   height: 100%;
 }
 
+.play-bg {
+  fill: #4a913c;
+}
+
+.play-tri {
+  fill: #edeee9;
+}
+
+.item.is-now .play-bg {
+  fill: #edeee9;
+}
+
+.item.is-now .play-tri {
+  fill: #4a913c;
+}
+
 .main {
-  font-size: 72px;
+  font-size: 86px;
   font-weight: 900;
-  color: #202020;
+  color: #edeee9;
   letter-spacing: 0.1em;
   line-height: 1;
 }
 
 .sep {
   width: 6px;
-  height: 80px;
+  height: 104px;
   margin: 0 36px;
   background: #4a913c;
   flex-shrink: 0;
@@ -192,10 +219,19 @@
 }
 
 .next-work {
-  font-size: 56px;
+  font-size: 72px;
   font-weight: 800;
   color: #202020;
   letter-spacing: 0.1em;
   line-height: 1;
   margin-left: 14px;
+}
+
+.holiday {
+  color: #c43c3c;
+}
+
+.banner.solo .item.is-now .work-line {
+  width: 100%;
+  box-sizing: border-box;
 }
