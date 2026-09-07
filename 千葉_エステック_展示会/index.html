@@ -1790,14 +1790,14 @@
             backface-visibility: hidden;
         }
         .ra-white-header-seg {
-            width: 512px;
-            flex: 0 0 512px;
+            width: auto;
+            flex: 0 0 auto;
             display: flex;
             flex-direction: row;
             align-items: center;
             justify-content: flex-start;
             height: 100%;
-            padding: 0 10px;
+            padding: 0 16px 0 10px;
             box-sizing: border-box;
             gap: 10px;
         }
@@ -1810,14 +1810,13 @@
             letter-spacing: 0.3px;
         }
         .ra-white-what {
-            flex: 1 1 auto;
+            flex: 0 0 auto;
             min-width: 0;
             font-size: 14px;
             font-weight: 700;
             color: #0854A8;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            overflow: visible;
             letter-spacing: 0.2px;
         }
         .ra-white-time {
@@ -2582,8 +2581,8 @@
         return null;
     })();
     const DEMO_SIGNAGE_ACTIVE = DEMO_SIGNAGE || !!DEMO_ONLY;
-    /* フルデモ警報: 色付き3段（L1〜L5）→ 白ベース3段（L2〜L5）を順に流す */
-    const DEMO_RAIN_PASS_ORDER = ['hero', 'white'];
+    /* フルデモ警報: 色付き3段のみ（白3段は本番の発表中専用） */
+    const DEMO_RAIN_PASS_ORDER = ['hero'];
     let demoRainPassIdx_ = 0;
     function isDemoFullRainLoop_() {
         return DEMO_SIGNAGE && !DEMO_ONLY && !DEMO_RAINWARN_ONLY && !NO_JMA_WARN;
@@ -2597,8 +2596,6 @@
         if (pass === 'hero') {
             rainWarnActive = RAIN_WARN_ORDER.slice();
             rainWarnKindActive = JMA_L3_KINDS.slice();
-        } else if (pass === 'white') {
-            rainWarnActive = RAIN_WHITE_LEVEL_ORDER.slice();
         }
     }
     function finishDemoRainWarnCycle_() {
@@ -3473,6 +3470,27 @@
     function jmaWarnAreaMatches_(area) {
         return !!(area && jmaWarnMatchCodes_().indexOf(String(area.code)) >= 0);
     }
+    function jmaWarnStatusActive_(st) {
+        const s = String(st || '');
+        if (!s || s.indexOf('解除') >= 0 || s.indexOf('なし') >= 0) return false;
+        return s.indexOf('発表') >= 0 || s.indexOf('継続') >= 0;
+    }
+    /** 最も狭い対象（美浜区など）だけを使う。親地域と混ぜない＝解除後に残らない */
+    function jmaWarnAreasForPreferredCode_(warnJson) {
+        if (!warnJson || !warnJson.areaTypes) return [];
+        const codes = jmaWarnMatchCodes_();
+        for (let i = 0; i < codes.length; i++) {
+            const code = String(codes[i]);
+            const hits = [];
+            warnJson.areaTypes.forEach(function (at) {
+                (at.areas || []).forEach(function (area) {
+                    if (String(area.code) === code) hits.push(area);
+                });
+            });
+            if (hits.length) return hits;
+        }
+        return [];
+    }
     let rainWarnMeta = {
         cityName: JMA_WARN_CITY_LABELS[JMA_WARN_CITY] || getSiteLocationLabel_(),
         updatedAt: ''
@@ -3496,10 +3514,24 @@
     const RA_WHITE_FOOT_SCROLL_PX = 0.75;
     let rainWhiteFootInited = false;
     let rainWhiteMidW = RA_WHITE_BAND_W;
+    let rainWhiteHeaderW = RA_WHITE_BAND_W;
     let rainHeroMidW = RA_WHITE_BAND_W;
     let rainHeroTopW = RA_HERO_BAND_W;
     let rainHeroBotW = RA_HERO_BAND_W;
     const RA_HERO_BAND_SCROLL_PX = RA_WHITE_BAND_SCROLL_PX;
+    function cloneFillWhiteLoop_(track, loopW) {
+        const first = track && track.children[0];
+        if (!first) return Math.max(1, loopW || RA_WHITE_BAND_W);
+        const w = Math.max(1, loopW || Math.round(first.getBoundingClientRect().width) || RA_WHITE_BAND_W);
+        first.style.width = w + 'px';
+        first.style.flex = '0 0 ' + w + 'px';
+        first.style.minWidth = w + 'px';
+        first.style.maxWidth = w + 'px';
+        while (track.children.length > 1) track.removeChild(track.lastChild);
+        const copies = Math.max(2, Math.ceil(RA_WHITE_BAND_W / w) + 1);
+        for (let i = 1; i < copies; i++) track.appendChild(first.cloneNode(true));
+        return w;
+    }
     function buildWhiteHeaderSeg_(area, timeText, whatText) {
         const seg = document.createElement('div');
         seg.className = 'ra-white-header-seg';
@@ -3573,19 +3605,13 @@
         const mTrack = document.createElement('div');
         mTrack.className = 'ra-white-mid-track';
         mTrack.appendChild(buildWhiteMidSeg_(entries));
-        mTrack.appendChild(buildWhiteMidSeg_(entries));
         mWrap.appendChild(mTrack);
         mWrap.setAttribute('aria-hidden', 'false');
         sizeRainWarnWhiteMidText_();
         const seg = mTrack.querySelector('.ra-white-mid-seg');
-        /* チップ列の実幅（512px 下限は付けない — 1枚だけのとき右に空白が出るため） */
-        const w = seg ? Math.max(1, Math.ceil(seg.getBoundingClientRect().width)) : RA_WHITE_BAND_W;
-        mTrack.querySelectorAll('.ra-white-mid-seg').forEach(function (s) {
-            s.style.width = w + 'px';
-            s.style.flex = '0 0 ' + w + 'px';
-        });
-        rainWhiteMidW = w;
-        return w;
+        const w = seg ? Math.max(1, Math.round(seg.getBoundingClientRect().width)) : RA_WHITE_BAND_W;
+        rainWhiteMidW = cloneFillWhiteLoop_(mTrack, w);
+        return rainWhiteMidW;
     }
     function applyRaWhiteMidX_(x) {
         const tx = Math.round(x * 100) / 100;
@@ -3844,10 +3870,9 @@
         hWrap.textContent = '';
         const hTrack = document.createElement('div');
         hTrack.className = 'ra-white-header-track';
-        for (let c = 0; c < 2; c++) {
-            hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.time, texts.what));
-        }
+        hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.time, texts.what));
         hWrap.appendChild(hTrack);
+        rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack, Math.round(hTrack.children[0].getBoundingClientRect().width));
         hWrap.setAttribute('aria-hidden', 'false');
     }
     function initRainWarnWhiteFootBar_() {
@@ -3866,10 +3891,9 @@
         hWrap.textContent = '';
         const hTrack = document.createElement('div');
         hTrack.className = 'ra-white-header-track';
-        for (let c = 0; c < 2; c++) {
-            hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.time, texts.what));
-        }
+        hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.time, texts.what));
         hWrap.appendChild(hTrack);
+        rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack, Math.round(hTrack.children[0].getBoundingClientRect().width));
         hWrap.setAttribute('aria-hidden', 'false');
         let fWrap = pair.querySelector(':scope > .ra-white-foot-wrap');
         if (!fWrap) {
@@ -3881,10 +3905,9 @@
         fWrap.textContent = '';
         const fTrack = document.createElement('div');
         fTrack.className = 'ra-white-foot-track';
-        for (let c = 0; c < 2; c++) {
-            fTrack.appendChild(buildWhiteFootSeg512_());
-        }
+        fTrack.appendChild(buildWhiteFootSeg512_());
         fWrap.appendChild(fTrack);
+        cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
         fWrap.setAttribute('aria-hidden', 'false');
         const oldBar = pair.querySelector(':scope > .ra-white-foot-bar');
         if (oldBar) oldBar.remove();
@@ -3941,15 +3964,12 @@
             || '';
         updateRainWarnWhiteChrome_();
     }
-    function updateRainWarnWhiteChrome_() {
+    function updateRainWarnWhiteChrome_(force) {
         const pair = document.getElementById('ra-pair');
         if (!pair || !pair.classList.contains('ra-white-mode')) return;
+        if (!force && liveWhitePlay_ && raFlow_) return;
         if (!rainWhiteFootInited) initRainWarnWhiteFootBar_();
         else rebuildRainWarnWhiteHeaderTrack_();
-        const texts = whiteHeaderTexts_();
-        document.querySelectorAll('#sceneRainWarn .ra-white-area').forEach(function (n) { n.textContent = texts.area; });
-        document.querySelectorAll('#sceneRainWarn .ra-white-time').forEach(function (n) { n.textContent = texts.time; });
-        document.querySelectorAll('#sceneRainWarn .ra-white-what').forEach(function (n) { n.textContent = texts.what; });
     }
     function updateRainWarnWhiteFootChip_(levelKey) {
         if (!rainWhiteFootInited) initRainWarnWhiteFootBar_();
@@ -4009,9 +4029,7 @@
         return false;
     }
     function whiteModeForced_() {
-        if (NO_JMA_WARN) return false;
-        if (isDemoFullRainLoop_() && demoRainPassKind_() === 'white') return true;
-        return parseRainWarnParam_().length > 0 || warnKindForced;
+        return false;
     }
     function parseRainWarnParam_() {
         const v = rainWarnParamRaw_();
@@ -4061,8 +4079,8 @@
         return q;
     }
     function getRainWhiteScrollQueue_() {
-        if (whiteModeForced_()) return buildRainWhiteDemoQueue_();
-        return rainWhiteQueue;
+        if (rainWhiteQueue.length) return rainWhiteQueue;
+        return getLiveWhiteEntries_();
     }
     function rainWhiteHasActive_() {
         return getRainWhiteScrollQueue_().length > 0;
@@ -4100,20 +4118,15 @@
     function parseJmaActiveWhiteEntries_(warnJson) {
         const seen = {};
         const entries = [];
-        if (!warnJson || !warnJson.areaTypes) return [];
-        warnJson.areaTypes.forEach(function (at) {
-            (at.areas || []).forEach(function (area) {
-                if (!jmaWarnAreaMatches_(area)) return;
-                (area.warnings || []).forEach(function (w) {
-                    const st = String(w.status || '');
-                    if (!st || st.indexOf('解除') >= 0) return;
-                    const entry = jmaEntryFromWarnCode_(w.code, warnJson);
-                    if (!entry || !entry.name) return;
-                    const key = entry.level + '|' + entry.kind + '|' + entry.code;
-                    if (seen[key]) return;
-                    seen[key] = true;
-                    entries.push(entry);
-                });
+        jmaWarnAreasForPreferredCode_(warnJson).forEach(function (area) {
+            (area.warnings || []).forEach(function (w) {
+                if (!jmaWarnStatusActive_(w.status)) return;
+                const entry = jmaEntryFromWarnCode_(w.code, warnJson);
+                if (!entry || !entry.name) return;
+                const key = entry.level + '|' + entry.kind + '|' + entry.code;
+                if (seen[key]) return;
+                seen[key] = true;
+                entries.push(entry);
             });
         });
         entries.sort(function (a, b) {
@@ -4153,7 +4166,7 @@
         return RAIN_HERO_DESIGN;
     }
     function shouldUseWhiteLayout_() {
-        return liveWhitePlay_ || RAIN_WHITE_DESIGN || (isDemoFullRainLoop_() && demoRainPassKind_() === 'white');
+        return !!liveWhitePlay_;
     }
     function rainWarnWhiteDisplayText_(levelKey, kindKey, fullName) {
         return {
@@ -4245,6 +4258,63 @@
     const RA_SCROLL_PX = 1.2;
     const RA_LAPS_BEFORE_SWITCH = 4;
     let liveWhitePlay_ = false;
+    let liveWhiteShownKey_ = '';
+    const LIVE_WARN_POLL_MS = 30000;
+    let liveWarnPollId_ = null;
+    function liveWhiteEntryKey_(entries) {
+        return (entries || []).map(function (e) {
+            return (e.level || '') + '|' + (e.kind || '');
+        }).join(',');
+    }
+    function stopLiveWhiteAndContinue_() {
+        if (!liveWhitePlay_) return;
+        clearSceneEndHoldTimer_();
+        clearScenePostHoldTimer_();
+        if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
+        raFlow_ = null;
+        liveWhitePlay_ = false;
+        liveWhiteShownKey_ = '';
+        const contentArea = document.querySelector('.content-area');
+        if (contentArea) contentArea.classList.remove('ra-white-canvas');
+        gotoAfterRainWarnOrScene1_();
+    }
+    function syncLiveWhiteTickerFromQueue_() {
+        const q = getLiveWhiteEntries_();
+        rainWhiteQueue = q;
+        if (!liveWhitePlay_) return;
+        if (!sceneRainWarn || !sceneRainWarn.classList.contains('active')) return;
+        if (!q.length) {
+            stopLiveWhiteAndContinue_();
+            return;
+        }
+        const nextKey = liveWhiteEntryKey_(q);
+        if (nextKey === liveWhiteShownKey_) return;
+        const prevKeys = liveWhiteShownKey_ ? liveWhiteShownKey_.split(',') : [];
+        const added = q.some(function (e) {
+            return prevKeys.indexOf((e.level || '') + '|' + (e.kind || '')) < 0;
+        });
+        liveWhiteShownKey_ = nextKey;
+        if (!setRainWarnWhiteBundle_(q)) return;
+        if (raFlow_ && raFlow_.whiteBundle) {
+            raFlow_.midBandW = rainWhiteMidW;
+            raFlow_.topBandW = rainWhiteHeaderW || RA_WHITE_BAND_W;
+            if (added) raFlow_.midMoved = 0;
+            else if (rainWhiteMidW) raFlow_.midMoved = (raFlow_.midMoved || 0) % rainWhiteMidW;
+            const moved = raFlow_.midMoved || 0;
+            raFlow_.bandX = wrapScrollX_(-moved, raFlow_.topBandW);
+            raFlow_.footBandX = wrapScrollX_(-moved, RA_WHITE_BAND_W);
+            raFlow_.midBandX = wrapScrollX_(-moved, raFlow_.midBandW);
+            applyRaWhiteBandX_(raFlow_.bandX);
+            applyRaWhiteFootX_(raFlow_.footBandX);
+            applyRaWhiteMidX_(raFlow_.midBandX);
+        }
+    }
+    function startLiveWarnPoll_() {
+        if (liveWarnPollId_ || !isProductionLiveWarn_()) return;
+        liveWarnPollId_ = setInterval(function () {
+            updateRainWarnFromJmaDirect_().catch(function () {});
+        }, LIVE_WARN_POLL_MS);
+    }
     function rainWarnDemoLaps_() {
         if (liveWhitePlay_) return 1;
         if (isRainWarnCatalogDemo_()) return 1;
@@ -4283,8 +4353,9 @@
             });
             const first = rainWarnActive[0];
             rainWarnKindActive = first ? rainWarnLiveByLevel_[first].slice() : ['rain'];
+            syncLiveWhiteTickerFromQueue_();
         }
-        queueDisplayRefresh_();
+        if (!(liveWhitePlay_ && raFlow_)) queueDisplayRefresh_();
     }
     function getLiveWhiteEntries_() {
         const out = [];
@@ -4302,22 +4373,6 @@
         const entries = parseJmaActiveWhiteEntries_(warnJson).filter(function (e) {
             return e && e.level !== 'early' && isCatalogDisplayKind_(e.level, e.kind);
         });
-        const headline = String((warnJson && warnJson.headlineText) || '');
-        if (headline.indexOf('土砂') >= 0) {
-            const rain = entries.filter(function (e) { return e.kind === 'rain'; })[0];
-            if (rain && !entries.some(function (e) { return e.kind === 'landslide'; })) {
-                const lv = rain.level === 'special' ? 'special'
-                    : (headline.indexOf('危険') >= 0 ? 'danger' : rain.level);
-                if (isCatalogDisplayKind_(lv, 'landslide')) {
-                    entries.push({
-                        level: lv,
-                        kind: 'landslide',
-                        name: jmaKindName_(lv, 'landslide'),
-                        code: rain.code || '03'
-                    });
-                }
-            }
-        }
         entries.sort(function (a, b) {
             const la = RAIN_WHITE_LEVEL_ORDER.indexOf(a.level);
             const lb = RAIN_WHITE_LEVEL_ORDER.indexOf(b.level);
@@ -4354,19 +4409,13 @@
     }
     function parseJmaActiveL3Kinds_(warnJson) {
         const found = {};
-        if (warnJson && warnJson.areaTypes) {
-            warnJson.areaTypes.forEach(function (at) {
-                (at.areas || []).forEach(function (area) {
-                    if (!jmaWarnAreaMatches_(area)) return;
-                    (area.warnings || []).forEach(function (w) {
-                        const st = String(w.status || '');
-                        if (!st || st.indexOf('解除') >= 0) return;
-                        const entry = JMA_WARN_CODE_MAP[String(w.code || '')];
-                        if (entry && entry.level === 'warning') found[entry.kind] = true;
-                    });
-                });
+        jmaWarnAreasForPreferredCode_(warnJson).forEach(function (area) {
+            (area.warnings || []).forEach(function (w) {
+                if (!jmaWarnStatusActive_(w.status)) return;
+                const entry = JMA_WARN_CODE_MAP[String(w.code || '')];
+                if (entry && entry.level === 'warning') found[entry.kind] = true;
             });
-        }
+        });
         return JMA_LEVEL_KIND_ORDER.warning.filter(function (k) { return found[k]; });
     }
     async function updateRainWarnFromGas_() {
@@ -4423,16 +4472,12 @@
             const rank = rainWarnRank_(levelKey);
             if (rank > bestRank) { bestRank = rank; best = levelKey; }
         }
-        if (warnJson && warnJson.areaTypes) {
-            warnJson.areaTypes.forEach(function (at) {
-                (at.areas || []).forEach(function (area) {
-                    if (!jmaWarnAreaMatches_(area)) return;
-                    (area.warnings || []).forEach(function (w) {
-                        const st = String(w.status || '');
-                        if (!st || st.indexOf('解除') >= 0) return;
-                        const levelKey = jmaLevelFromWarnCode_(w.code, dangerHeadline);
-                        if (levelKey) consider(w.code, levelKey);
-                    });
+        if (warnJson) {
+            jmaWarnAreasForPreferredCode_(warnJson).forEach(function (area) {
+                (area.warnings || []).forEach(function (w) {
+                    if (!jmaWarnStatusActive_(w.status)) return;
+                    const levelKey = jmaLevelFromWarnCode_(w.code, dangerHeadline);
+                    if (levelKey) consider(w.code, levelKey);
                 });
             });
         }
@@ -4461,17 +4506,16 @@
     async function updateRainWarnFromJmaDirect_() {
         if (WBGT_ONLY || NO_JMA_WARN) return;
         try {
-            const [wRes, pRes] = await Promise.all([
-                fetch('https://www.jma.go.jp/bosai/warning/data/warning/' + JMA_WARN_AREA + '.json', { cache: 'no-store' }),
-                fetch('https://www.jma.go.jp/bosai/probability/data/probability/' + JMA_WARN_AREA + '.json', { cache: 'no-store' })
-            ]);
+            const wRes = await fetch('https://www.jma.go.jp/bosai/warning/data/warning/' + JMA_WARN_AREA + '.json', { cache: 'no-store' });
             const warnJson = wRes.ok ? await wRes.json() : null;
-            const probJson = pRes.ok ? await pRes.json() : null;
-            applyRainWarnLiveEntries_(parseJmaActiveCatalogEntries_(warnJson));
+            if (!warnJson) {
+                console.warn('[大雨警報] 気象庁応答なし（直前の発表を維持）');
+                return;
+            }
             applyRainWarnMeta_(null, warnJson);
+            applyRainWarnLiveEntries_(parseJmaActiveCatalogEntries_(warnJson));
         } catch (e) {
-            console.warn('[大雨警報] 気象庁直取得失敗（発表なし扱い）:', e.message || e);
-            applyRainWarnLevel_('none');
+            console.warn('[大雨警報] 気象庁直取得失敗（直前の発表を維持）:', e.message || e);
         }
     }
     function sizeRainWarnWhiteMidText_() {
@@ -4520,7 +4564,7 @@
         if (contentArea) contentArea.classList.add('ra-white-canvas');
         initRainWarnWhiteMidBand_(q);
         updateRainWarnWhiteFootChip_(topLevel);
-        updateRainWarnWhiteChrome_();
+        updateRainWarnWhiteChrome_(true);
         applySignageLogoPanel_();
         return true;
     }
@@ -4679,6 +4723,7 @@
         warnHeroPlayedThisLoop_ = false;
         warnDemoPlayedThisLoop_ = false;
         liveWhitePlay_ = false;
+        liveWhiteShownKey_ = '';
         stopWarnHero_();
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
         transitionToScene(s1, playScene1);
@@ -4745,18 +4790,20 @@
     }
     async function gotoAfterRainWarnOrScene1_() {
         if (!warnHeroPlayedThisLoop_) {
-            try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
-            const liveWhite = getLiveWhiteEntries_();
-            if (liveWhite.length && sceneRainWarn) {
-                warnHeroPlayedThisLoop_ = true;
-                liveWhitePlay_ = true;
-                rainWhiteQueue = liveWhite;
-                transitionToScene(sceneRainWarn, function () {
-                    playSceneRainWarn(0);
-                });
-                return;
-            }
             warnHeroPlayedThisLoop_ = true;
+            if (isProductionLiveWarn_()) {
+                try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
+                const liveWhite = getLiveWhiteEntries_();
+                if (liveWhite.length && sceneRainWarn) {
+                    liveWhitePlay_ = true;
+                    rainWhiteQueue = liveWhite;
+                    liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
+                    transitionToScene(sceneRainWarn, function () {
+                        playSceneRainWarn(0);
+                    });
+                    return;
+                }
+            }
             liveWhitePlay_ = false;
         }
         liveWhitePlay_ = false;
@@ -4813,14 +4860,15 @@
             heroBundle: heroBundle,
             heroMode: heroMode,
             midBundle: midBundle,
-            bandX: wrapScrollX_(globalScrollX_, RA_WHITE_BAND_W),
-            footBandX: wrapScrollX_(globalScrollX_, RA_WHITE_BAND_W),
+            bandX: whiteBundle ? 0 : wrapScrollX_(globalScrollX_, rainWhiteHeaderW || RA_WHITE_BAND_W),
+            footBandX: whiteBundle ? 0 : wrapScrollX_(globalScrollX_, RA_WHITE_BAND_W),
             topBandX: wrapScrollX_(globalScrollX_, rainHeroTopW),
             botBandX: wrapScrollX_(globalScrollX_, rainHeroBotW),
-            midBandX: wrapScrollX_(globalScrollX_, whiteBundle ? rainWhiteMidW : (heroBundle ? rainHeroMidW : RA_WHITE_BAND_W)),
-            topBandW: rainHeroTopW,
+            midBandX: whiteBundle ? 0 : wrapScrollX_(globalScrollX_, heroBundle ? rainHeroMidW : RA_WHITE_BAND_W),
+            topBandW: whiteBundle ? (rainWhiteHeaderW || RA_WHITE_BAND_W) : rainHeroTopW,
             botBandW: rainHeroBotW,
             midBandW: whiteBundle ? rainWhiteMidW : (heroBundle ? rainHeroMidW : RA_WHITE_BAND_W),
+            midMoved: 0,
             midLaps: 0,
             warnIdx: idx,
             kindIdx: 0,
@@ -4829,9 +4877,9 @@
         };
         if (!midBundle) applyRaTrackX_(tracks, raFlow_.x);
         if (whiteBundle) {
-            applyRaWhiteBandX_(raFlow_.bandX);
-            applyRaWhiteFootX_(raFlow_.footBandX);
-            applyRaWhiteMidX_(raFlow_.midBandX);
+            applyRaWhiteBandX_(0);
+            applyRaWhiteFootX_(0);
+            applyRaWhiteMidX_(0);
         } else if (heroMode) {
             applyRaHeroTopX_(raFlow_.topBandX);
             applyRaHeroBotX_(raFlow_.botBandX);
@@ -4843,28 +4891,40 @@
             stepHeroChromeBands_(raFlow_);
             if (raFlow_.midBundle) {
                 if (raFlow_.whiteBundle) {
-                    raFlow_.bandX = wrapScrollX_(globalScrollX_, RA_WHITE_BAND_W);
-                    raFlow_.footBandX = wrapScrollX_(globalScrollX_, RA_WHITE_BAND_W);
+                    const speed = getScrollSpeedPx_();
+                    raFlow_.midMoved = (raFlow_.midMoved || 0) + speed;
+                    const midW = raFlow_.midBandW || rainWhiteMidW || RA_WHITE_BAND_W;
+                    const headW = raFlow_.topBandW || rainWhiteHeaderW || RA_WHITE_BAND_W;
+                    raFlow_.bandX = wrapScrollX_(-raFlow_.midMoved, headW);
+                    raFlow_.footBandX = wrapScrollX_(-raFlow_.midMoved, RA_WHITE_BAND_W);
+                    raFlow_.midBandX = wrapScrollX_(-raFlow_.midMoved, midW);
                     applyRaWhiteBandX_(raFlow_.bandX);
                     applyRaWhiteFootX_(raFlow_.footBandX);
+                    applyRaWhiteMidX_(raFlow_.midBandX);
+                    if (raFlow_.midMoved >= midW) {
+                        raAnimId = null; raFlow_ = null;
+                        runAfterSceneEndHold_(function () {
+                            if (!liveWhitePlay_) return;
+                            liveWhitePlay_ = false;
+                            liveWhiteShownKey_ = '';
+                            gotoAfterRainWarnOrScene1_();
+                        });
+                        return;
+                    }
+                    raAnimId = requestAnimationFrame(step);
+                    return;
                 }
                 const midW = raFlow_.midBandW || RA_WHITE_BAND_W;
                 raFlow_.midBandX = wrapScrollX_(globalScrollX_, midW);
                 if (detectScrollLapCrossed_(prevMidX, raFlow_.midBandX)) {
                     raFlow_.midLaps += 1;
                 }
-                if (raFlow_.whiteBundle) applyRaWhiteMidX_(raFlow_.midBandX);
-                else applyRaHeroMidX_(raFlow_.midBandX);
+                applyRaHeroMidX_(raFlow_.midBandX);
                 if (raFlow_.midLaps >= rainWarnDemoLaps_()) {
                     if (DEMO_RAINWARN_ONLY) {
                         raFlow_.midLaps = 0;
                     } else if (DEMO_SIGNAGE && !DEMO_ONLY) {
                         raFlow_.midLaps = 0;
-                        if (raFlow_.whiteBundle) {
-                            raAnimId = null; raFlow_ = null;
-                            finishDemoRainWarnCycle_();
-                            return;
-                        }
                         raFlow_.warnIdx += 1;
                         if (raFlow_.warnIdx >= rainWarnActive.length) {
                             raAnimId = null; raFlow_ = null;
@@ -4879,13 +4939,6 @@
                         return;
                     } else {
                         raAnimId = null; raFlow_ = null;
-                        if (liveWhitePlay_) {
-                            runAfterSceneEndHold_(function () {
-                                liveWhitePlay_ = false;
-                                gotoAfterRainWarnOrScene1_();
-                            });
-                            return;
-                        }
                         runAfterSceneEndHold_(finishMainLoopToS1_);
                         return;
                     }
@@ -4962,33 +5015,7 @@
         });
     }
     async function startRainWarnOnlyDemo_() {
-        if (isWarnHeroDemo_()) {
-            startWarnHeroOnlyDemo_();
-            return;
-        }
-        resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
-        if (sceneRainWarn) {
-            sceneRainWarn.style.display = 'block';
-            sceneRainWarn.classList.add('active');
-            sceneRainWarn.style.transform = 'translateX(0px)';
-        }
-        if (RAIN_WHITE_DESIGN && !whiteModeForced_()) {
-            await updateRainWarnFromGas_();
-        }
-        const badge = document.getElementById('demo-badge');
-        const liveLabel = RAIN_WHITE_DESIGN && !whiteModeForced_()
-            ? ('確認 · ' + (rainWarnMeta.cityName || '幕張') + ' 発表中 ' + rainWhiteQueue.length + '件')
-            : (isRainWarnLevelDemo_() ? 'デモ · 特別警報→注意報'
-                : (isRainWarnCatalogDemo_() ? 'デモ · 注意報→警報' : '確認 · 気象警報'));
-        if (badge && shouldShowDemoBadge_()) { badge.hidden = false; badge.textContent = liveLabel; }
-        else if (badge) { badge.hidden = true; }
-        if (!DEMO_EMBED) {
-            document.title = RAIN_WHITE_DESIGN && !whiteModeForced_()
-                ? '気象警報 実データ'
-                : (isRainWarnCatalogDemo_() ? 'WBGT Signage デモ - 注意報・警報' : '気象警報 デモ');
-        }
-        playSceneRainWarn(0);
+        startWarnHeroOnlyDemo_();
     }
     let logoRotDeg = 0;
     const LOGO_ROT_STEP_MS = 420;
@@ -8347,6 +8374,7 @@
         warnHeroPlayedThisLoop_ = false;
         warnDemoPlayedThisLoop_ = false;
         liveWhitePlay_ = false;
+        liveWhiteShownKey_ = '';
         [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
         transitionToScene(s1, playScene1);
     }
@@ -8414,6 +8442,7 @@
             }
             flushInitialDisplay_();
             mainLoopStarted_ = true;
+            startLiveWarnPoll_();
             scheduleDataRefresh();
             playScene1();
         } catch (err) {
@@ -8428,6 +8457,7 @@
             }
             startClockTicker();
             mainLoopStarted_ = true;
+            startLiveWarnPoll_();
             scheduleDataRefresh();
             playScene1();
         } finally {
