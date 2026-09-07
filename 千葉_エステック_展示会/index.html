@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <!-- wbgt-cube-chiba-estec-makuhari-5face / 株式会社エステック WBGT サイネージ -->
-<!-- 320サイズ: LED実ピクセル 640×128（5面・右端ロゴ128）。制作出力は推奨 1800×360 -->
-<!-- 内部レイアウトは 640×128 のまま CSS scale(2.8125) で 1800×360 に書き出し -->
+<!-- 320サイズ: 本番 640×128（5面・右端ロゴ128） -->
 <!-- 白帯: マーク＋株式会社エステック | 幕張メッセ -->
 <!-- 同階層: assets/estec_foot_lockup.png（時刻下白帯・マーク＋株式会社エステック） / assets/estec_logo.png（縦ロックアップ・5列目） -->
 <!-- 会場: 〒261-8550 千葉県千葉市美浜区中瀬2-1（幕張メッセ） 35°38'53.2"N 140°02'04.9"E -->
 <!-- WBGT・AMeDAS 45212（千葉・気象庁/環境省）／警報 千葉市美浜区 1220400 -->
 <!-- 本番サイネージはこの1ファイル。天気・WBGT・発表中の警報を同じループで流す -->
-<!-- build 20260907-white-hero-css -->
+<!-- build 20260907-native-640 -->
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1800, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=640, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -22,15 +21,13 @@
     <link rel="preload" as="image" href="./assets/green_cross.png?v=1">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=optional">
     <script>
-/** 内部 640×128。本番出力 1800×360（LED推奨制作サイズ）。PCは拡大プレビュー。 */
+/** 5面 640×128。実寸は常に同じCSS。画面が大きいときだけ拡大プレビュー。640×128端末はネイティブ */
 (function () {
     var q = new URLSearchParams(location.search);
     var useLayout512 = q.get('layout512') === '1';
-    var OUT_SCALE = 360 / 128; /* 2.8125 → 640×128 を 1800×360 */
-    var w = window.innerWidth || 1800;
-    var h = window.innerHeight || 360;
-    var ledViewport = (w <= 660 && h <= 180)
-        || (w >= 1700 && w <= 1920 && h >= 330 && h <= 420);
+    var w = window.innerWidth || 640;
+    var h = window.innerHeight || 128;
+    var ledViewport = w <= 660 && h <= 180;
     var forceNative;
     if (q.get('native640') === '1' || q.get('embed') === '1') forceNative = true;
     else if (q.get('native640') === '0') forceNative = false;
@@ -38,7 +35,7 @@
     var vp = document.querySelector('meta[name="viewport"]');
     if (vp) {
         vp.setAttribute('content', forceNative
-            ? 'width=1800, initial-scale=1, maximum-scale=1, user-scalable=no'
+            ? 'width=640, initial-scale=1, maximum-scale=1, user-scalable=no'
             : 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
     }
     function applyRoot_() {
@@ -76,7 +73,7 @@
             || (document.body && document.body.classList.contains('native-640'));
         canvas.style.transformOrigin = 'top left';
         if (native) {
-            canvas.style.transform = 'scale(' + OUT_SCALE + ')';
+            canvas.style.transform = '';
             return;
         }
         if (!preview) return;
@@ -120,9 +117,9 @@
         html.native-640 .demo-badge,
         body.native-640 .demo-badge { display: none !important; }
         html.native-640, body.native-640 {
-            width: 1800px !important; height: 360px !important;
-            min-width: 1800px; min-height: 360px;
-            max-width: 1800px; max-height: 360px;
+            width: 640px !important; height: 128px !important;
+            min-width: 640px; min-height: 128px;
+            max-width: 640px; max-height: 128px;
             margin: 0 !important; padding: 0 !important;
             overflow: hidden !important;
             background: #000;
@@ -130,16 +127,16 @@
         }
         html.layout-512.native-640, html.layout-512.native-640 body,
         body.layout-512.native-640 {
-            width: 1440px !important; height: 360px !important;
-            min-width: 1440px; min-height: 360px;
-            max-width: 1440px; max-height: 360px;
+            width: 512px !important; height: 128px !important;
+            min-width: 512px; min-height: 128px;
+            max-width: 512px; max-height: 128px;
         }
-        /* ?native640=1 / ?embed=1 — 推奨制作サイズ 1800×360（内部 640×128 を 2.8125 倍） */
+        /* ?native640=1 / ?embed=1 — 640×128 ネイティブ（拡大なし・原点0,0） */
         body.native-640 {
             display: block;
         }
         html.native-640 .canvas, body.native-640 .canvas {
-            transform: scale(2.8125) !important;
+            transform: none !important;
             transform-origin: top left !important;
             position: absolute; top: 0; left: 0;
             margin: 0; padding: 0;
@@ -169,7 +166,7 @@
         @media screen and (min-width: 513px) {
             body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
         }
-        body.layout-512.native-640 .canvas { transform: scale(2.8125) !important; }
+        body.layout-512.native-640 .canvas { transform: none !important; }
         /* 右端 128×128: メールロゴ同様（上に大きくマーク、下に社名） */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
@@ -1120,8 +1117,8 @@
         #scene3 .t3-guid-bar .s2-meta-msg-scroll {
             display: inline-flex; align-items: center;
             height: var(--led-foot-bar-h); max-height: var(--led-foot-bar-h);
-            line-height: var(--led-foot-bar-h); overflow: hidden; box-sizing: border-box;
-            font-size: 24px; font-weight: 900; padding: 0 4px;
+            line-height: 1.12; overflow: hidden; box-sizing: border-box;
+            font-size: 15px; padding: 0 4px;
         }
         #scene3 .t3-guid-bar .s2-meta-set-flow {
             min-width: 0; width: auto;
@@ -2589,7 +2586,7 @@
     };
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
-    /* 1800×360 出力（内部 640×128）: embed / native640=1 / LEDビューポート */
+    /* 640×128 ネイティブ: embed / native640=1 / LEDビューポート */
     const NATIVE_640 = document.body.classList.contains('native-640')
         || query.get('native640') === '1' || DEMO_EMBED;
     if (NATIVE_640) {
@@ -8333,19 +8330,30 @@
         const bar = document.querySelector('#scene3 .t3-guid-bar');
         const probe = document.querySelector('#scene3 .t3-guid-bar .s2-meta-msg-scroll');
         if (!bar || !probe) return;
-        const barH = bar.clientHeight > 0 ? bar.clientHeight : 32;
+        const barH = bar.clientHeight > 0 ? bar.clientHeight : 28;
+        const maxH = barH - 1;
         const targets = document.querySelectorAll('#scene3 .t3-guid-bar .s2-meta-msg-scroll');
-        let fz = 24;
-        const minFz = 18;
+        let fz = 15;
+        const minFz = 11;
+        const maxFz = 17;
         const applyGuide_ = function () {
             targets.forEach(function (n) {
                 n.style.fontSize = fz + 'px';
-                n.style.lineHeight = barH + 'px';
-                n.style.fontWeight = '900';
+                n.style.lineHeight = maxH + 'px';
+                n.style.fontWeight = '';
             });
         };
         applyGuide_();
-        while (fz > minFz && probe.scrollHeight > barH) {
+        while (fz < maxFz) {
+            fz += 1;
+            applyGuide_();
+            if (probe.scrollHeight > maxH) {
+                fz -= 1;
+                applyGuide_();
+                break;
+            }
+        }
+        while (fz > minFz && probe.scrollHeight > maxH) {
             fz -= 1;
             applyGuide_();
         }
