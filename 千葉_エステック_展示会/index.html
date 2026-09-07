@@ -3541,7 +3541,7 @@
     function buildWhiteMidChipEl_(entry) {
         const el = document.createElement('span');
         el.className = 'ra-white-mid-chip ra-white-mid-' + entry.level;
-        el.textContent = demoWarnName_(jmaKindWhiteLabel_(entry.level, entry.kind) || entry.name);
+        el.textContent = entry.name || jmaKindName_(entry.level, entry.kind);
         return el;
     }
     function buildWhiteMidSeg_(entries) {
@@ -4153,7 +4153,7 @@
         return RAIN_HERO_DESIGN;
     }
     function shouldUseWhiteLayout_() {
-        return RAIN_WHITE_DESIGN || (isDemoFullRainLoop_() && demoRainPassKind_() === 'white');
+        return liveWhitePlay_ || RAIN_WHITE_DESIGN || (isDemoFullRainLoop_() && demoRainPassKind_() === 'white');
     }
     function rainWarnWhiteDisplayText_(levelKey, kindKey, fullName) {
         return {
@@ -4244,9 +4244,11 @@
     const RA_L2_RATIO = 0.58;
     const RA_SCROLL_PX = 1.2;
     const RA_LAPS_BEFORE_SWITCH = 4;
+    let liveWhitePlay_ = false;
     function rainWarnDemoLaps_() {
+        if (liveWhitePlay_) return 1;
         if (isRainWarnCatalogDemo_()) return 1;
-        if (isProductionLiveWarn_()) return 2;
+        if (isProductionLiveWarn_()) return 1;
         return RA_LAPS_BEFORE_SWITCH;
     }
     let raAnimId = null;
@@ -4275,6 +4277,7 @@
             rainWarnLiveByLevel_[e.level].push(e.kind);
         });
         if (!isRainWarnCatalogDemo_() && !DEMO_RAINWARN_ONLY) {
+            rainWhiteQueue = getLiveWhiteEntries_();
             rainWarnActive = RAIN_WHITE_LEVEL_ORDER.filter(function (lv) {
                 return rainWarnLiveByLevel_[lv] && rainWarnLiveByLevel_[lv].length;
             });
@@ -4282,6 +4285,18 @@
             rainWarnKindActive = first ? rainWarnLiveByLevel_[first].slice() : ['rain'];
         }
         queueDisplayRefresh_();
+    }
+    function getLiveWhiteEntries_() {
+        const out = [];
+        RAIN_WHITE_LEVEL_ORDER.forEach(function (lv) {
+            const kinds = rainWarnLiveByLevel_[lv] || [];
+            const order = JMA_CATALOG_KIND_ORDER[lv] || [];
+            order.forEach(function (kind) {
+                if (kinds.indexOf(kind) < 0) return;
+                out.push({ level: lv, kind: kind, name: jmaKindName_(lv, kind) });
+            });
+        });
+        return out;
     }
     function parseJmaActiveCatalogEntries_(warnJson) {
         const entries = parseJmaActiveWhiteEntries_(warnJson).filter(function (e) {
@@ -4663,6 +4678,7 @@
     function finishMainLoopToS1_() {
         warnHeroPlayedThisLoop_ = false;
         warnDemoPlayedThisLoop_ = false;
+        liveWhitePlay_ = false;
         stopWarnHero_();
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
         transitionToScene(s1, playScene1);
@@ -4684,7 +4700,7 @@
             warnHeroPlayer_ = null;
         }
     }
-    function playWarnHero_(items, onEnd) {
+    function playWarnHero_(items, onEnd, cycles) {
         if (!sceneWarnHero || !window.WarningHero || !items || !items.length) {
             if (onEnd) onEnd();
             return;
@@ -4696,14 +4712,20 @@
             midTrack: document.getElementById('wh-midTrack'),
             botTrack: document.getElementById('wh-botTrack'),
             items: items,
+            cycles: cycles || 1,
             onCycleEnd: onEnd || null
         });
         warnHeroPlayer_.play(0);
     }
     function getWarnHeroDemoItems_() {
         if (!window.WarningHero) return [];
-        if (typeof WarningHero.levelDemoItems === 'function') return WarningHero.levelDemoItems();
-        return WarningHero.warnItems ? WarningHero.warnItems() : [];
+        const rows = typeof WarningHero.levelDemoItems === 'function'
+            ? WarningHero.levelDemoItems()
+            : (WarningHero.warnItems ? WarningHero.warnItems() : []);
+        return rows.filter(function (it) {
+            return it && it.lv >= 2 && it.lv <= 5 && it.kind &&
+                (it.kind === 'flood' || it.kind === 'rain' || it.kind === 'landslide' || it.kind === 'surge');
+        });
     }
     function startWarnHeroOnlyDemo_() {
         resetLogoRotation();
@@ -4722,21 +4744,24 @@
         playWarnHero_(items, null);
     }
     async function gotoAfterRainWarnOrScene1_() {
-        if (sceneWarnHero && window.WarningHero && !warnHeroPlayedThisLoop_) {
+        if (!warnHeroPlayedThisLoop_) {
             try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
-            const liveHero = getWarnHeroLiveItems_();
-            if (liveHero.length) {
+            const liveWhite = getLiveWhiteEntries_();
+            if (liveWhite.length && sceneRainWarn) {
                 warnHeroPlayedThisLoop_ = true;
-                transitionToScene(sceneWarnHero, function () {
-                    playWarnHero_(liveHero, function () {
-                        stopWarnHero_();
-                        gotoAfterRainWarnOrScene1_();
-                    });
+                liveWhitePlay_ = true;
+                rainWhiteQueue = liveWhite;
+                transitionToScene(sceneRainWarn, function () {
+                    playSceneRainWarn(0);
                 });
                 return;
             }
             warnHeroPlayedThisLoop_ = true;
+            liveWhitePlay_ = false;
         }
+        liveWhitePlay_ = false;
+        const contentArea = document.querySelector('.content-area');
+        if (contentArea) contentArea.classList.remove('ra-white-canvas');
         if (sceneWarnHero && window.WarningHero && !warnDemoPlayedThisLoop_) {
             const demoHero = getWarnHeroDemoItems_();
             if (demoHero.length) {
@@ -4749,18 +4774,6 @@
                 });
                 return;
             }
-        }
-        warnHeroPlayedThisLoop_ = false;
-        warnDemoPlayedThisLoop_ = false;
-        if (isDemoFullRainLoop_()) {
-            demoRainPassIdx_ = 0;
-            prepDemoRainPass_();
-        }
-        const hasRain = shouldUseWhiteLayout_() ? rainWhiteHasActive_() : rainWarnActive.length;
-        if (hasRain && sceneRainWarn) {
-            prepRainWarn_(0);
-            transitionToScene(sceneRainWarn, function () { playSceneRainWarn(0); });
-            return;
         }
         finishMainLoopToS1_();
     }
@@ -4866,7 +4879,14 @@
                         return;
                     } else {
                         raAnimId = null; raFlow_ = null;
-                        finishMainLoopToS1_();
+                        if (liveWhitePlay_) {
+                            runAfterSceneEndHold_(function () {
+                                liveWhitePlay_ = false;
+                                gotoAfterRainWarnOrScene1_();
+                            });
+                            return;
+                        }
+                        runAfterSceneEndHold_(finishMainLoopToS1_);
                         return;
                     }
                 }
@@ -7217,12 +7237,13 @@
                 runAfterSceneEndHold_(finishScene6);
                 return;
             }
+            const wait = scene6Step_ === 0 ? SCENE_SCROLL_HOLD_MS : SCENE6_STEP_MS;
             scene6HoldTimerId = setTimeout(function () {
                 scene6HoldTimerId = null;
                 scene6Step_ += 1;
                 applyScene6TrackX_(scene6Step_ * SCENE6_FACE_W, true);
                 scene6SlideTimerId = setTimeout(afterArrive, SCENE6_SLIDE_MS);
-            }, SCENE6_STEP_MS);
+            }, wait);
         }
         afterArrive();
     }
@@ -7970,7 +7991,7 @@
                     if (s1Flow_.laps >= SCENE1_ADVANCE_LAPS) {
                         scene1AnimId = null;
                         s1Flow_ = null;
-                        finishScene1();
+                        runAfterSceneEndHold_(finishScene1);
                         return;
                     }
                 }
@@ -8325,6 +8346,7 @@
         setScene6Full_(false);
         warnHeroPlayedThisLoop_ = false;
         warnDemoPlayedThisLoop_ = false;
+        liveWhitePlay_ = false;
         [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
         transitionToScene(s1, playScene1);
     }

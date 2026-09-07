@@ -314,7 +314,8 @@
     var itemIndex = 0;
     var playGen = 0;
     var rafId = 0;
-    var loopOnce = !!opts.loopOnce;
+    var cycles = Math.max(1, Number(opts.cycles) || 1);
+    var cycleCount = 0;
 
     function startSharedScroll(gen, loopWs) {
       if (rafId) cancelAnimationFrame(rafId);
@@ -365,7 +366,8 @@
     function nextItem() {
       var next = itemIndex + 1;
       if (next >= items.length) {
-        if (onCycleEnd) {
+        cycleCount += 1;
+        if (onCycleEnd && cycleCount >= cycles) {
           onCycleEnd();
           return;
         }
@@ -375,8 +377,8 @@
     }
 
     return {
-      setItems: function (next) { items = (next || []).slice(); itemIndex = 0; },
-      play: function (index) { renderItem(index || 0); },
+      setItems: function (next) { items = (next || []).slice(); itemIndex = 0; cycleCount = 0; },
+      play: function (index) { cycleCount = 0; renderItem(index || 0); },
       stop: function () { playGen += 1; if (rafId) cancelAnimationFrame(rafId); rafId = 0; },
       items: function () { return items; }
     };
