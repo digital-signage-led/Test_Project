@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- 伊豆諸島北部 512×128 サイネージ / 原点 (0,0) / ロゴなし / 時刻・実況・WBGT・4日予報・多言語・警報 -->
-<!-- build:20260907-1638 / 気象庁 r8 130000 / AMeDAS・WBGT 大島 44172 -->
+<!-- build:20260907-1654 / 気象庁 r8 130000 / AMeDAS・WBGT 大島 44172 -->
 <html lang="ja" class="native-640 layout-512">
 <head>
     <meta charset="UTF-8">
@@ -4616,6 +4616,7 @@
     };
     const IZU_WARN_SPEED = 56;
     const IZU_WARN_UNIT_W = 256;
+    const IZU_WARN_LAPS = 2; /* 中段2周で次の警報へ */
     let izuWarnItems_ = [];
     let izuWarnSig_ = '';
     let izuWarnIndex_ = 0;
@@ -4864,7 +4865,7 @@
                 if (!track || w < 1) return;
                 track.style.transform = 'translate3d(' + (-(scrollX % w)) + 'px,0,0)';
             });
-            if (!switched && oneLoop > 0 && scrollX >= oneLoop) {
+            if (!switched && oneLoop > 0 && scrollX >= oneLoop * IZU_WARN_LAPS) {
                 switched = true;
                 onLoopDone();
                 return;
