@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- 伊豆諸島北部 512×128 サイネージ / 原点 (0,0) / ロゴなし / 時刻・実況・WBGT・4日予報・多言語・警報 -->
-<!-- build:20260907-1654 / 気象庁 r8 130000 / AMeDAS・WBGT 大島 44172 -->
+<!-- build:20260907-1758 / 気象庁 r8 130000 / AMeDAS・WBGT 大島 44172 -->
 <html lang="ja" class="native-640 layout-512">
 <head>
     <meta charset="UTF-8">
@@ -5010,9 +5010,16 @@
         seg.appendChild(txt);
         return seg;
     }
+    function izuReplaceChildren_(el) {
+        if (!el) return;
+        while (el.firstChild) el.removeChild(el.firstChild);
+        for (let i = 1; i < arguments.length; i++) {
+            if (arguments[i]) el.appendChild(arguments[i]);
+        }
+    }
     function izuFillTrack_(track, makeSeg, scene) {
         track.style.transform = 'translate3d(0,0,0)';
-        track.replaceChildren(makeSeg(scene));
+        izuReplaceChildren_(track, makeSeg(scene));
     }
     function izuFitToWidth_(el, maxW, maxPx) {
         if (!el) return;
@@ -5213,12 +5220,12 @@
         stopIzuWarnScroll_();
         const gen = ++izuWarnGen_;
         izuWhiteHeroEl_.className = 'hero is-white';
-        izuWhiteTopTrack_.replaceChildren(izuMakeWhiteTopSeg_(izuPlainTopLabel_()));
-        izuWhiteMidTrack_.replaceChildren();
+        izuReplaceChildren_(izuWhiteTopTrack_, izuMakeWhiteTopSeg_(izuPlainTopLabel_()));
+        izuReplaceChildren_(izuWhiteMidTrack_);
         izuPlainItems_.forEach(function (item) {
             izuWhiteMidTrack_.appendChild(izuMakeWhiteMidSeg_(item));
         });
-        izuWhiteBotTrack_.replaceChildren(izuMakeWhiteBotSeg_());
+        izuReplaceChildren_(izuWhiteBotTrack_, izuMakeWhiteBotSeg_());
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
                 if (gen !== izuWarnGen_) return;
@@ -7667,22 +7674,22 @@
         document.querySelectorAll('.content-area .scene.active').forEach(function (el) {
             if (el !== current && el !== nextEl) hideSceneEl(el);
         });
-        if (!nextEl) { onComplete?.(); return; }
-        if (current === nextEl) { onComplete?.(); return; }
+        if (!nextEl) { if (onComplete) onComplete(); return; }
+        if (current === nextEl) { if (onComplete) onComplete(); return; }
         nextEl.style.display = sceneDisplayMode(nextEl);
         nextEl.classList.add('active');
         if (!current || SCENE_SLIDE_MS <= 0) {
             if (current) hideSceneEl(current);
             applyScrollX_(nextEl, 0);
             nextEl.style.zIndex = '';
-            onComplete?.();
+            if (onComplete) onComplete();
             return;
         }
         sceneSlideFromEl_ = current;
         nextEl.style.zIndex = '2';
         applyScrollX_(nextEl, SCENE_W);
         current.style.zIndex = '1';
-        onComplete?.();
+        if (onComplete) onComplete();
         const t0 = performance.now();
         function tick(now) {
             const p = Math.min(1, (now - t0) / SCENE_SLIDE_MS);
