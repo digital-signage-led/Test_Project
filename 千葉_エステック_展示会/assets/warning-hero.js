@@ -404,6 +404,12 @@
         requestAnimationFrame(cb);
       });
     }
+    var native = document.documentElement.classList.contains('native-640')
+      || (document.body && document.body.classList.contains('native-640'));
+    if (native) {
+      go();
+      return;
+    }
     if (document.fonts && document.fonts.load) {
       var done = false;
       function once() {
@@ -435,14 +441,15 @@
     function startSharedScroll(gen, loopWs) {
       if (rafId) cancelAnimationFrame(rafId);
       var scrollX = 0;
-      var lastTs = 0;
+      var lastWall = Date.now();
       var switched = false;
       var oneLoop = loopWs[1] || UNIT_W;
-      var step = function (ts) {
+      var step = function () {
         if (gen !== playGen) return;
-        if (!lastTs) lastTs = ts;
-        var dt = Math.min(0.05, (ts - lastTs) / 1000);
-        lastTs = ts;
+        var now = Date.now();
+        var dt = (now - lastWall) / 1000;
+        lastWall = now;
+        if (!(dt > 0) || dt > 0.05) dt = 1 / 60;
         scrollX += SPEED * dt;
         [topTrack, midTrack, botTrack].forEach(function (track, i) {
           var w = loopWs[i];

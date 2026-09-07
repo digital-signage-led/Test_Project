@@ -18,11 +18,11 @@
   min-height: 128px;
   position: relative;
   overflow: hidden;
-  display: grid;
-  grid-template-rows: 40px 48px 40px;
-  grid-template-columns: 512px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
   background: #fa2900;
-  font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, "Hiragino Sans", sans-serif;
+  font-family: "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans JP", "Hiragino Sans", sans-serif;
 }
 #sceneWarnHero .hero.is-advisory { background: #f2e700; }
 #sceneWarnHero .hero.is-warning { background: #fa2900; }
