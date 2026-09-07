@@ -1959,6 +1959,153 @@
         #sceneWarn .hero.is-special .top-label,
         #sceneWarn .hero.is-special .bot-txt,
         #sceneWarn .hero.is-special .mid-chip { color: #ffffff; }
+
+        /* 白3段（レベルなし21種。上・下クリーム、中グレー、発表中だけチップ） */
+        #sceneWarnWhite.active { display: block; }
+        #sceneWarnWhite .hero {
+            width: 512px;
+            height: 128px;
+            position: relative;
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: 40px 48px 40px;
+            grid-template-columns: 512px;
+            background: #fff9f0;
+            --band-mid-h: 48px;
+            font-family: "Noto Sans JP", sans-serif;
+        }
+        #sceneWarnWhite .band {
+            position: relative;
+            width: 512px;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+        }
+        #sceneWarnWhite .band-top { height: 40px; }
+        #sceneWarnWhite .band-mid { height: 48px; }
+        #sceneWarnWhite .band-bot { height: 40px; }
+        #sceneWarnWhite .band-mid::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            background: #d5d1c9;
+        }
+        #sceneWarnWhite .track {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            height: 100%;
+            width: max-content;
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
+        }
+        #sceneWarnWhite .white-top-seg {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            height: 40px;
+            padding: 0 12px;
+            gap: 10px;
+            flex: 0 0 auto;
+            width: auto;
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+        #sceneWarnWhite .white-area {
+            flex: 0 0 auto;
+            font-size: 15px;
+            font-weight: 900;
+            color: #0854a8;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        #sceneWarnWhite .white-what {
+            flex: 0 0 auto;
+            font-size: 14px;
+            font-weight: 700;
+            color: #0854a8;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        #sceneWarnWhite .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            padding: 3px 8px;
+            border-radius: 2px;
+            flex: 0 0 auto;
+        }
+        #sceneWarnWhite .badge span {
+            color: #1a1a1a;
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+        }
+        #sceneWarnWhite .white-mid-seg {
+            display: flex;
+            align-items: center;
+            height: 48px;
+            padding: 0 8px;
+            flex: 0 0 auto;
+            box-sizing: border-box;
+        }
+        #sceneWarnWhite .mid-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 18px;
+            min-height: 44px;
+            border-radius: 6px;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: 0.2px;
+            font-weight: 900;
+            color: #ffffff;
+            white-space: nowrap;
+        }
+        #sceneWarnWhite .mid-chip.chip-advisory { background: #cdb800; }
+        #sceneWarnWhite .mid-chip.chip-warning { background: #d62828; }
+        #sceneWarnWhite .mid-chip.chip-special { background: #000000; }
+        #sceneWarnWhite .white-foot-seg {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            height: 40px;
+            flex: 0 0 auto;
+        }
+        #sceneWarnWhite .white-foot-cell {
+            width: 170px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+            box-sizing: border-box;
+        }
+        #sceneWarnWhite .white-foot-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 24px;
+            padding: 0 6px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 900;
+            color: #ffffff;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+            box-sizing: border-box;
+        }
+        #sceneWarnWhite .white-foot-chip.chip-special { background: #000000; }
+        #sceneWarnWhite .white-foot-chip.chip-warning { background: #d62828; }
+        #sceneWarnWhite .white-foot-chip.chip-advisory { background: #cdb800; }
     </style>
 </head>
 <body class="native-640 layout-512">
@@ -2134,6 +2281,13 @@
             <div class="band band-top"><div class="track" id="izuTopTrack"></div></div>
             <div class="band band-mid"><div class="track" id="izuMidTrack"></div></div>
             <div class="band band-bot"><div class="track" id="izuBotTrack"></div></div>
+        </div>
+    </div>
+    <div class="scene" id="sceneWarnWhite">
+        <div class="hero is-white" id="izuWhiteHero" aria-live="polite">
+            <div class="band band-top"><div class="track" id="izuWhiteTopTrack"></div></div>
+            <div class="band band-mid"><div class="track" id="izuWhiteMidTrack"></div></div>
+            <div class="band band-bot"><div class="track" id="izuWhiteBotTrack"></div></div>
         </div>
     </div>
     <div class="scene active" id="scene1">
@@ -2571,7 +2725,8 @@
     /*
      * 流れる順
      *  1 時刻 (s1) → 2 気象・大島 (s2) → 3 暑さ指数WBGT (s4)
-     *  → 4 4日予報 (s5) → 5 多言語の暑さ対策 (s3) → 発表中なら警報 → シーン1へ
+     *  → 4 4日予報 (s5) → 5 多言語の暑さ対策 (s3)
+     *  → 発表中なら色付き3段（レベル付き）→ 白3段（レベルなし）→ シーン1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
      */
     function normalizeOnlyParam_(raw) {
@@ -3238,6 +3393,7 @@
     const sceneAlert = document.getElementById('sceneAlert');
     const sceneRainWarn = document.getElementById('sceneRainWarn');
     const sceneWarn = document.getElementById('sceneWarn');
+    const sceneWarnWhite = document.getElementById('sceneWarnWhite');
     const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
 
@@ -4588,11 +4744,22 @@
             demoRainPassIdx_ = 0;
             prepDemoRainPass_();
         }
-        if (izuWarnHasItems_() && sceneWarn) {
-            transitionToScene(sceneWarn, playSceneWarn);
+        function playWarnOrClock_() {
+            if (izuWarnHasItems_() && sceneWarn) {
+                transitionToScene(sceneWarn, playSceneWarn);
+                return;
+            }
+            if (izuPlainHasItems_() && sceneWarnWhite) {
+                transitionToScene(sceneWarnWhite, playSceneWarnWhite);
+                return;
+            }
+            finishMainLoopToS1_();
+        }
+        if (izuWarnHasItems_() || izuPlainHasItems_()) {
+            playWarnOrClock_();
             return;
         }
-        finishMainLoopToS1_();
+        loadIzuWarnLive_().then(playWarnOrClock_).catch(playWarnOrClock_);
     }
     /* ===== 伊豆諸島北部 警報（気象庁 r8 / index.html と同仕様） ===== */
     const IZU_WARN_CITIES = ['1336100', '1336200', '1336300', '1336400'];
@@ -4616,8 +4783,33 @@
     };
     const IZU_WARN_SPEED = 56;
     const IZU_WARN_UNIT_W = 256;
-    const IZU_WARN_LAPS = 2; /* 中段2周で次の警報へ */
+    const IZU_WARN_LAPS = 2; /* 中段2周で次へ */
+    const IZU_PLAIN_CODES = {
+        '36': { mid: '大雪特別警報', cls: 'special', rank: 5, ord: 0 },
+        '35': { mid: '暴風特別警報', cls: 'special', rank: 5, ord: 1 },
+        '32': { mid: '暴風雪特別警報', cls: 'special', rank: 5, ord: 2 },
+        '37': { mid: '波浪特別警報', cls: 'special', rank: 5, ord: 3 },
+        '06': { mid: '大雪警報', cls: 'warning', rank: 3, ord: 0 },
+        '02': { mid: '暴風警報', cls: 'warning', rank: 3, ord: 1 },
+        '05': { mid: '暴風雪警報', cls: 'warning', rank: 3, ord: 2 },
+        '07': { mid: '波浪警報', cls: 'warning', rank: 3, ord: 3 },
+        '12': { mid: '大雪注意報', cls: 'advisory', rank: 2, ord: 0 },
+        '15': { mid: '強風注意報', cls: 'advisory', rank: 2, ord: 1 },
+        '13': { mid: '風雪注意報', cls: 'advisory', rank: 2, ord: 2 },
+        '16': { mid: '波浪注意報', cls: 'advisory', rank: 2, ord: 3 },
+        '14': { mid: '雷注意報', cls: 'advisory', rank: 2, ord: 4 },
+        '20': { mid: '濃霧注意報', cls: 'advisory', rank: 2, ord: 5 },
+        '21': { mid: '乾燥注意報', cls: 'advisory', rank: 2, ord: 6 },
+        '22': { mid: 'なだれ注意報', cls: 'advisory', rank: 2, ord: 7 },
+        '25': { mid: '着氷注意報', cls: 'advisory', rank: 2, ord: 8 },
+        '26': { mid: '着雪注意報', cls: 'advisory', rank: 2, ord: 9 },
+        '17': { mid: '融雪注意報', cls: 'advisory', rank: 2, ord: 10 },
+        '24': { mid: '霜注意報', cls: 'advisory', rank: 2, ord: 11 },
+        '23': { mid: '低温注意報', cls: 'advisory', rank: 2, ord: 12 }
+    };
+    const IZU_PLAIN_RANK_LABEL = { 5: '特別警報', 3: '警報', 2: '注意報' };
     let izuWarnItems_ = [];
+    let izuPlainItems_ = [];
     let izuWarnSig_ = '';
     let izuWarnIndex_ = 0;
     let izuWarnGen_ = 0;
@@ -4627,8 +4819,19 @@
     const izuTopTrack_ = document.getElementById('izuTopTrack');
     const izuMidTrack_ = document.getElementById('izuMidTrack');
     const izuBotTrack_ = document.getElementById('izuBotTrack');
+    const izuWhiteHeroEl_ = document.getElementById('izuWhiteHero');
+    const izuWhiteTopTrack_ = document.getElementById('izuWhiteTopTrack');
+    const izuWhiteMidTrack_ = document.getElementById('izuWhiteMidTrack');
+    const izuWhiteBotTrack_ = document.getElementById('izuWhiteBotTrack');
     function izuWarnHasItems_() {
         return izuWarnItems_.length > 0;
+    }
+    function izuPlainHasItems_() {
+        return izuPlainItems_.length > 0;
+    }
+    function izuWarnSceneActive_() {
+        return (sceneWarn && sceneWarn.classList.contains('active'))
+            || (sceneWarnWhite && sceneWarnWhite.classList.contains('active'));
     }
     function izuSceneFromMeta_(kind, lv) {
         const row = IZU_LEVELS[lv];
@@ -4667,6 +4870,30 @@
             .sort(function (a, b) { return b.lv - a.lv || IZU_KIND_ORDER[a.kind] - IZU_KIND_ORDER[b.kind]; })
             .map(function (row) { return izuSceneFromMeta_(row.kind, row.lv); });
     }
+    function parseIzuPlainR8_(payload) {
+        const byName = new Map();
+        const citySet = new Set(IZU_WARN_CITIES);
+        if (!Array.isArray(payload)) return [];
+        payload.forEach(function (entry) {
+            if (!entry || !entry.warning) return;
+            const class20 = Array.isArray(entry.warning.class20Items) ? entry.warning.class20Items : [];
+            class20.forEach(function (area) {
+                if (!citySet.has(String(area.areaCode))) return;
+                const kinds = Array.isArray(area.kinds) ? area.kinds : [];
+                kinds.forEach(function (kind) {
+                    if (!kind || !kind.code) return;
+                    if (!IZU_ACTIVE_STATUS[kind.status]) return;
+                    const key = String(kind.code).padStart(2, '0');
+                    const meta = IZU_PLAIN_CODES[key];
+                    if (!meta) return;
+                    if (!byName.has(meta.mid)) byName.set(meta.mid, meta);
+                });
+            });
+        });
+        return Array.from(byName.values()).sort(function (a, b) {
+            return b.rank - a.rank || a.ord - b.ord;
+        });
+    }
     function parseIzuFlood_(payload) {
         const byKind = new Map();
         const citySet = new Set(IZU_WARN_CITIES);
@@ -4699,35 +4926,46 @@
     function izuWarnSignature_(list) {
         return list.map(function (it) { return it.mid; }).join('|');
     }
-    function applyIzuWarnQueue_(list) {
-        const next = list.slice();
-        const sig = izuWarnSignature_(next);
-        if (sig === izuWarnSig_ && izuWarnItems_.length) return;
+    function applyIzuWarnQueue_(levelList, plainList) {
+        const nextL = levelList.slice();
+        const nextP = (plainList || []).slice();
+        const sig = izuWarnSignature_(nextL) + '||' + nextP.map(function (it) { return it.mid; }).join('|');
+        if (sig === izuWarnSig_ && (izuWarnItems_.length || izuPlainItems_.length)) return;
         izuWarnSig_ = sig;
-        izuWarnItems_ = next;
+        izuWarnItems_ = nextL;
+        izuPlainItems_ = nextP;
         izuWarnIndex_ = 0;
-        console.log('[警報]', sig || '対象の発表なし');
-        if (!next.length) {
+        console.log('[警報] 色付き', sig.split('||')[0] || 'なし', '/ 白', nextP.map(function (it) { return it.mid; }).join('|') || 'なし');
+        if (!nextL.length && !nextP.length) {
             stopIzuWarnScroll_();
-            if (sceneWarn && sceneWarn.classList.contains('active')) finishMainLoopToS1_();
+            if (izuWarnSceneActive_()) finishMainLoopToS1_();
             return;
         }
-        if (sceneWarn && sceneWarn.classList.contains('active')) playSceneWarn();
+        if (sceneWarn && sceneWarn.classList.contains('active')) {
+            if (nextL.length) playSceneWarn();
+            else playSceneWarnWhite();
+            return;
+        }
+        if (sceneWarnWhite && sceneWarnWhite.classList.contains('active')) {
+            if (nextP.length) playSceneWarnWhite();
+            else finishMainLoopToS1_();
+        }
     }
     async function loadIzuWarnLive_() {
         try {
             const wRes = await fetch('https://www.jma.go.jp/bosai/warning/data/r8/130000.json', { cache: 'no-store' });
             if (!wRes.ok) throw new Error('r8 HTTP ' + wRes.status);
-            const parsed = parseIzuJmaR8_(await wRes.json());
+            const json = await wRes.json();
+            const parsed = parseIzuJmaR8_(json);
+            const plain = parseIzuPlainR8_(json);
             let floodItems = [];
             try {
                 const fRes = await fetch('https://www.jma.go.jp/bosai/flood/data/r8/flood_xml.json', { cache: 'no-store' });
                 if (fRes.ok) floodItems = parseIzuFlood_(await fRes.json());
             } catch (_) {}
-            applyIzuWarnQueue_(mergeIzuWarn_(parsed, floodItems));
+            applyIzuWarnQueue_(mergeIzuWarn_(parsed, floodItems), plain);
         } catch (err) {
             console.warn('[警報] 取得失敗（デモで埋めない）', err && err.message ? err.message : err);
-            applyIzuWarnQueue_([]);
         }
     }
     function startIzuWarnPoll_() {
@@ -4891,18 +5129,137 @@
                     if (gen !== izuWarnGen_) return;
                     const next = izuWarnIndex_ + 1;
                     if (next < izuWarnItems_.length) izuRenderWarnItem_(next);
-                    else finishMainLoopToS1_();
+                    else gotoAfterColoredWarn_();
                 });
             });
         });
     }
     function playSceneWarn() {
         if (!sceneWarn || !izuWarnHasItems_()) {
-            finishMainLoopToS1_();
+            gotoAfterColoredWarn_();
             return;
         }
         stopIzuWarnScroll_();
         izuRenderWarnItem_(0);
+    }
+    function izuPlainTopLabel_() {
+        if (!izuPlainItems_.length) return '注意報';
+        return IZU_PLAIN_RANK_LABEL[izuPlainItems_[0].rank] || '注意報';
+    }
+    function izuMakeWhiteTopSeg_(label) {
+        const seg = document.createElement('div');
+        seg.className = 'white-top-seg';
+        const area = document.createElement('span');
+        area.className = 'white-area';
+        area.textContent = '伊豆諸島北部';
+        const what = document.createElement('span');
+        what.className = 'white-what';
+        what.textContent = label;
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.innerHTML = '<span>発表中</span>';
+        seg.appendChild(area);
+        seg.appendChild(what);
+        seg.appendChild(badge);
+        return seg;
+    }
+    function izuMakeWhiteMidSeg_(item) {
+        const seg = document.createElement('div');
+        seg.className = 'white-mid-seg';
+        const chip = document.createElement('span');
+        chip.className = 'mid-chip chip-' + item.cls;
+        chip.textContent = item.mid;
+        seg.appendChild(chip);
+        return seg;
+    }
+    function izuMakeWhiteBotSeg_() {
+        const seg = document.createElement('div');
+        seg.className = 'white-foot-seg';
+        [['chip-special', '特別警報'], ['chip-warning', '警報'], ['chip-advisory', '注意報']].forEach(function (row) {
+            const cell = document.createElement('div');
+            cell.className = 'white-foot-cell';
+            const chip = document.createElement('span');
+            chip.className = 'white-foot-chip ' + row[0];
+            chip.textContent = row[1];
+            cell.appendChild(chip);
+            seg.appendChild(cell);
+        });
+        return seg;
+    }
+    function izuPrepareWhiteLoop_(track) {
+        const kids = Array.prototype.slice.call(track.children);
+        if (!kids.length) return 0;
+        let loopW = 0;
+        kids.forEach(function (el) { loopW += el.offsetWidth || 0; });
+        if (loopW < 1) loopW = IZU_WARN_UNIT_W;
+        while (track.children.length > kids.length) track.removeChild(track.lastChild);
+        for (let i = 0; i < 5; i++) {
+            kids.forEach(function (el) { track.appendChild(el.cloneNode(true)); });
+        }
+        return loopW;
+    }
+    function gotoAfterColoredWarn_() {
+        if (izuPlainHasItems_() && sceneWarnWhite) {
+            transitionToScene(sceneWarnWhite, playSceneWarnWhite);
+            return;
+        }
+        finishMainLoopToS1_();
+    }
+    function playSceneWarnWhite() {
+        if (!sceneWarnWhite || !izuPlainHasItems_() || !izuWhiteHeroEl_ || !izuWhiteTopTrack_ || !izuWhiteMidTrack_ || !izuWhiteBotTrack_) {
+            finishMainLoopToS1_();
+            return;
+        }
+        stopIzuWarnScroll_();
+        const gen = ++izuWarnGen_;
+        izuWhiteHeroEl_.className = 'hero is-white';
+        izuWhiteTopTrack_.replaceChildren(izuMakeWhiteTopSeg_(izuPlainTopLabel_()));
+        izuWhiteMidTrack_.replaceChildren();
+        izuPlainItems_.forEach(function (item) {
+            izuWhiteMidTrack_.appendChild(izuMakeWhiteMidSeg_(item));
+        });
+        izuWhiteBotTrack_.replaceChildren(izuMakeWhiteBotSeg_());
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (gen !== izuWarnGen_) return;
+                const loopWs = [
+                    izuPrepareWhiteLoop_(izuWhiteTopTrack_),
+                    izuPrepareWhiteLoop_(izuWhiteMidTrack_),
+                    izuPrepareWhiteLoop_(izuWhiteBotTrack_)
+                ];
+                izuStartSharedScrollWhite_(gen, loopWs, function () {
+                    if (gen !== izuWarnGen_) return;
+                    finishMainLoopToS1_();
+                });
+            });
+        });
+    }
+    function izuStartSharedScrollWhite_(gen, loopWs, onLoopDone) {
+        if (izuWarnRaf_) cancelAnimationFrame(izuWarnRaf_);
+        let scrollX = 0;
+        let lastTs = 0;
+        let switched = false;
+        const oneLoop = loopWs[1] || IZU_WARN_UNIT_W;
+        const tracks = [izuWhiteTopTrack_, izuWhiteMidTrack_, izuWhiteBotTrack_];
+        function step(ts) {
+            if (gen !== izuWarnGen_) return;
+            if (!lastTs) lastTs = ts;
+            const dt = Math.min(0.05, (ts - lastTs) / 1000);
+            lastTs = ts;
+            scrollX += IZU_WARN_SPEED * dt;
+            tracks.forEach(function (track, i) {
+                const w = loopWs[i];
+                if (!track || w < 1) return;
+                track.style.transform = 'translate3d(' + (-(scrollX % w)) + 'px,0,0)';
+            });
+            if (!switched && oneLoop > 0 && scrollX >= oneLoop * IZU_WARN_LAPS) {
+                switched = true;
+                onLoopDone();
+                return;
+            }
+            izuWarnRaf_ = requestAnimationFrame(step);
+        }
+        izuWarnRaf_ = requestAnimationFrame(step);
     }
     function startMainContentLoop_() {
         if (s1) {
@@ -5090,7 +5447,7 @@
     }
     async function startRainWarnOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnWhite].forEach(hideSceneEl);
         if (sceneRainWarn) {
             sceneRainWarn.style.display = 'block';
             sceneRainWarn.classList.add('active');
@@ -5322,10 +5679,16 @@
             fn();
         }, SCENE_SCROLL_HOLD_MS);
     }
+    let sceneSlideFromEl_ = null;
     function clearSceneSlideAnim_() {
         if (sceneSlideAnimId != null) {
             cancelAnimationFrame(sceneSlideAnimId);
             sceneSlideAnimId = null;
+        }
+        if (sceneSlideFromEl_) {
+            const leftover = sceneSlideFromEl_;
+            sceneSlideFromEl_ = null;
+            hideSceneEl(leftover);
         }
     }
     function detectScrollLapCrossed_(prevX, newX) {
@@ -5342,6 +5705,7 @@
         if (tickerAnimId) { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; }
         if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
+        if (izuWarnRaf_) { cancelAnimationFrame(izuWarnRaf_); izuWarnRaf_ = 0; izuWarnGen_ += 1; }
     }
     let scene2AnimId = null;
     let clockIntervalId = null;
@@ -7268,7 +7632,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarn') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarn' || el.id === 'sceneWarnWhite') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         if (el.id === 'scene6') return 'flex';
         return 'flex';
@@ -7281,13 +7645,28 @@
         el.style.zIndex = '';
     }
     function getActiveScene() {
-        return document.querySelector('.content-area .scene.active');
+        const nodes = document.querySelectorAll('.content-area .scene.active');
+        if (!nodes.length) return null;
+        if (nodes.length === 1) return nodes[0];
+        let best = nodes[0];
+        let bestZ = parseInt(best.style.zIndex || '0', 10) || 0;
+        for (let i = 1; i < nodes.length; i++) {
+            const z = parseInt(nodes[i].style.zIndex || '0', 10) || 0;
+            if (z >= bestZ) {
+                best = nodes[i];
+                bestZ = z;
+            }
+        }
+        return best;
     }
     function transitionToScene(nextEl, onComplete) {
         clearSceneEndHoldTimer_();
         clearSceneSlideAnim_();
         clearOutgoingSceneAnims_();
         const current = getActiveScene();
+        document.querySelectorAll('.content-area .scene.active').forEach(function (el) {
+            if (el !== current && el !== nextEl) hideSceneEl(el);
+        });
         if (!nextEl) { onComplete?.(); return; }
         if (current === nextEl) { onComplete?.(); return; }
         nextEl.style.display = sceneDisplayMode(nextEl);
@@ -7299,6 +7678,7 @@
             onComplete?.();
             return;
         }
+        sceneSlideFromEl_ = current;
         nextEl.style.zIndex = '2';
         applyScrollX_(nextEl, SCENE_W);
         current.style.zIndex = '1';
@@ -7314,6 +7694,7 @@
                 sceneSlideAnimId = requestAnimationFrame(tick);
             } else {
                 sceneSlideAnimId = null;
+                sceneSlideFromEl_ = null;
                 hideSceneEl(current);
                 applyScrollX_(nextEl, 0);
                 nextEl.style.zIndex = '';
@@ -7335,7 +7716,7 @@
         if (!s2) return;
         transitionToScene(s2, playScene2);
     }
-    /* シーン3（多言語の暑さ対策）の後 → 発表中なら警報 → 時刻へ */
+    /* シーン3（多言語の暑さ対策）の後 → 色付き3段 → 白3段 → 時刻へ */
     function gotoAfterScene3Tail_() {
         if (WBGT_ONLY) { finishMainLoopToS1_(); return; }
         gotoAfterRainWarnOrScene1_();
@@ -8444,7 +8825,7 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnWhite].forEach(hideSceneEl);
         if (!el) return;
         el.style.display = sceneDisplayMode(el);
         el.classList.add('active');
@@ -8479,7 +8860,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnWhite].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -8505,7 +8886,7 @@
     function startSequence() {
         clearDemoStepTimer_();
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnWhite].forEach(hideSceneEl);
         transitionToScene(s1, playScene1);
     }
 
