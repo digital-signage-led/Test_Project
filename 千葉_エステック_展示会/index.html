@@ -19,7 +19,9 @@
     <link rel="preload" as="image" href="./assets/estec_foot_lockup.png?v=2">
     <link rel="preload" as="image" href="./assets/estec_logo.png?v=1">
     <link rel="preload" as="image" href="./assets/green_cross.png?v=1">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=optional">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=swap">
     <script>
 /** 5面 640×128。実寸は常に同じCSS。画面が大きいときだけ拡大プレビュー。640×128端末はネイティブ */
 (function () {
@@ -923,83 +925,72 @@
         #scene6 .s6-face-logo { background: #ffffff; }
         .content-area.scene6-white { background: #ffffff !important; }
 
+        /* 色3段（警戒レベル）— 外部CSSが落ちても横一列で見えるようここに正を置く */
         #sceneWarnHero { width: 512px; height: 128px; overflow: hidden; background: #000; }
-        #sceneWarnHero.active { display: block; z-index: 3; }
+        #sceneWarnHero.active { display: block !important; z-index: 3; }
         #sceneWarnHero .hero {
-            width: 512px; height: 128px; position: relative; overflow: hidden;
-            display: flex; flex-direction: column; flex-wrap: nowrap;
+            width: 512px; height: 128px; min-height: 128px; position: relative; overflow: hidden;
+            display: grid; grid-template-rows: 40px 48px 40px; grid-template-columns: 512px;
             background: #fa2900;
-            font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", "Meiryo", "Hiragino Sans", sans-serif;
+            font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, "Hiragino Sans", sans-serif;
         }
         #sceneWarnHero .hero.is-advisory { background: #f2e700; }
         #sceneWarnHero .hero.is-warning { background: #fa2900; }
         #sceneWarnHero .hero.is-danger { background: #ab00aa; }
         #sceneWarnHero .hero.is-special { background: #000000; }
         #sceneWarnHero .band {
-            position: relative; left: auto; top: auto; bottom: auto;
-            width: 512px; height: 100%; overflow: hidden; pointer-events: none;
-            display: flex; align-items: center;
+            position: relative; width: 512px; height: 100%; min-height: 0;
+            overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap;
+            align-items: center; align-self: stretch;
         }
         #sceneWarnHero .band-top { height: 40px; }
         #sceneWarnHero .band-mid { height: 48px; }
         #sceneWarnHero .band-bot { height: 40px; }
+        #sceneWarnHero .hero.is-advisory .band-mid { background: #cdb800; }
+        #sceneWarnHero .hero.is-warning .band-mid { background: #c82400; }
+        #sceneWarnHero .hero.is-danger .band-mid { background: #7a0078; }
+        #sceneWarnHero .hero.is-special .band-mid { background: #333333; }
         #sceneWarnHero .band-mid::before {
-            content: ""; position: absolute; inset: 0; z-index: 0;
-            animation: mid-pulse 1.5s ease-in-out infinite;
+            content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 0;
         }
         #sceneWarnHero .hero.is-advisory .band-mid::before { background: #cdb800; }
         #sceneWarnHero .hero.is-warning .band-mid::before { background: #c82400; }
         #sceneWarnHero .hero.is-danger .band-mid::before { background: #7a0078; }
         #sceneWarnHero .hero.is-special .band-mid::before { background: #333333; }
-        @keyframes mid-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.88; } }
         #sceneWarnHero .track {
-            position: relative; z-index: 1; display: flex; flex-direction: row;
+            position: relative; z-index: 1; display: flex !important;
+            flex-direction: row !important; flex-wrap: nowrap !important;
             align-items: center; height: 100%; width: max-content;
-            will-change: transform; transform: translate3d(0, 0, 0);
         }
         #sceneWarnHero .seg {
-            display: flex; flex-direction: row; align-items: center; justify-content: center;
-            flex: 0 0 256px; width: 256px; min-width: 256px; max-width: 256px;
+            display: flex; flex-direction: row; flex-wrap: nowrap;
+            align-items: center; justify-content: center;
+            flex: 0 0 auto; width: auto; min-width: 0; max-width: none;
             height: 100%; padding: 0 8px; gap: 0; box-sizing: border-box;
             overflow: hidden;
         }
-        #sceneWarnHero .band-mid .track,
-        #sceneWarnHero .band-mid .seg { align-items: center; }
-        #sceneWarnHero .band-mid .seg {
-            height: 48px; width: auto; min-width: 256px; max-width: none;
-            flex: 0 0 auto; overflow: hidden;
-        }
-        #sceneWarnHero .top-label,
-        #sceneWarnHero .bot-txt,
-        #sceneWarnHero .mid-chip { font-weight: 900; }
-        #sceneWarnHero .unit,
-        #sceneWarnHero .mid-chip,
-        #sceneWarnHero .bot-txt { padding-right: 0; max-width: 100%; min-width: 0; }
+        #sceneWarnHero .band-mid .seg { height: 48px; padding: 0 8px; }
+        #sceneWarnHero .top-label, #sceneWarnHero .bot-txt, #sceneWarnHero .mid-chip { font-weight: 900; }
         #sceneWarnHero .unit {
-            display: flex; flex-direction: row; align-items: center;
-            justify-content: space-between; flex: 1 1 auto; width: 100%;
-            max-width: 100%; gap: 8px; min-width: 0; overflow: hidden;
+            display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+            flex: 0 0 auto; width: auto; gap: 8px; min-width: 0; overflow: visible;
         }
         #sceneWarnHero .top-label {
-            flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap;
-            font-size: 20px; line-height: 1; letter-spacing: 0.04em;
+            flex: 0 0 auto; white-space: nowrap; font-size: 20px; line-height: 1; letter-spacing: 0.04em;
         }
         #sceneWarnHero .bot-txt {
-            display: block; width: 100%; max-width: 100%; max-height: 36px;
-            overflow: hidden; white-space: normal; text-align: center;
-            font-size: 14px; line-height: 1.15; letter-spacing: 0.02em;
+            display: block; max-height: 36px; overflow: hidden; white-space: pre-line;
+            text-align: center; font-size: 14px; line-height: 1.15; letter-spacing: 0.02em;
         }
         #sceneWarnHero .mid-chip {
             display: flex; align-items: center; justify-content: center;
-            flex: 0 0 auto; width: auto; max-width: 500px; height: 48px;
-            overflow: hidden; white-space: nowrap; font-size: 36px; line-height: 48px;
-            letter-spacing: 0.04em; transform: translateY(-3px);
-            -webkit-text-stroke: 3px #000000; paint-order: stroke fill;
-            text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000;
+            flex: 0 0 auto; height: 48px; overflow: visible; white-space: nowrap;
+            font-size: 36px; line-height: 48px; letter-spacing: 0.04em;
+            transform: translateY(-3px); color: #fff; padding: 0 6px;
+            -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: none;
         }
         #sceneWarnHero .badge {
-            flex: 0 0 auto; background: #ffffff; padding: 3px 8px;
-            border-radius: 2px; line-height: 1;
+            flex: 0 0 auto; background: #fff; padding: 3px 8px; border-radius: 2px; line-height: 1;
         }
         #sceneWarnHero .badge span {
             display: block; color: #1a1a1a; font-weight: 900; font-size: 15px;
@@ -1009,7 +1000,7 @@
         #sceneWarnHero .hero.is-demo .badge span { color: #f2e700; }
         #sceneWarnHero .hero.is-advisory .top-label,
         #sceneWarnHero .hero.is-advisory .bot-txt { color: #1a1a1a; }
-        #sceneWarnHero .hero.is-advisory .mid-chip { color: #ffffff; }
+        #sceneWarnHero .hero.is-advisory .mid-chip { color: #fff; }
         #sceneWarnHero .hero.is-warning .top-label,
         #sceneWarnHero .hero.is-warning .bot-txt,
         #sceneWarnHero .hero.is-warning .mid-chip,
@@ -1018,7 +1009,7 @@
         #sceneWarnHero .hero.is-danger .mid-chip,
         #sceneWarnHero .hero.is-special .top-label,
         #sceneWarnHero .hero.is-special .bot-txt,
-        #sceneWarnHero .hero.is-special .mid-chip { color: #ffffff; }
+        #sceneWarnHero .hero.is-special .mid-chip { color: #fff; }
 
         #scene3 { overflow: hidden; position: relative; }
         /* 512×128: 上バー32 + 本体72 + 白下帯24（現在WBGT指針・シーン4） */
@@ -1942,7 +1933,8 @@
             background: #fff9f0;
         }
     </style>
-    <link rel="stylesheet" href="./assets/white-hero.css?v=20260907">
+    <link rel="stylesheet" href="./assets/white-hero.css?v=20260907-foot128">
+    <link rel="stylesheet" href="./assets/color-hero.css?v=20260907-row">
 </head>
 <body class="native-640">
 <script>
@@ -2545,7 +2537,7 @@
 
 </script>
 <script src="./assets/jma-warning-kinds.js?v=20260907-led2"></script>
-<script src="./assets/warning-hero.js?v=20260907-css1"></script>
+<script src="./assets/warning-hero.js?v=20260907-gap"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード。未指定時は本番（実データ取得） */

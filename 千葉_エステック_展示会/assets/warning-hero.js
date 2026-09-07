@@ -13,13 +13,13 @@
   ];
   var LEVELS = [
     { group: 'l2', key: 'advisory', label: '注意報', lv: 2, cls: 'advisory', suffix: '注意報',
-      bot: '避難行動・避難経路の確認（ハザードマップ等の再チェック）' },
+      bot: '避難行動・避難経路の確認\n（ハザードマップ等の再チェック）' },
     { group: 'l3', key: 'warning', label: '警報', lv: 3, cls: 'warning', suffix: '警報',
       bot: '高齢者や避難に時間のかかる人は避難' },
     { group: 'l4', key: 'danger', label: '危険警報', lv: 4, cls: 'danger', suffix: '危険警報',
-      bot: '危険な場所から全員避難（自治体の「避難指示」相当）' },
+      bot: '危険な場所から全員避難\n（自治体の「避難指示」相当）' },
     { group: 'l5', key: 'special', label: '特別警報', lv: 5, cls: 'special', suffix: '特別警報',
-      bot: '命を守るための最善の行動をとる（すでに災害発生または切迫）' }
+      bot: '命を守るための最善の行動をとる\n（すでに災害発生または切迫）' }
   ];
   var EVAC_ITEMS = [
     { group: 'evac', label: '避難情報', lv: 3, cls: 'warning', levelLabel: '警戒レベル3',
@@ -27,7 +27,7 @@
     { group: 'evac', label: '避難情報', lv: 4, cls: 'danger', levelLabel: '警戒レベル4',
       mid: 'レベル4避難指示', bot: '危険な場所から全員避難', badge: '発表中', kind: 'evac4' },
     { group: 'evac', label: '避難情報', lv: 5, cls: 'special', levelLabel: '警戒レベル5',
-      mid: 'レベル5緊急安全確保', bot: '命を守るための最善の行動をとる（すでに災害発生または切迫）', badge: '発表中', kind: 'evac5' }
+      mid: 'レベル5緊急安全確保', bot: '命を守るための最善の行動をとる\n（すでに災害発生または切迫）', badge: '発表中', kind: 'evac5' }
   ];
   var CODE_MAP = {
     '10': { level: 'advisory', kind: 'rain' },
@@ -218,18 +218,33 @@
     return seg;
   }
 
+  function fillBotLines(el, text) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+    var parts = String(text || '').split('\n');
+    for (var i = 0; i < parts.length; i++) {
+      if (i) el.appendChild(document.createElement('br'));
+      el.appendChild(document.createTextNode(parts[i]));
+    }
+  }
+
   function makeBotSeg(scene) {
     var seg = document.createElement('div');
     seg.className = 'seg';
     var txt = document.createElement('span');
     txt.className = 'bot-txt';
-    txt.textContent = scene.bot;
+    fillBotLines(txt, scene.bot);
     seg.appendChild(txt);
     return seg;
   }
 
   function fillTrack(track, makeSeg, scene) {
     track.style.transform = 'translate3d(0,0,0)';
+    track.style.display = 'flex';
+    track.style.flexDirection = 'row';
+    track.style.flexWrap = 'nowrap';
+    track.style.alignItems = 'center';
+    track.style.height = '100%';
+    track.style.width = 'max-content';
     while (track.firstChild) track.removeChild(track.firstChild);
     track.appendChild(makeSeg(scene));
   }
@@ -259,11 +274,11 @@
     el.style.overflow = 'hidden';
   }
 
-  function fitBot(el, maxW, maxH) {
+  function fitBot(el, maxH) {
     if (!el) return;
-    el.style.whiteSpace = 'normal';
-    el.style.width = maxW + 'px';
-    el.style.maxWidth = maxW + 'px';
+    el.style.whiteSpace = 'pre-line';
+    el.style.width = 'auto';
+    el.style.maxWidth = 'none';
     el.style.flex = '0 0 auto';
     var size = 16;
     el.style.fontSize = size + 'px';
@@ -275,46 +290,132 @@
     }
   }
 
+  function canvasTextWidth(text, cssFont) {
+    if (!canvasTextWidth._ctx) {
+      var c = document.createElement('canvas');
+      canvasTextWidth._ctx = c.getContext && c.getContext('2d');
+    }
+    var ctx = canvasTextWidth._ctx;
+    if (!ctx) return 0;
+    ctx.font = cssFont;
+    return Math.ceil(ctx.measureText(String(text || '')).width);
+  }
+
+  function measureProbe(el) {
+    if (!el) return 0;
+    var host = document.getElementById('sceneWarnHero');
+    var probe = el.cloneNode(true);
+    probe.style.position = 'absolute';
+    probe.style.left = '0';
+    probe.style.top = '-9999px';
+    probe.style.width = 'auto';
+    probe.style.maxWidth = 'none';
+    probe.style.minWidth = 'auto';
+    probe.style.flex = 'none';
+    probe.style.display = 'inline-flex';
+    probe.style.whiteSpace = el.classList.contains('bot-txt') ? 'pre-line' : 'nowrap';
+    probe.style.visibility = 'hidden';
+    probe.style.transform = 'none';
+    probe.style.overflow = 'visible';
+    (host || document.body).appendChild(probe);
+    var w = Math.ceil(Math.max(probe.scrollWidth || 0, probe.offsetWidth || 0));
+    if (probe.parentNode) probe.parentNode.removeChild(probe);
+    return w;
+  }
+
+  function measureMidWidth(mid) {
+    var text = mid && mid.textContent ? mid.textContent : '';
+    var font = '900 36px "Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif';
+    var letter = Math.ceil(0.04 * 36 * Math.max(0, text.length - 1));
+    var stroke = 8;
+    var cw = canvasTextWidth(text, font) + letter + stroke;
+    var dw = measureProbe(mid) + stroke;
+    return Math.max(cw, dw, 1);
+  }
+
+  function lockSegWidth(el, w) {
+    el.style.boxSizing = 'border-box';
+    el.style.width = w + 'px';
+    el.style.minWidth = w + 'px';
+    el.style.maxWidth = w + 'px';
+    el.style.flex = '0 0 ' + w + 'px';
+    el.style.overflow = 'hidden';
+    el.style.paddingLeft = '0';
+    el.style.paddingRight = '0';
+  }
+
   function prepareTrack(track) {
     var first = track.children[0];
     if (!first) return 0;
-    var innerW = UNIT_W - 16;
     var mid = first.querySelector('.mid-chip');
     var bot = first.querySelector('.bot-txt');
     var top = first.querySelector('.top-label');
-    if (bot) fitBot(bot, innerW, 36);
-    if (top) fitToWidth(top, 160, 20);
-    var loopW = UNIT_W;
+    var unit = first.querySelector('.unit');
+    if (bot) fitBot(bot, 36);
+    if (top) {
+      top.style.flex = '0 0 auto';
+      top.style.width = 'auto';
+      top.style.maxWidth = 'none';
+      top.style.minWidth = 'auto';
+      top.style.fontSize = '20px';
+      top.style.letterSpacing = '0.04em';
+    }
+    if (unit) {
+      unit.style.width = 'auto';
+      unit.style.flex = '0 0 auto';
+      unit.style.minWidth = 'auto';
+    }
+    first.style.width = 'auto';
+    first.style.minWidth = 'auto';
+    first.style.maxWidth = 'none';
+    first.style.flex = '0 0 auto';
+    first.style.overflow = 'visible';
+    var gap = 24;
+    var loopW;
     if (mid) {
-      var maxMid = 500;
       mid.style.fontSize = '36px';
+      mid.style.fontWeight = '900';
       mid.style.letterSpacing = '0.04em';
+      mid.style.transform = 'translateY(-3px)';
       mid.style.width = 'auto';
       mid.style.maxWidth = 'none';
+      mid.style.minWidth = 'auto';
       mid.style.flex = '0 0 auto';
-      mid.style.transform = 'translateY(-3px)';
-      var mw = mid.offsetWidth || 0;
-      var guard = 24;
-      while (mw > maxMid && guard-- > 0) {
-        var fs = parseFloat(mid.style.fontSize) || 36;
-        mid.style.fontSize = Math.max(14, fs - 1) + 'px';
-        mw = mid.offsetWidth || 0;
-      }
-      var w = Math.max(UNIT_W, Math.min(maxMid, mw + 16));
-      first.style.width = w + 'px';
-      first.style.minWidth = w + 'px';
-      first.style.maxWidth = w + 'px';
-      first.style.flex = '0 0 ' + w + 'px';
-      loopW = w;
+      mid.style.overflow = 'hidden';
+      loopW = Math.max(1, measureMidWidth(mid) + gap);
+    } else if (unit) {
+      loopW = Math.max(1, measureProbe(unit) + gap);
+    } else if (bot) {
+      loopW = Math.max(1, measureProbe(bot) + gap);
     } else {
-      first.style.width = UNIT_W + 'px';
-      first.style.minWidth = UNIT_W + 'px';
-      first.style.maxWidth = UNIT_W + 'px';
-      first.style.flex = '0 0 ' + UNIT_W + 'px';
+      loopW = Math.max(1, measureProbe(first) || UNIT_W);
     }
+    lockSegWidth(first, loopW);
     while (track.children.length > 1) track.removeChild(track.lastChild);
-    for (var i = 1; i < 6; i++) track.appendChild(first.cloneNode(true));
+    for (var i = 1; i < 6; i++) {
+      if (first.parentNode) track.appendChild(first.cloneNode(true));
+    }
     return loopW;
+  }
+
+  function afterLayout(cb) {
+    function go() {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(cb);
+      });
+    }
+    if (document.fonts && document.fonts.load) {
+      var done = false;
+      function once() {
+        if (done) return;
+        done = true;
+        go();
+      }
+      document.fonts.load('900 36px "Noto Sans JP"').then(once, once);
+      setTimeout(once, 300);
+    } else {
+      go();
+    }
   }
 
   function createPlayer(opts) {
@@ -368,12 +469,10 @@
       fillTrack(midTrack, makeMidSeg, scene);
       fillTrack(botTrack, makeBotSeg, scene);
       onItem(scene, itemIndex);
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          if (gen !== playGen) return;
-          var loopWs = [prepareTrack(topTrack), prepareTrack(midTrack), prepareTrack(botTrack)];
-          startSharedScroll(gen, loopWs);
-        });
+      afterLayout(function () {
+        if (gen !== playGen) return;
+        var loopWs = [prepareTrack(topTrack), prepareTrack(midTrack), prepareTrack(botTrack)];
+        startSharedScroll(gen, loopWs);
       });
     }
 

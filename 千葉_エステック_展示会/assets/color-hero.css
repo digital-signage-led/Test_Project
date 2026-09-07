@@ -1,0 +1,202 @@
+/* 色3段（警戒レベル）正: 320_警報情報/signage-512.html #heroLevel
+   上40 黄 / 中48 金（白字黒縁 36px） / 下40 黄・2行
+   白3段 (.hero.is-white) には触れない */
+
+#sceneWarnHero {
+  width: 512px;
+  height: 128px;
+  overflow: hidden;
+  background: #000;
+}
+#sceneWarnHero.active {
+  display: block !important;
+  z-index: 3;
+}
+#sceneWarnHero .hero {
+  width: 512px;
+  height: 128px;
+  min-height: 128px;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 40px 48px 40px;
+  grid-template-columns: 512px;
+  background: #fa2900;
+  font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, "Hiragino Sans", sans-serif;
+}
+#sceneWarnHero .hero.is-advisory { background: #f2e700; }
+#sceneWarnHero .hero.is-warning { background: #fa2900; }
+#sceneWarnHero .hero.is-danger { background: #ab00aa; }
+#sceneWarnHero .hero.is-special { background: #000000; }
+
+#sceneWarnHero .band {
+  position: relative;
+  width: 512px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+#sceneWarnHero .band-top { height: 40px; }
+#sceneWarnHero .band-mid { height: 48px; }
+#sceneWarnHero .band-bot { height: 40px; }
+
+/* 中段の色は帯そのものに塗る（inset 非対応 / ::before 欠落でも見える） */
+#sceneWarnHero .hero.is-advisory .band-mid { background: #cdb800; }
+#sceneWarnHero .hero.is-warning .band-mid { background: #c82400; }
+#sceneWarnHero .hero.is-danger .band-mid { background: #7a0078; }
+#sceneWarnHero .hero.is-special .band-mid { background: #333333; }
+
+#sceneWarnHero .band-mid::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  animation: warn-hero-mid-pulse 1.5s ease-in-out infinite;
+}
+#sceneWarnHero .hero.is-advisory .band-mid::before { background: #cdb800; }
+#sceneWarnHero .hero.is-warning .band-mid::before { background: #c82400; }
+#sceneWarnHero .hero.is-danger .band-mid::before { background: #7a0078; }
+#sceneWarnHero .hero.is-special .band-mid::before { background: #333333; }
+html.native-640 #sceneWarnHero .band-mid::before { animation: none; }
+
+@keyframes warn-hero-mid-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.88; }
+}
+
+#sceneWarnHero .track {
+  position: relative;
+  z-index: 1;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center;
+  height: 100%;
+  width: max-content;
+  will-change: auto;
+}
+#sceneWarnHero .seg {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: 100%;
+  padding: 0 8px;
+  gap: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+#sceneWarnHero .band-mid .track,
+#sceneWarnHero .band-mid .seg { align-items: center; }
+#sceneWarnHero .band-mid .seg {
+  height: 48px;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: 0 0 auto;
+  padding: 0 8px;
+  overflow: hidden;
+  box-sizing: content-box;
+}
+
+#sceneWarnHero .top-label,
+#sceneWarnHero .bot-txt,
+#sceneWarnHero .mid-chip {
+  font-weight: 900;
+  font-family: inherit;
+}
+
+#sceneWarnHero .unit {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 auto;
+  width: auto;
+  gap: 8px;
+  min-width: 0;
+  overflow: visible;
+}
+#sceneWarnHero .top-label {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: visible;
+  white-space: nowrap;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+#sceneWarnHero .bot-txt {
+  display: block;
+  width: auto;
+  max-width: none;
+  max-height: 36px;
+  overflow: hidden;
+  white-space: pre-line;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+}
+#sceneWarnHero .mid-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: none;
+  height: 48px;
+  overflow: visible;
+  white-space: nowrap;
+  font-size: 36px;
+  line-height: 48px;
+  letter-spacing: 0.04em;
+  transform: translateY(-3px);
+  color: #fff;
+  padding: 0 6px;
+  box-sizing: content-box;
+  -webkit-text-stroke: 3px #000;
+  paint-order: stroke fill;
+  text-shadow: none;
+}
+
+#sceneWarnHero .badge {
+  flex: 0 0 auto;
+  background: #fff;
+  padding: 3px 8px;
+  border-radius: 2px;
+  line-height: 1;
+}
+#sceneWarnHero .badge span {
+  display: block;
+  color: #1a1a1a;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+#sceneWarnHero .hero.is-demo .badge { background: #111; }
+#sceneWarnHero .hero.is-demo .badge span { color: #f2e700; }
+
+#sceneWarnHero .hero.is-advisory .top-label,
+#sceneWarnHero .hero.is-advisory .bot-txt { color: #1a1a1a; }
+#sceneWarnHero .hero.is-advisory .mid-chip { color: #fff; }
+#sceneWarnHero .hero.is-warning .top-label,
+#sceneWarnHero .hero.is-warning .bot-txt,
+#sceneWarnHero .hero.is-warning .mid-chip,
+#sceneWarnHero .hero.is-danger .top-label,
+#sceneWarnHero .hero.is-danger .bot-txt,
+#sceneWarnHero .hero.is-danger .mid-chip,
+#sceneWarnHero .hero.is-special .top-label,
+#sceneWarnHero .hero.is-special .bot-txt,
+#sceneWarnHero .hero.is-special .mid-chip { color: #fff; }
