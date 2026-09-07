@@ -5159,7 +5159,7 @@
     const SCENE6_STEP_MS = 3000;
     const SCENE6_COPIES = 3;
     let scene6HoldTimerId = null;
-    let scene6SlideTimerId = null;
+    let scene6AnimId = null;
     let scene6Step_ = 0;
     const T3_UNIT_W = 256;
     const T3_USABLE_W = T3_UNIT_W - 8;
@@ -5297,6 +5297,7 @@
         if (tickerAnimId) { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; }
         if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
+        if (scene6AnimId) { cancelAnimationFrame(scene6AnimId); scene6AnimId = null; }
     }
     let scene2AnimId = null;
     let clockIntervalId = null;
@@ -7254,18 +7255,16 @@
     }
     function clearScene6Timers_() {
         if (scene6HoldTimerId) { clearTimeout(scene6HoldTimerId); scene6HoldTimerId = null; }
-        if (scene6SlideTimerId) { clearTimeout(scene6SlideTimerId); scene6SlideTimerId = null; }
+        if (scene6AnimId) { cancelAnimationFrame(scene6AnimId); scene6AnimId = null; }
     }
-    function applyScene6TrackX_(x, animate) {
+    function applyScene6TrackX_(x) {
         const track = document.getElementById('s6-track');
         if (!track) return;
-        if (animate) {
-            track.style.transition = 'transform ' + SCENE6_SLIDE_MS + 'ms cubic-bezier(0.22, 1, 0.36, 1)';
-            void track.offsetWidth;
-        } else {
-            track.style.transition = 'none';
-        }
+        track.style.transition = 'none';
         track.style.transform = 'translate3d(' + (-Math.round(x)) + 'px,0,0)';
+    }
+    function easeScene6_(p) {
+        return p * (2 - p);
     }
     function buildScene6Track_() {
         const track = document.getElementById('s6-track');
@@ -7276,12 +7275,12 @@
             logos.forEach(function (row) { html += scene6FaceHtml_(row); });
         }
         track.innerHTML = html;
-        applyScene6TrackX_(0, false);
+        applyScene6TrackX_(0);
         return logos.length;
     }
     function finishScene6() {
         clearScene6Timers_();
-        applyScene6TrackX_(0, false);
+        applyScene6TrackX_(0);
         scene6Step_ = 0;
         setScene6Full_(false);
         if (demoOnlyLoop_('s6', playScene6)) return;
@@ -7300,21 +7299,39 @@
             scheduleDemoStep_(finishScene6);
             return;
         }
-        function afterArrive() {
-            scene6SlideTimerId = null;
+        applyScene6TrackX_(0);
+        function holdThenSlide() {
             if (scene6Step_ >= steps) {
+                applyScene6TrackX_(scene6Step_ * SCENE6_FACE_W);
                 runAfterSceneEndHold_(finishScene6);
                 return;
             }
             const wait = scene6Step_ === 0 ? SCENE_SCROLL_HOLD_MS : SCENE6_STEP_MS;
             scene6HoldTimerId = setTimeout(function () {
                 scene6HoldTimerId = null;
+                if (scene6Step_ === 0 && s6) {
+                    s6.style.transform = '';
+                    s6.style.zIndex = '';
+                }
+                const fromX = scene6Step_ * SCENE6_FACE_W;
                 scene6Step_ += 1;
-                applyScene6TrackX_(scene6Step_ * SCENE6_FACE_W, true);
-                scene6SlideTimerId = setTimeout(afterArrive, SCENE6_SLIDE_MS);
+                const toX = scene6Step_ * SCENE6_FACE_W;
+                const t0 = performance.now();
+                function tick(now) {
+                    const p = Math.min(1, (now - t0) / SCENE6_SLIDE_MS);
+                    applyScene6TrackX_(fromX + (toX - fromX) * easeScene6_(p));
+                    if (p < 1) {
+                        scene6AnimId = requestAnimationFrame(tick);
+                    } else {
+                        scene6AnimId = null;
+                        applyScene6TrackX_(toX);
+                        holdThenSlide();
+                    }
+                }
+                scene6AnimId = requestAnimationFrame(tick);
             }, wait);
         }
-        afterArrive();
+        holdThenSlide();
     }
     function gotoAfterScene3_() {
         if (s6) {
