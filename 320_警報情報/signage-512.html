@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- 伊豆諸島北部 512×128 サイネージ / 原点 (0,0) / ロゴなし / 時刻・実況・WBGT・4日予報・多言語・警報 -->
-<!-- build:20260907-1627 / 気象庁 r8 130000 / AMeDAS・WBGT 大島 44172 -->
+<!-- build:20260907-1635 / 気象庁 r8 130000 / AMeDAS・WBGT 大島 44172 -->
 <html lang="ja" class="native-640 layout-512">
 <head>
     <meta charset="UTF-8">
@@ -2569,9 +2569,9 @@
     /* 3段デザイン案は確認ボードと同じく既定ON（?rainhero=0 で従来レイアウト） */
     const RAIN_HERO_DESIGN = !RAIN_HERO_OFF && !RAIN_WHITE_DESIGN;
     /*
-     * 流れる順の表示番号（順序は変えずラベルのみ）
-     *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
-     *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
+     * 流れる順
+     *  1 時刻 (s1) → 2 気象・大島 (s2) → 3 暑さ指数WBGT (s4)
+     *  → 4 4日予報 (s5) → 5 多言語の暑さ対策 (s3) → 発表中なら警報 → シーン1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
      */
     function normalizeOnlyParam_(raw) {
@@ -4904,13 +4904,6 @@
         izuRenderWarnItem_(0);
     }
     function startMainContentLoop_() {
-        if (izuWarnHasItems_() && sceneWarn) {
-            if (s1) hideSceneEl(s1);
-            sceneWarn.style.display = sceneDisplayMode(sceneWarn);
-            sceneWarn.classList.add('active');
-            playSceneWarn();
-            return;
-        }
         if (s1) {
             s1.style.display = sceneDisplayMode(s1);
             s1.classList.add('active');
@@ -7341,14 +7334,9 @@
         if (!s2) return;
         transitionToScene(s2, playScene2);
     }
-    /* シーン3（多言語WBGT）の後 → JVロゴ4面 → アラート／シーン1 */
+    /* シーン3（多言語の暑さ対策）の後 → 発表中なら警報 → 時刻へ */
     function gotoAfterScene3Tail_() {
         if (WBGT_ONLY) { finishMainLoopToS1_(); return; }
-        if (wbgtNormalDisplay_() && heatAlertActive.length && sceneAlert) {
-            prepHeatAlert_(0);
-            transitionToScene(sceneAlert, () => playSceneAlert(0));
-            return;
-        }
         gotoAfterRainWarnOrScene1_();
     }
     function getScene6Logos_() {
