@@ -170,6 +170,16 @@ html.native-640 #sceneWarnHero .band-mid::before { animation: none; }
   text-shadow: none;
 }
 
+html.native-640 #sceneWarnHero .mid-chip,
+body.native-640 #sceneWarnHero .mid-chip {
+  -webkit-text-stroke: 0;
+  paint-order: normal;
+  transform: none;
+  text-shadow:
+    -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000,
+    -1px -1px #000, 1px -1px #000, -1px 1px #000, 1px 1px #000;
+}
+
 #sceneWarnHero .badge {
   flex: 0 0 auto;
   background: #fff;

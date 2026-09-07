@@ -1019,6 +1019,16 @@
             transform: translateY(-3px); color: #fff; padding: 0 6px;
             -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: none;
         }
+        /* LEDは stroke が太く潰れる。WEBと同じ白字細縁に合わせる */
+        html.native-640 #sceneWarnHero .mid-chip,
+        body.native-640 #sceneWarnHero .mid-chip {
+            -webkit-text-stroke: 0;
+            paint-order: normal;
+            transform: none;
+            text-shadow:
+                -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000,
+                -1px -1px #000, 1px -1px #000, -1px 1px #000, 1px 1px #000;
+        }
         #sceneWarnHero .badge {
             flex: 0 0 auto; background: #fff; padding: 3px 8px; border-radius: 2px; line-height: 1;
         }
@@ -1964,7 +1974,7 @@
         }
     </style>
     <link rel="stylesheet" href="./assets/white-hero.css?v=20260907-foot128">
-    <link rel="stylesheet" href="./assets/color-hero.css?v=20260907-ledsync">
+    <link rel="stylesheet" href="./assets/color-hero.css?v=20260907-stroke1">
 </head>
 <body class="native-640">
 <script>
