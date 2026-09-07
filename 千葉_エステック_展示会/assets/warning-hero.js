@@ -286,13 +286,21 @@
     if (top) fitToWidth(top, 160, 20);
     var loopW = UNIT_W;
     if (mid) {
+      var maxMid = 500;
       mid.style.fontSize = '36px';
       mid.style.letterSpacing = '0.04em';
       mid.style.width = 'auto';
       mid.style.maxWidth = 'none';
       mid.style.flex = '0 0 auto';
       mid.style.transform = 'translateY(-3px)';
-      var w = Math.max(UNIT_W, mid.offsetWidth + 16);
+      var mw = mid.offsetWidth || 0;
+      var guard = 24;
+      while (mw > maxMid && guard-- > 0) {
+        var fs = parseFloat(mid.style.fontSize) || 36;
+        mid.style.fontSize = Math.max(14, fs - 1) + 'px';
+        mw = mid.offsetWidth || 0;
+      }
+      var w = Math.max(UNIT_W, Math.min(maxMid, mw + 16));
       first.style.width = w + 'px';
       first.style.minWidth = w + 'px';
       first.style.maxWidth = w + 'px';

@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<!-- wbgt-cube-chiba-estec-makuhari-5face / 株式会社エステック WBGT サイネージ（本番 5面 640×128・右端ロゴ128） -->
+<!-- wbgt-cube-chiba-estec-makuhari-5face / 株式会社エステック WBGT サイネージ -->
+<!-- 320サイズ: LED実ピクセル 640×128（5面・右端ロゴ128）。制作出力は推奨 1800×360 -->
+<!-- 内部レイアウトは 640×128 のまま CSS scale(2.8125) で 1800×360 に書き出し -->
 <!-- 白帯: マーク＋株式会社エステック | 幕張メッセ -->
 <!-- 同階層: assets/estec_foot_lockup.png（時刻下白帯・マーク＋株式会社エステック） / assets/estec_logo.png（縦ロックアップ・5列目） -->
 <!-- 会場: 〒261-8550 千葉県千葉市美浜区中瀬2-1（幕張メッセ） 35°38'53.2"N 140°02'04.9"E -->
 <!-- WBGT・AMeDAS 45212（千葉・気象庁/環境省）／警報 千葉市美浜区 1220400 -->
 <!-- 本番サイネージはこの1ファイル。天気・WBGT・発表中の警報を同じループで流す -->
-<!-- build 20260907-white-mid-1lap -->
-<html lang="ja" class="native-640">
+<!-- build 20260907-white-hero-css -->
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=1800, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -19,35 +22,38 @@
     <link rel="preload" as="image" href="./assets/green_cross.png?v=1">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=optional">
     <script>
-/** 5面 640×128 本番用（コンテンツ512 + ロゴ128）。?layout512=1 で4面確認可。localhost は PC 確認用に拡大表示 */
+/** 内部 640×128。本番出力 1800×360（LED推奨制作サイズ）。PCは拡大プレビュー。 */
 (function () {
     var q = new URLSearchParams(location.search);
-    var localDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     var useLayout512 = q.get('layout512') === '1';
-    var forceNative = localDev
-        ? q.get('native640') === '1'
-        : q.get('native640') !== '0';
-    if (forceNative) {
-        if (!q.has('native640')) q.set('native640', '1');
-        var qs = q.toString();
-        if (qs && location.search !== '?' + qs) {
-            history.replaceState(null, '', location.pathname + '?' + qs);
-        }
-        document.documentElement.classList.add('native-640');
-        document.documentElement.classList.remove('browser-preview');
-        if (useLayout512) document.documentElement.classList.add('layout-512');
-        else document.documentElement.classList.remove('layout-512');
-    } else {
-        if (q.get('native640') === '1') {
-            q.delete('native640');
-            var qsOff = q.toString();
-            history.replaceState(null, '', location.pathname + (qsOff ? '?' + qsOff : ''));
-        }
-        document.documentElement.classList.add('browser-preview');
-        document.documentElement.classList.remove('native-640');
-        if (useLayout512) document.documentElement.classList.add('layout-512');
-        else document.documentElement.classList.remove('layout-512');
+    var OUT_SCALE = 360 / 128; /* 2.8125 → 640×128 を 1800×360 */
+    var w = window.innerWidth || 1800;
+    var h = window.innerHeight || 360;
+    var ledViewport = (w <= 660 && h <= 180)
+        || (w >= 1700 && w <= 1920 && h >= 330 && h <= 420);
+    var forceNative;
+    if (q.get('native640') === '1' || q.get('embed') === '1') forceNative = true;
+    else if (q.get('native640') === '0') forceNative = false;
+    else forceNative = ledViewport;
+    var vp = document.querySelector('meta[name="viewport"]');
+    if (vp) {
+        vp.setAttribute('content', forceNative
+            ? 'width=1800, initial-scale=1, maximum-scale=1, user-scalable=no'
+            : 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
     }
+    function applyRoot_() {
+        var root = document.documentElement;
+        if (forceNative) {
+            root.classList.add('native-640');
+            root.classList.remove('browser-preview');
+        } else {
+            root.classList.add('browser-preview');
+            root.classList.remove('native-640');
+        }
+        if (useLayout512) root.classList.add('layout-512');
+        else root.classList.remove('layout-512');
+    }
+    applyRoot_();
     function addBody_() {
         if (!document.body) return;
         if (useLayout512) document.body.classList.add('layout-512');
@@ -68,10 +74,12 @@
             || (document.body && document.body.classList.contains('browser-preview'));
         var native = document.documentElement.classList.contains('native-640')
             || (document.body && document.body.classList.contains('native-640'));
-        if (!preview || native) {
-            canvas.style.transform = '';
+        canvas.style.transformOrigin = 'top left';
+        if (native) {
+            canvas.style.transform = 'scale(' + OUT_SCALE + ')';
             return;
         }
+        if (!preview) return;
         var layout512 = document.documentElement.classList.contains('layout-512')
             || (document.body && document.body.classList.contains('layout-512'));
         var baseW = layout512 ? 512 : 640;
@@ -112,27 +120,34 @@
         html.native-640 .demo-badge,
         body.native-640 .demo-badge { display: none !important; }
         html.native-640, body.native-640 {
-            width: 640px !important; height: 128px !important;
-            min-width: 640px; min-height: 128px;
-            max-width: 640px; max-height: 128px;
+            width: 1800px !important; height: 360px !important;
+            min-width: 1800px; min-height: 360px;
+            max-width: 1800px; max-height: 360px;
             margin: 0 !important; padding: 0 !important;
             overflow: hidden !important;
             background: #000;
+            position: relative;
         }
-        /* ?native640=1 / ?embed=1 — 640×128 ネイティブ（拡大なし・原点0,0） */
+        html.layout-512.native-640, html.layout-512.native-640 body,
+        body.layout-512.native-640 {
+            width: 1440px !important; height: 360px !important;
+            min-width: 1440px; min-height: 360px;
+            max-width: 1440px; max-height: 360px;
+        }
+        /* ?native640=1 / ?embed=1 — 推奨制作サイズ 1800×360（内部 640×128 を 2.8125 倍） */
         body.native-640 {
             display: block;
         }
-        body.native-640 .canvas {
-            transform: none !important;
+        html.native-640 .canvas, body.native-640 .canvas {
+            transform: scale(2.8125) !important;
+            transform-origin: top left !important;
             position: absolute; top: 0; left: 0;
             margin: 0; padding: 0;
         }
         .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0; transform-origin: top left; }
         @media screen and (min-width: 641px) {
-            .canvas { transform: scale(calc(100vw / 640)); }
+            html:not(.native-640) .canvas { transform: scale(calc(100vw / 640)); }
         }
-        body.native-640 .canvas { transform: none !important; }
         /* localhost / 127.0.0.1 確認用: ビューポートに合わせて拡大（native640 無効時） */
         body.browser-preview {
             min-height: 100vh;
@@ -154,7 +169,7 @@
         @media screen and (min-width: 513px) {
             body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
         }
-        body.layout-512.native-640 .canvas { transform: none !important; }
+        body.layout-512.native-640 .canvas { transform: scale(2.8125) !important; }
         /* 右端 128×128: メールロゴ同様（上に大きくマーク、下に社名） */
         .logo-panel {
             width: 128px; height: 128px; display: flex; align-items: center; justify-content: center;
@@ -915,9 +930,9 @@
         #sceneWarnHero.active { display: block; z-index: 3; }
         #sceneWarnHero .hero {
             width: 512px; height: 128px; position: relative; overflow: hidden;
-            display: grid; grid-template-rows: 40px 48px 40px; grid-template-columns: 512px;
-            background: #fa2900; transition: background-color 0.35s ease;
-            font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+            display: flex; flex-direction: column; flex-wrap: nowrap;
+            background: #fa2900;
+            font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", "Meiryo", "Hiragino Sans", sans-serif;
         }
         #sceneWarnHero .hero.is-advisory { background: #f2e700; }
         #sceneWarnHero .hero.is-warning { background: #fa2900; }
@@ -949,7 +964,7 @@
             display: flex; flex-direction: row; align-items: center; justify-content: center;
             flex: 0 0 256px; width: 256px; min-width: 256px; max-width: 256px;
             height: 100%; padding: 0 8px; gap: 0; box-sizing: border-box;
-            overflow: hidden; contain: paint;
+            overflow: hidden;
         }
         #sceneWarnHero .band-mid .track,
         #sceneWarnHero .band-mid .seg { align-items: center; }
@@ -979,10 +994,11 @@
         }
         #sceneWarnHero .mid-chip {
             display: flex; align-items: center; justify-content: center;
-            flex: 0 0 auto; width: auto; max-width: none; height: 48px;
-            overflow: visible; white-space: nowrap; font-size: 36px; line-height: 48px;
+            flex: 0 0 auto; width: auto; max-width: 500px; height: 48px;
+            overflow: hidden; white-space: nowrap; font-size: 36px; line-height: 48px;
             letter-spacing: 0.04em; transform: translateY(-3px);
             -webkit-text-stroke: 3px #000000; paint-order: stroke fill;
+            text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000;
         }
         #sceneWarnHero .badge {
             flex: 0 0 auto; background: #ffffff; padding: 3px 8px;
@@ -1104,8 +1120,8 @@
         #scene3 .t3-guid-bar .s2-meta-msg-scroll {
             display: inline-flex; align-items: center;
             height: var(--led-foot-bar-h); max-height: var(--led-foot-bar-h);
-            line-height: 1.12; overflow: hidden; box-sizing: border-box;
-            font-size: 15px; padding: 0 4px;
+            line-height: var(--led-foot-bar-h); overflow: hidden; box-sizing: border-box;
+            font-size: 24px; font-weight: 900; padding: 0 4px;
         }
         #scene3 .t3-guid-bar .s2-meta-set-flow {
             min-width: 0; width: auto;
@@ -1176,6 +1192,7 @@
         .ha-pair.ha-special .ha-l2 { color: #FFFFFF; }
         /* --- 大雨警報（256×128×2・熱中症アラートと同型） --- */
         #sceneRainWarn.active { display: block; z-index: 3; }
+        #sceneWarn.active { display: block; z-index: 3; }
         .ra-pair { width: 512px; height: 128px; display: flex; flex-direction: row; font-family: "Noto Sans JP", sans-serif; }
         .ra-unit {
             width: 256px; height: 128px; box-sizing: border-box; flex-shrink: 0;
@@ -1624,23 +1641,30 @@
         .ra-pair.ra-special .ra-line { background: #FFFFFF; }
         .ra-pair.ra-special .ra-l1 { color: #FFFFFF; }
         .ra-pair.ra-special .ra-l2 { color: #FFFFFF; }
-        /* 白ベース3段（?rainwhite=1）— クリーム背景・中央色帯・3段デザイン案と同構成 */
-        .content-area.ra-white-canvas { background: #FFF9F0 !important; }
+        /* レベル無し 白3段（正）512×128 — signage-512.html .hero.is-white
+           上40 地域 + 特別警報|警報|注意報 + 発表中
+           中48 発表中の種だけチップ（特別=黒 / 警報=赤 / 注意報=黄）
+           下40 凡例 特別警報 | 警報 | 注意報
+           3段とも 56px/秒 シームレス横スクロール。数字を変えるな。 */
+        .content-area.ra-white-canvas { background: #fff9f0 !important; }
         .ra-white-layout { display: none; }
         .ra-pair.ra-white-mode {
-            background: #FFF9F0;
-            position: relative;
+            width: 512px;
+            height: 128px;
             overflow: hidden;
+            background: #fff9f0;
+            position: relative;
+            font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
         }
         .ra-pair.ra-white-mode::before,
         .ra-pair.ra-white-mode::after {
             content: '';
             position: absolute; left: 0; width: 512px; height: 40px;
             z-index: 0; pointer-events: none;
-            background: #FFF9F0;
+            background: #fff9f0;
         }
         .ra-pair.ra-white-mode::before { top: 0; }
-        .ra-pair.ra-white-mode::after { bottom: 0; }
+        .ra-pair.ra-white-mode::after { bottom: 0; display: none; }
         .ra-pair.ra-white-mode .ra-line { display: none; }
         .ra-pair.ra-white-mode .ra-std { display: none; }
         .ra-pair.ra-white-mode .ra-unit {
@@ -1653,20 +1677,20 @@
         .ra-pair.ra-white-mode .ra-track { align-items: stretch; }
         .ra-pair.ra-white-mode .ra-mid-band-wrap {
             display: block;
-            position: absolute; left: 0;
-            top: 50%;
-            width: 512px; height: 54px;
-            transform: translateY(-50%);
+            position: absolute; left: 0; top: 40px;
+            width: 512px; height: 48px;
+            transform: none;
             z-index: 1;
             border: none;
             box-shadow: none;
             box-sizing: border-box;
+            overflow: hidden;
         }
         .ra-pair.ra-white-mode .ra-mid-band-unit {
             width: 512px;
-            height: 54px;
+            height: 48px;
             animation: none;
-            background: #D5D1C9;
+            background: #d5d1c9;
         }
         .ra-pair.ra-white-mode .ra-mid-band-unit + .ra-mid-band-unit { display: none; }
         .ra-pair.ra-white-mode .ra-hero-layout {
@@ -1681,13 +1705,13 @@
         .ra-pair.ra-white-mode .ra-top-status,
         .ra-pair.ra-white-mode .ra-bot-txt { color: #1a1a1a; }
         .ra-pair.ra-white-mode .ra-zone-mid {
-            top: 50%;
+            top: 40px;
             left: 0;
             right: 0;
             width: 100%;
-            height: 50px;
+            height: 48px;
             padding: 0;
-            transform: translateY(-50%);
+            transform: none;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1711,31 +1735,35 @@
             letter-spacing: 0.2px;
         }
         .ra-pair.ra-white-mode.ra-early .ra-hero-txt { background: #156082; }
-        .ra-pair.ra-white-mode.ra-advisory .ra-hero-txt { background: #CDB800; }
-        .ra-pair.ra-white-mode.ra-warning .ra-hero-txt { background: #D62828; }
-        .ra-pair.ra-white-mode.ra-danger .ra-hero-txt { background: #AB00AA; }
+        .ra-pair.ra-white-mode.ra-advisory .ra-hero-txt { background: #cdb800; }
+        .ra-pair.ra-white-mode.ra-warning .ra-hero-txt { background: #d62828; }
+        .ra-pair.ra-white-mode.ra-danger .ra-hero-txt { background: #ab00aa; }
         .ra-pair.ra-white-mode.ra-special .ra-hero-txt { background: #000000; color: #FFFFFF; }
         .ra-pair.ra-white-mode.ra-white-bundle .ra-body { visibility: hidden; }
         .ra-pair.ra-white-mode .ra-zone-top { display: none; }
         .ra-white-mid-wrap { display: none; }
         .ra-pair.ra-white-mode.ra-white-bundle .ra-white-mid-wrap {
-            display: block;
+            display: flex;
+            align-items: center;
             position: absolute;
-            top: 50%;
+            top: 40px;
             left: 0;
             width: 512px;
-            height: 54px;
-            transform: translateY(-50%);
+            height: 48px;
+            transform: none;
             overflow: hidden;
             z-index: 3;
             pointer-events: none;
             box-sizing: border-box;
         }
         .ra-white-mid-track {
+            position: relative;
+            z-index: 1;
             display: flex;
             flex-direction: row;
             align-items: center;
             height: 100%;
+            width: max-content;
             will-change: transform;
             backface-visibility: hidden;
         }
@@ -1743,36 +1771,41 @@
             display: flex;
             flex-direction: row;
             align-items: center;
-            justify-content: center;
-            height: 100%;
+            height: 48px;
+            gap: 8px;
+            padding: 0 8px;
             flex: 0 0 auto;
             box-sizing: border-box;
-            padding: 0 8px;
-            gap: 8px;
         }
         .ra-white-mid-chip {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
             flex: 0 0 auto;
             padding: 4px 18px;
             min-height: 44px;
             border-radius: 6px;
-            font-weight: 900;
-            color: #FFFFFF;
-            white-space: nowrap;
-            box-sizing: border-box;
-            letter-spacing: 0.2px;
             font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            color: #fff;
+            transform: none;
+            -webkit-text-stroke: 0;
+            paint-order: normal;
+            text-shadow: none;
+            box-sizing: border-box;
         }
-        .ra-white-mid-chip.ra-white-mid-advisory { background: #CDB800; }
-        .ra-white-mid-chip.ra-white-mid-warning { background: #D62828; }
-        .ra-white-mid-chip.ra-white-mid-danger { background: #AB00AA; }
-        .ra-white-mid-chip.ra-white-mid-special { background: #000000; }
+        .ra-white-mid-chip.ra-white-mid-advisory { background: #cdb800; }
+        .ra-white-mid-chip.ra-white-mid-warning { background: #d62828; }
+        .ra-white-mid-chip.ra-white-mid-danger { background: #ab00aa; }
+        .ra-white-mid-chip.ra-white-mid-special { background: #000; }
         .ra-white-header { display: none !important; }
         .ra-white-header-wrap { display: none; }
         .ra-pair.ra-white-mode .ra-white-header-wrap {
-            display: block;
+            display: flex;
+            align-items: center;
             position: absolute;
             top: 0;
             left: 0;
@@ -1784,7 +1817,9 @@
             box-sizing: border-box;
         }
         .ra-white-header-track {
-            display: inline-flex;
+            position: relative;
+            z-index: 1;
+            display: flex;
             flex-direction: row;
             flex-wrap: nowrap;
             align-items: center;
@@ -1796,71 +1831,70 @@
             backface-visibility: hidden;
         }
         .ra-white-header-seg {
-            width: auto;
-            min-width: max-content;
-            flex: 0 0 auto;
-            flex-shrink: 0;
             display: flex;
             flex-direction: row;
             align-items: center;
-            justify-content: flex-start;
-            height: 100%;
-            padding: 0 16px 0 10px;
-            box-sizing: border-box;
+            height: 40px;
+            padding: 0 12px;
             gap: 10px;
-            overflow: visible;
+            flex: 0 0 auto;
+            width: auto;
+            box-sizing: border-box;
+            white-space: nowrap;
         }
         .ra-white-area {
             flex: 0 0 auto;
-            flex-shrink: 0;
-            position: static;
-            display: inline-block;
             font-size: 15px;
             font-weight: 900;
-            color: #0854A8;
-            white-space: nowrap;
+            color: #0854a8;
             letter-spacing: 0.3px;
+            white-space: nowrap;
         }
         .ra-white-what {
             flex: 0 0 auto;
-            flex-shrink: 0;
-            position: static;
-            display: inline-block;
             font-size: 14px;
             font-weight: 700;
-            color: #0854A8;
-            white-space: nowrap;
-            overflow: visible;
+            color: #0854a8;
             letter-spacing: 0.2px;
+            white-space: nowrap;
         }
-        .ra-white-time {
+        .ra-white-badge {
             flex: 0 0 auto;
-            flex-shrink: 0;
-            position: static;
-            display: inline-block;
-            font-size: 14px;
-            font-weight: 700;
-            color: #0854A8;
-            white-space: nowrap;
-            letter-spacing: 0.2px;
+            background: #fff;
+            border: 1px solid #0854a8;
+            padding: 3px 8px;
+            border-radius: 2px;
+            line-height: 1;
         }
+        .ra-white-badge span {
+            display: block;
+            color: #1a1a1a;
+            font-weight: 900;
+            font-size: 15px;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+        .ra-white-time { display: none !important; }
         .ra-white-slot-foot { display: none; }
         .ra-white-foot-bar { display: none; }
         .ra-pair.ra-white-mode .ra-white-slot-foot { display: none; }
         .ra-white-foot-wrap { display: none; }
         .ra-pair.ra-white-mode .ra-white-foot-wrap {
-            display: block;
+            display: flex;
+            align-items: center;
             position: absolute;
-            bottom: 3px;
+            top: 88px;
             left: 0;
             width: 512px;
-            height: 32px;
+            height: 40px;
             overflow: hidden;
             z-index: 6;
             pointer-events: none;
             box-sizing: border-box;
         }
         .ra-white-foot-track {
+            position: relative;
+            z-index: 1;
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -1870,39 +1904,29 @@
             backface-visibility: hidden;
         }
         .ra-white-foot-seg {
-            width: 512px;
-            flex: 0 0 512px;
             display: flex;
             flex-direction: row;
             align-items: center;
-            justify-content: flex-start;
-            height: 100%;
+            height: 40px;
+            padding: 0 10px;
+            gap: 10px;
+            flex: 0 0 auto;
+            width: auto;
             box-sizing: border-box;
-            padding: 0;
-            gap: 0;
         }
-        .ra-white-foot-cell {
-            width: 128px;
-            height: 100%;
-            flex: 0 0 128px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            padding: 0 6px;
-        }
+        .ra-white-foot-cell { display: none; }
         .ra-white-foot-chip {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             width: auto;
-            max-width: 100%;
+            min-width: 148px;
             height: 24px;
-            padding: 0 10px;
+            padding: 0 14px;
             border-radius: 9999px;
             font-size: 11px;
             font-weight: 900;
-            color: #FFFFFF;
+            color: #fff;
             white-space: nowrap;
             letter-spacing: 0.2px;
             box-sizing: border-box;
@@ -1914,7 +1938,14 @@
         .ra-foot-special { background: #000000; }
         .ra-pair.ra-white-mode .ra-zone-bot { display: none; }
         .ra-pair.ra-white-mode::after { display: none; }
+        /* 白3段は white-hero.css を正。従来3段と混ぜない */
+        #sceneWarn.active {
+            display: block !important;
+            z-index: 3;
+            background: #fff9f0;
+        }
     </style>
+    <link rel="stylesheet" href="./assets/white-hero.css?v=20260907">
 </head>
 <body class="native-640">
 <script>
@@ -2004,9 +2035,9 @@
         <div class="ra-pair ra-advisory" id="ra-pair">
             <div class="ra-mid-band-wrap" aria-hidden="true"><div class="ra-mid-band-unit"></div><div class="ra-mid-band-unit"></div></div>
             <div class="ra-white-header" aria-hidden="true">
-                <span class="ra-white-area">幕張の地域で発表されています</span>
-                <span class="ra-white-time">発表 --/-- --:--</span>
-                <span class="ra-white-what">警報・注意報など</span>
+                <span class="ra-white-area">幕張</span>
+                <span class="ra-white-what">注意報</span>
+                <span class="ra-white-badge"><span>発表中</span></span>
             </div>
             <div class="ra-unit">
                 <div class="ra-line top"></div>
@@ -2170,6 +2201,14 @@
                 </div>
             </div>
             <div class="t3-guid-bar s2-meta-bar"><div class="t3-guid-track s2-meta-track" id="t3-guid-track"></div></div>
+        </div>
+    </div>
+
+    <div class="scene" id="sceneWarn" aria-label="気象警報注意報">
+        <div class="hero is-white" id="hero">
+            <div class="band band-top"><div class="track" id="whiteTopTrack"></div></div>
+            <div class="band band-mid"><div class="track" id="midTrack"></div></div>
+            <div class="band band-bot"><div class="track" id="whiteBotTrack"></div></div>
         </div>
     </div>
 
@@ -2509,7 +2548,7 @@
 
 </script>
 <script src="./assets/jma-warning-kinds.js?v=20260907-led2"></script>
-<script src="./assets/warning-hero.js?v=20260907-led2"></script>
+<script src="./assets/warning-hero.js?v=20260907-css1"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード。未指定時は本番（実データ取得） */
@@ -2550,9 +2589,9 @@
     };
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
-    /* 640×128 ネイティブ: embed / native640=1 / フルデモ順送り */
-    const NATIVE_640 = query.get('native640') === '1' || DEMO_EMBED
-        || (DEMO_SIGNAGE && !DEMO_ONLY && query.get('native640') !== '0');
+    /* 1800×360 出力（内部 640×128）: embed / native640=1 / LEDビューポート */
+    const NATIVE_640 = document.body.classList.contains('native-640')
+        || query.get('native640') === '1' || DEMO_EMBED;
     if (NATIVE_640) {
         document.documentElement.classList.add('native-640');
         document.documentElement.classList.remove('browser-preview');
@@ -3194,7 +3233,12 @@
     const s6 = document.getElementById('scene6');
     const sceneAlert = document.getElementById('sceneAlert');
     const sceneRainWarn = document.getElementById('sceneRainWarn');
+    const sceneWarn = document.getElementById('sceneWarn');
     const sceneWarnHero = document.getElementById('sceneWarnHero');
+    const whiteTopTrack = document.getElementById('whiteTopTrack');
+    const whiteMidTrack = document.getElementById('midTrack');
+    const whiteBotTrack = document.getElementById('whiteBotTrack');
+    const heroWhite = document.getElementById('hero');
     const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
 
@@ -3532,9 +3576,21 @@
     const RA_HERO_TOP_H = 40;
     const RA_HERO_BOT_H = 40;
     const RA_HERO_MID_H = 48;
-    const RAIN_WHITE_FOOT_ORDER = ['special', 'danger', 'warning', 'advisory'];
-    const RA_WHITE_BAND_SCROLL_PX = 0.75;
-    const RA_WHITE_FOOT_SCROLL_PX = 0.75;
+    const RAIN_WHITE_FOOT_ORDER = ['special', 'warning', 'advisory'];
+    const RA_WHITE_SPEED_PX = 56; /* px/秒。signage-512 SPEED。数字を変えるな */
+    const RA_WHITE_BAND_SCROLL_PX = RA_WHITE_SPEED_PX / 60;
+    const RA_WHITE_FOOT_SCROLL_PX = RA_WHITE_BAND_SCROLL_PX;
+    function whiteScrollStepPx_(flow, now) {
+        var dt;
+        if (flow.whiteLastTs && now > flow.whiteLastTs) {
+            dt = Math.min(0.05, (now - flow.whiteLastTs) / 1000);
+            if (!(dt > 0)) dt = 1 / 60;
+        } else {
+            dt = 1 / 60;
+        }
+        flow.whiteLastTs = now || flow.whiteLastTs;
+        return RA_WHITE_SPEED_PX * dt;
+    }
     let rainWhiteFootInited = false;
     let rainWhiteMidW = RA_WHITE_BAND_W;
     let rainWhiteHeaderW = RA_WHITE_BAND_W;
@@ -3542,7 +3598,7 @@
     let rainHeroMidW = RA_WHITE_BAND_W;
     let rainHeroTopW = RA_HERO_BAND_W;
     let rainHeroBotW = RA_HERO_BAND_W;
-    const RA_HERO_BAND_SCROLL_PX = RA_WHITE_BAND_SCROLL_PX;
+    const RA_HERO_BAND_SCROLL_PX = 0.75;
     function measureWhiteSegW_(el) {
         if (!el) return 0;
         let textW = 0;
@@ -3568,51 +3624,45 @@
         const layoutW = Math.max(Math.round(el.scrollWidth || 0), Math.round(el.offsetWidth || 0));
         return Math.max(Math.ceil(textW), layoutW, 1);
     }
-    function cloneFillWhiteLoop_(track, loopW) {
+    function cloneFillWhiteLoop_(track) {
         const first = track && track.children[0];
-        if (!first) return Math.max(1, loopW || RA_WHITE_BAND_W);
+        if (!first) return Math.max(1, RA_WHITE_BAND_W);
         track.style.width = 'max-content';
         track.style.minWidth = 'max-content';
         first.style.width = 'auto';
-        first.style.minWidth = 'max-content';
+        first.style.minWidth = '0';
         first.style.maxWidth = 'none';
         first.style.flex = '0 0 auto';
-        const natural = measureWhiteSegW_(first) + (loopW ? 0 : 80);
-        const gap = loopW ? 0 : 40;
-        const w = Math.max(natural + gap, Math.round(loopW || 0), 1);
-        first.style.width = (loopW ? w : natural) + 'px';
-        first.style.minWidth = (loopW ? w : natural) + 'px';
-        first.style.maxWidth = 'none';
-        first.style.flex = '0 0 ' + (loopW ? w : natural) + 'px';
+        const w = Math.max(1, Math.ceil(measureWhiteSegW_(first)));
+        first.style.width = w + 'px';
+        first.style.minWidth = w + 'px';
+        first.style.maxWidth = w + 'px';
+        first.style.flex = '0 0 ' + w + 'px';
         first.style.flexShrink = '0';
         while (track.children.length > 1) track.removeChild(track.lastChild);
-        const copies = Math.max(2, Math.ceil(RA_WHITE_BAND_W / Math.max(loopW ? w : natural, 1)) + 2);
+        const copies = Math.max(6, Math.ceil(RA_WHITE_BAND_W / w) + 2);
         for (let i = 1; i < copies; i++) {
-            if (!loopW) {
-                const spacer = document.createElement('div');
-                spacer.setAttribute('aria-hidden', 'true');
-                spacer.style.cssText = 'flex:0 0 40px;width:40px;min-width:40px;height:1px;background:transparent;';
-                track.appendChild(spacer);
-            }
             track.appendChild(first.cloneNode(true));
         }
         return w;
     }
-    function buildWhiteHeaderSeg_(area, timeText, whatText) {
+    function buildWhiteHeaderSeg_(area, whatText) {
         const seg = document.createElement('div');
         seg.className = 'ra-white-header-seg';
         const areaEl = document.createElement('span');
         areaEl.className = 'ra-white-area';
         areaEl.textContent = area;
-        const timeEl = document.createElement('span');
-        timeEl.className = 'ra-white-time';
-        timeEl.textContent = timeText;
         const whatEl = document.createElement('span');
         whatEl.className = 'ra-white-what';
         whatEl.textContent = whatText;
+        const badge = document.createElement('span');
+        badge.className = 'ra-white-badge';
+        const badgeTxt = document.createElement('span');
+        badgeTxt.textContent = '発表中';
+        badge.appendChild(badgeTxt);
         seg.appendChild(areaEl);
-        seg.appendChild(timeEl);
         seg.appendChild(whatEl);
+        seg.appendChild(badge);
         return seg;
     }
     function issuedWhiteFootLevels_(entries) {
@@ -3623,22 +3673,19 @@
         });
         return RAIN_WHITE_FOOT_ORDER.filter(function (lv) { return have[lv]; });
     }
-    function buildWhiteFootSeg512_(levels) {
-        const issued = (levels && levels.length) ? levels : issuedWhiteFootLevels_();
+    function buildWhiteFootSeg512_() {
         const seg = document.createElement('div');
         seg.className = 'ra-white-foot-seg';
-        const cells = Math.round(RA_WHITE_BAND_W / 128);
-        for (let i = 0; i < cells; i++) {
-            const levelKey = issued.length ? issued[i % issued.length] : 'advisory';
-            const chip = RAIN_WHITE_LEVEL_CHIP[levelKey];
-            if (!chip) continue;
-            const cell = document.createElement('div');
-            cell.className = 'ra-white-foot-cell';
-            const el = document.createElement('div');
-            el.className = 'ra-white-foot-chip ' + chip.cls;
-            el.textContent = chip.label;
-            cell.appendChild(el);
-            seg.appendChild(cell);
+        const items = [
+            ['ra-foot-special', '特別警報'],
+            ['ra-foot-warning', '警報'],
+            ['ra-foot-advisory', '注意報']
+        ];
+        for (let i = 0; i < items.length; i++) {
+            const el = document.createElement('span');
+            el.className = 'ra-white-foot-chip ' + items[i][0];
+            el.textContent = items[i][1];
+            seg.appendChild(el);
         }
         return seg;
     }
@@ -3685,7 +3732,7 @@
         mWrap.appendChild(mTrack);
         mWrap.setAttribute('aria-hidden', 'false');
         sizeRainWarnWhiteMidText_();
-        rainWhiteMidW = cloneFillWhiteLoop_(mTrack, RA_WHITE_BAND_W);
+        rainWhiteMidW = cloneFillWhiteLoop_(mTrack);
         return rainWhiteMidW;
     }
     function applyRaWhiteMidX_(x) {
@@ -3908,31 +3955,17 @@
         }
     }
     function whiteHeaderWhatSummary_(entries) {
-        const q = entries || getRainWhiteScrollQueue_();
-        if (!q.length) return '警報・注意報など';
-        const labels = [];
-        const seen = {};
-        q.forEach(function (e) {
-            const lab = jmaKindWhiteLabel_(e.level, e.kind)
-                || String(e.name || '').replace(/特別警報|危険警報|警報|注意報$/u, '');
-            if (!lab || seen[lab]) return;
-            seen[lab] = true;
-            labels.push(lab);
-        });
-        if (!labels.length) return '警報・注意報など';
-        if (labels.length <= 5) return labels.join('・');
-        return labels.slice(0, 5).join('・') + 'など';
+        const lv = highestWhiteLevel_(entries || getRainWhiteScrollQueue_());
+        if (lv === 'special') return '特別警報';
+        if (lv === 'advisory' || lv === 'early') return '注意報';
+        return '警報';
     }
     function whiteHeaderAreaPhrase_() {
-        const name = rainWarnMeta.cityName || JMA_WARN_CITY_LABELS[JMA_WARN_CITY] || getSiteLocationLabel_();
-        return name + 'の地域で発表されています';
+        return rainWarnMeta.cityName || JMA_WARN_CITY_LABELS[JMA_WARN_CITY] || getSiteLocationLabel_();
     }
     function whiteHeaderTexts_() {
-        let at = rainWarnMeta.updatedAt;
-        if (!at && (rainWarnForced || DEMO_RAINWARN_ONLY)) at = new Date().toISOString();
         return {
             area: whiteHeaderAreaPhrase_(),
-            time: formatRainWarnPublishedAt_(at),
             what: whiteHeaderWhatSummary_()
         };
     }
@@ -3945,7 +3978,7 @@
         hWrap.textContent = '';
         const hTrack = document.createElement('div');
         hTrack.className = 'ra-white-header-track';
-        hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.time, texts.what));
+        hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.what));
         hWrap.appendChild(hTrack);
         rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack);
         hWrap.setAttribute('aria-hidden', 'false');
@@ -3968,7 +4001,7 @@
         hWrap.textContent = '';
         const hTrack = document.createElement('div');
         hTrack.className = 'ra-white-header-track';
-        hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.time, texts.what));
+        hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.what));
         hWrap.appendChild(hTrack);
         rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack);
         hWrap.setAttribute('aria-hidden', 'false');
@@ -3989,9 +4022,9 @@
         fWrap.textContent = '';
         const fTrack = document.createElement('div');
         fTrack.className = 'ra-white-foot-track';
-        fTrack.appendChild(buildWhiteFootSeg512_(issuedWhiteFootLevels_(entries)));
+        fTrack.appendChild(buildWhiteFootSeg512_());
         fWrap.appendChild(fTrack);
-        rainWhiteFootW = cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
+        rainWhiteFootW = cloneFillWhiteLoop_(fTrack);
         fWrap.setAttribute('aria-hidden', 'false');
         let oldBar = null;
         const barKids = pair.children;
@@ -4031,9 +4064,9 @@
         fWrap.textContent = '';
         const fTrack = document.createElement('div');
         fTrack.className = 'ra-white-foot-track';
-        fTrack.appendChild(buildWhiteFootSeg512_(issuedWhiteFootLevels_(entries)));
+        fTrack.appendChild(buildWhiteFootSeg512_());
         fWrap.appendChild(fTrack);
-        rainWhiteFootW = cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
+        rainWhiteFootW = cloneFillWhiteLoop_(fTrack);
         fWrap.setAttribute('aria-hidden', 'false');
     }
     function applyRaWhiteBandX_(x) {
@@ -4265,16 +4298,11 @@
     }
     function applyRainWhiteFromWarnJson_(warnJson) {
         if (!RAIN_WHITE_DESIGN || whiteModeForced_()) return;
-        rainWhiteQueue = parseJmaActiveWhiteEntries_(warnJson);
+        rainWhiteQueue = getLiveWhiteEntriesFrom_(parseJmaActiveWhiteEntries_(warnJson));
         if (warnJson) applyRainWarnMeta_(null, warnJson);
         syncRainWarnActiveForWhite_();
-        if (sceneRainWarn && sceneRainWarn.classList.contains('active') && shouldUseWhiteLayout_() && rainWhiteQueue.length) {
-            setRainWarnWhiteBundle_(rainWhiteQueue);
-            if (raFlow_) {
-                raFlow_.midBandW = rainWhiteMidW;
-                raFlow_.midBandX = 0;
-                applyRaWhiteMidX_(0);
-            }
+        if (sceneWarn && sceneWarn.classList.contains('active') && rainWhiteQueue.length) {
+            playWhite(function () {});
         }
     }
     if (RAIN_WHITE_DESIGN) {
@@ -4383,7 +4411,7 @@
     const RA_LAPS_BEFORE_SWITCH = 4;
     let liveWhitePlay_ = false;
     let liveWhiteShownKey_ = '';
-    const LIVE_WARN_POLL_MS = 30000;
+    const LIVE_WARN_POLL_MS = 60000;
     let liveWarnPollId_ = null;
     function liveWhiteEntryKey_(entries) {
         return (entries || []).map(function (e) {
@@ -4406,40 +4434,18 @@
         const q = getLiveWhiteEntries_();
         rainWhiteQueue = q;
         if (!liveWhitePlay_) return;
-        if (!sceneRainWarn || !sceneRainWarn.classList.contains('active')) return;
+        if (!sceneWarn || !sceneWarn.classList.contains('active')) return;
         if (!q.length) {
             stopLiveWhiteAndContinue_();
             return;
         }
         const nextKey = liveWhiteEntryKey_(q);
-        if (nextKey === liveWhiteShownKey_) {
-            if (raFlow_ && raFlow_.whiteBundle) raFlow_.whiteQueue = q;
-            return;
-        }
-        const cur = (raFlow_ && raFlow_.whiteQueue) ? raFlow_.whiteQueue[raFlow_.warnIdx] : null;
-        const still = !!(cur && q.some(function (e) {
-            return e.level === cur.level && e.kind === cur.kind;
-        }));
+        if (nextKey === liveWhiteShownKey_) return;
         liveWhiteShownKey_ = nextKey;
-        if (raFlow_ && raFlow_.whiteBundle) raFlow_.whiteQueue = q;
-        if (still) {
-            raFlow_.warnIdx = q.findIndex(function (e) {
-                return e.level === cur.level && e.kind === cur.kind;
-            });
-            updateRainWarnWhiteChrome_(true);
-            rebuildRainWarnWhiteFootTrack_(q);
-            return;
-        }
-        const idx = Math.max(0, Math.min(raFlow_ && raFlow_.warnIdx ? raFlow_.warnIdx : 0, q.length - 1));
-        if (raFlow_ && raFlow_.whiteBundle) raFlow_.warnIdx = idx;
-        if (!setRainWarnWhiteBundle_(q, idx)) return;
-        if (raFlow_ && raFlow_.whiteBundle) {
-            raFlow_.midBandW = rainWhiteMidW;
-            raFlow_.topBandW = rainWhiteHeaderW || RA_WHITE_BAND_W;
-            raFlow_.midMoved = 0;
-            raFlow_.midBandX = 0;
-            applyRaWhiteMidX_(0);
-        }
+        playWhite(function () {
+            liveWhitePlay_ = false;
+            gotoAfterRainWarnOrScene1_();
+        });
     }
     function startLiveWarnPoll_() {
         if (liveWarnPollId_ || !isProductionLiveWarn_()) return;
@@ -4448,9 +4454,9 @@
         }, LIVE_WARN_POLL_MS);
     }
     function rainWarnDemoLaps_() {
-        if (liveWhitePlay_) return 1;
+        if (liveWhitePlay_) return 2;
         if (isRainWarnCatalogDemo_()) return 1;
-        if (isProductionLiveWarn_()) return 1;
+        if (isProductionLiveWarn_()) return 2;
         return RA_LAPS_BEFORE_SWITCH;
     }
     let raAnimId = null;
@@ -4479,7 +4485,7 @@
             rainWarnLiveByLevel_[e.level].push(e.kind);
         });
         if (!isRainWarnCatalogDemo_() && !DEMO_RAINWARN_ONLY) {
-            rainWhiteQueue = getLiveWhiteEntries_();
+            rainWhiteQueue = getLiveWhiteEntriesFrom_(entries);
             rainWarnActive = RAIN_WHITE_LEVEL_ORDER.filter(function (lv) {
                 return rainWarnLiveByLevel_[lv] && rainWarnLiveByLevel_[lv].length;
             });
@@ -4489,17 +4495,204 @@
         }
         if (!(liveWhitePlay_ && raFlow_)) queueDisplayRefresh_();
     }
-    function getLiveWhiteEntries_() {
+    const WHITE_LEVEL_HAZARDS_ = ['flood', 'rain', 'landslide', 'surge'];
+    function whiteLevelLabel_(lv) {
+        if (lv === 'special') return '特別警報';
+        if (lv === 'warning') return '警報';
+        return '注意報';
+    }
+    function isWhitePlainKind_(level, kind) {
+        if (!level || !kind) return false;
+        if (level === 'early' || level === 'danger') return false;
+        if (WHITE_LEVEL_HAZARDS_.indexOf(kind) >= 0) return false;
+        const meta = jmaKindMeta_(level, kind);
+        if (meta && meta.hasLevel) return false;
+        const order = JMA_CATALOG_KIND_ORDER[level] || [];
+        if (order.indexOf(kind) < 0) return false;
+        return true;
+    }
+    function toWhitePlayItem_(e) {
+        const name = (e && e.name) || jmaKindName_(e.level, e.kind);
+        return {
+            level: e.level,
+            kind: e.kind,
+            name: name,
+            cls: e.level,
+            hasLevel: false,
+            levelLabel: whiteLevelLabel_(e.level),
+            mid: name
+        };
+    }
+    function getLiveWhiteEntriesFrom_(entries) {
+        const seen = {};
         const out = [];
-        RAIN_WHITE_LEVEL_ORDER.forEach(function (lv) {
+        (entries || []).forEach(function (e) {
+            if (!e || !isWhitePlainKind_(e.level, e.kind)) return;
+            const key = e.level + '|' + e.kind;
+            if (seen[key]) return;
+            seen[key] = true;
+            out.push(toWhitePlayItem_(e));
+        });
+        out.sort(function (a, b) {
+            const la = ['special', 'warning', 'advisory'].indexOf(a.level);
+            const lb = ['special', 'warning', 'advisory'].indexOf(b.level);
+            if (la !== lb) return la - lb;
+            const oa = (JMA_CATALOG_KIND_ORDER[a.level] || []).indexOf(a.kind);
+            const ob = (JMA_CATALOG_KIND_ORDER[b.level] || []).indexOf(b.kind);
+            return (oa < 0 ? 999 : oa) - (ob < 0 ? 999 : ob);
+        });
+        return out;
+    }
+    function getLiveWhiteEntries_() {
+        if (rainWhiteQueue.length) {
+            return rainWhiteQueue.filter(function (e) { return isWhitePlainKind_(e.level, e.kind); });
+        }
+        const out = [];
+        ['special', 'warning', 'advisory'].forEach(function (lv) {
             const kinds = rainWarnLiveByLevel_[lv] || [];
             const order = JMA_CATALOG_KIND_ORDER[lv] || [];
             order.forEach(function (kind) {
                 if (kinds.indexOf(kind) < 0) return;
-                out.push({ level: lv, kind: kind, name: jmaKindName_(lv, kind) });
+                if (!isWhitePlainKind_(lv, kind)) return;
+                out.push(toWhitePlayItem_({ level: lv, kind: kind, name: jmaKindName_(lv, kind) }));
             });
         });
         return out;
+    }
+    /* signage-512.html playWhite。replaceChildren / append(a,b) は使わない */
+    const WHITE_SPEED = 56;
+    const WHITE_LIVE_LAPS = 2; /* 発表中の白3段は2周 */
+    let whitePlayGen_ = 0;
+    let whiteRafId_ = 0;
+    function stopWhiteHero_() {
+        whitePlayGen_ += 1;
+        if (whiteRafId_) {
+            cancelAnimationFrame(whiteRafId_);
+            whiteRafId_ = 0;
+        }
+        liveWhitePlay_ = false;
+    }
+    function whiteClearTrack_(track) {
+        if (!track) return;
+        track.style.transform = 'translate(0,0)';
+        while (track.firstChild) track.removeChild(track.firstChild);
+    }
+    function makeWhiteTopSeg_(label) {
+        const seg = document.createElement('div');
+        seg.className = 'white-top-seg';
+        const area = document.createElement('span');
+        area.className = 'white-area';
+        area.textContent = getSiteLocationLabel_();
+        const what = document.createElement('span');
+        what.className = 'white-what';
+        what.textContent = label;
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        const badgeTxt = document.createElement('span');
+        badgeTxt.textContent = '発表中';
+        badge.appendChild(badgeTxt);
+        seg.appendChild(area);
+        seg.appendChild(what);
+        seg.appendChild(badge);
+        return seg;
+    }
+    function makeWhiteBotSeg_() {
+        const seg = document.createElement('div');
+        seg.className = 'white-foot-seg';
+        const items = [
+            ['chip-special', '特別警報'],
+            ['chip-warning', '警報'],
+            ['chip-advisory', '注意報']
+        ];
+        for (let i = 0; i < items.length; i++) {
+            const chip = document.createElement('span');
+            chip.className = 'white-foot-chip ' + items[i][0];
+            chip.textContent = items[i][1];
+            seg.appendChild(chip);
+        }
+        return seg;
+    }
+    function makeWhiteMidChip_(scene) {
+        const chip = document.createElement('span');
+        chip.className = 'mid-chip chip-' + scene.cls;
+        chip.textContent = scene.mid;
+        return chip;
+    }
+    function fillWhiteMidChips_(track, items) {
+        whiteClearTrack_(track);
+        const set = document.createElement('div');
+        set.className = 'mid-set';
+        items.forEach(function (item) { set.appendChild(makeWhiteMidChip_(item)); });
+        track.appendChild(set);
+    }
+    function prepareWhiteMidChips_(track) {
+        const set = track && track.children[0];
+        if (!set) return 0;
+        set.style.width = 'auto';
+        set.style.minWidth = '0';
+        set.style.maxWidth = 'none';
+        const w = Math.max(1, Math.ceil(set.offsetWidth));
+        set.style.width = w + 'px';
+        set.style.minWidth = w + 'px';
+        set.style.maxWidth = w + 'px';
+        set.style.flex = '0 0 ' + w + 'px';
+        while (track.children.length > 1) track.removeChild(track.lastChild);
+        for (let i = 1; i < 8; i++) track.appendChild(set.cloneNode(true));
+        return w;
+    }
+    function playWhite(onDone) {
+        const items = getLiveWhiteEntries_().filter(function (x) { return x && !x.hasLevel; });
+        if (!items.length || !heroWhite || !whiteTopTrack || !whiteMidTrack || !whiteBotTrack) {
+            if (onDone) onDone();
+            return;
+        }
+        const gen = ++whitePlayGen_;
+        if (whiteRafId_) { cancelAnimationFrame(whiteRafId_); whiteRafId_ = 0; }
+        liveWhitePlay_ = true;
+        if (heroWhite) heroWhite.className = 'hero is-white';
+        const highest = items[0];
+        let label = highest.levelLabel || '注意報';
+        if (String(label).indexOf('警戒レベル') === 0) label = '注意報';
+        whiteClearTrack_(whiteTopTrack);
+        whiteClearTrack_(whiteBotTrack);
+        whiteTopTrack.appendChild(makeWhiteTopSeg_(label));
+        whiteBotTrack.appendChild(makeWhiteBotSeg_());
+        fillWhiteMidChips_(whiteMidTrack, items);
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (gen !== whitePlayGen_) return;
+                const loopWs = [
+                    prepareWhiteMidChips_(whiteTopTrack),
+                    prepareWhiteMidChips_(whiteMidTrack),
+                    prepareWhiteMidChips_(whiteBotTrack)
+                ];
+                let scrollX = 0;
+                let lastTs = 0;
+                const oneLoop = loopWs[1] || 256;
+                function step(ts) {
+                    if (gen !== whitePlayGen_) return;
+                    if (!lastTs) lastTs = ts;
+                    let dt = Math.min(0.05, (ts - lastTs) / 1000);
+                    if (!(dt > 0)) dt = 1 / 60;
+                    lastTs = ts;
+                    scrollX += WHITE_SPEED * dt;
+                    const tracks = [whiteTopTrack, whiteMidTrack, whiteBotTrack];
+                    for (let i = 0; i < 3; i++) {
+                        const w = loopWs[i];
+                        if (w < 1) continue;
+                        tracks[i].style.transform = 'translate(' + -(scrollX % w) + 'px,0)';
+                    }
+                    if (oneLoop > 0 && scrollX >= oneLoop * WHITE_LIVE_LAPS) {
+                        whiteRafId_ = 0;
+                        liveWhitePlay_ = false;
+                        if (onDone) onDone();
+                        return;
+                    }
+                    whiteRafId_ = requestAnimationFrame(step);
+                }
+                whiteRafId_ = requestAnimationFrame(step);
+            });
+        });
     }
     function parseJmaActiveCatalogEntries_(warnJson) {
         const entries = parseJmaActiveWhiteEntries_(warnJson).filter(function (e) {
@@ -4649,7 +4842,7 @@
                 return;
             }
             applyRainWarnMeta_(null, warnJson);
-            applyRainWarnLiveEntries_(parseJmaActiveCatalogEntries_(warnJson));
+            applyRainWarnLiveEntries_(parseJmaActiveWhiteEntries_(warnJson));
         } catch (e) {
             console.warn('[大雨警報] 気象庁直取得失敗（直前の発表を維持）:', e.message || e);
         }
@@ -4665,7 +4858,7 @@
         };
         setAll(fz);
         let g = 40;
-        while (probe.scrollHeight > 50 && fz > 10 && g-- > 0) {
+        while (probe.scrollHeight > 48 && fz > 10 && g-- > 0) {
             fz -= 1;
             setAll(fz);
         }
@@ -4706,7 +4899,7 @@
         pair.classList.add(def.cls, 'ra-white-mode', 'ra-white-bundle');
         const contentArea = document.querySelector('.content-area');
         if (contentArea) contentArea.classList.add('ra-white-canvas');
-        initRainWarnWhiteMidBand_([mid]);
+        initRainWarnWhiteMidBand_(q);
         updateRainWarnWhiteFootChip_(highestWhiteLevel_(q), q);
         updateRainWarnWhiteChrome_(true);
         applySignageLogoPanel_();
@@ -4870,6 +5063,7 @@
         warnDemoPlayedThisLoop_ = false;
         liveWhitePlay_ = false;
         liveWhiteShownKey_ = '';
+        stopWhiteHero_();
         stopWarnHero_();
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
         transitionToScene(s1, playScene1);
@@ -4920,7 +5114,7 @@
     }
     function startWarnHeroOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         const items = getWarnHeroDemoItems_();
         if (!items.length || !sceneWarnHero) return;
         sceneWarnHero.style.display = 'block';
@@ -4936,28 +5130,25 @@
     }
     async function startWhiteWarnPreview_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
-        let liveWhite = getLiveWhiteEntries_();
-        if (!liveWhite.length) {
-            liveWhite = [{
-                level: 'advisory',
-                kind: 'fog',
-                name: jmaKindName_('advisory', 'fog') || '濃霧注意報'
-            }];
-        }
+        const liveWhite = getLiveWhiteEntries_();
+        if (!liveWhite.length || !sceneWarn) return;
         liveWhitePlay_ = true;
         rainWhiteQueue = liveWhite;
         liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
-        if (!sceneRainWarn) return;
-        sceneRainWarn.style.display = sceneDisplayMode(sceneRainWarn);
-        sceneRainWarn.classList.add('active');
-        sceneRainWarn.style.transform = 'translateX(0px)';
-        playSceneRainWarn(0);
+        sceneWarn.style.display = sceneDisplayMode(sceneWarn);
+        sceneWarn.classList.add('active');
+        sceneWarn.style.transform = 'translateX(0px)';
+        playingSceneEl_ = sceneWarn;
+        playWhite(function replayWhitePreview_() {
+            if (PREVIEW_WARN !== 'white') return;
+            playWhite(replayWhitePreview_);
+        });
     }
     async function startColorWarnPreview_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
         let items = getWarnHeroLiveItems_();
         if (!items.length) {
@@ -4975,7 +5166,7 @@
         sceneWarnHero.style.transform = 'translateX(0px)';
         playWarnHero_(items, null);
     }
-    function playWarnHeroThenContinue_(items) {
+    function playWarnHeroThenContinue_(items, cycles) {
         if (!items || !items.length || !sceneWarnHero) {
             gotoAfterRainWarnOrScene1_();
             return;
@@ -4985,7 +5176,7 @@
                 playWarnHero_(items, function () {
                     stopWarnHero_();
                     gotoAfterRainWarnOrScene1_();
-                });
+                }, cycles || 1);
             } catch (err) {
                 stopWarnHero_();
                 gotoAfterRainWarnOrScene1_();
@@ -5001,12 +5192,15 @@
                     await fetchWithTimeout_(updateRainWarnFromJmaDirect_(), 4500, 'jma-warn-loop');
                 } catch (e) {}
                 const liveWhite = getLiveWhiteEntries_();
-                if (liveWhite.length && sceneRainWarn) {
+                if (liveWhite.length && sceneWarn) {
                     liveWhitePlay_ = true;
                     rainWhiteQueue = liveWhite;
                     liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
-                    transitionToScene(sceneRainWarn, function () {
-                        playSceneRainWarn(0);
+                    transitionToScene(sceneWarn, function () {
+                        playWhite(function () {
+                            liveWhitePlay_ = false;
+                            gotoAfterRainWarnOrScene1_();
+                        });
                     });
                     return;
                 }
@@ -5019,7 +5213,7 @@
             warnColorLivePlayedThisLoop_ = true;
             const liveColor = getWarnHeroLiveItems_();
             if (liveColor.length) {
-                playWarnHeroThenContinue_(liveColor);
+                playWarnHeroThenContinue_(liveColor, 2);
                 return;
             }
         }
@@ -5079,6 +5273,7 @@
             midBandW: whiteBundle ? rainWhiteMidW : (heroBundle ? rainHeroMidW : RA_WHITE_BAND_W),
             midMoved: 0,
             chromeMoved: 0,
+            whiteLastTs: 0,
             whiteQueue: whiteBundle ? getRainWhiteScrollQueue_().slice() : [],
             midLaps: 0,
             warnIdx: idx,
@@ -5096,13 +5291,17 @@
             applyRaHeroBotX_(raFlow_.botBandX);
             if (heroBundle) applyRaHeroMidX_(raFlow_.midBandX);
         }
-        function step() {
+        function step(ts) {
             const prevMidX = raFlow_.midBandX;
-            advanceGlobalScroll_(getScrollSpeedPx_());
+            if (raFlow_.whiteBundle) {
+                /* 白3段は 56px/秒。他シーンの速度に混ぜない */
+            } else {
+                advanceGlobalScroll_(getScrollSpeedPx_());
+            }
             stepHeroChromeBands_(raFlow_);
             if (raFlow_.midBundle) {
                 if (raFlow_.whiteBundle) {
-                    const speed = getScrollSpeedPx_();
+                    const speed = whiteScrollStepPx_(raFlow_, ts);
                     raFlow_.chromeMoved = (raFlow_.chromeMoved || 0) + speed;
                     raFlow_.midMoved = (raFlow_.midMoved || 0) + speed;
                     const midW = raFlow_.midBandW || rainWhiteMidW || RA_WHITE_BAND_W;
@@ -5114,25 +5313,13 @@
                     applyRaWhiteFootX_(raFlow_.footBandX);
                     applyRaWhiteMidX_(raFlow_.midBandX);
                     if (raFlow_.midMoved >= midW) {
-                        const q = getRainWhiteScrollQueue_().slice();
-                        raFlow_.whiteQueue = q;
-                        raFlow_.warnIdx = (raFlow_.warnIdx || 0) + 1;
-                        if (!q.length || raFlow_.warnIdx >= q.length) {
-                            raAnimId = null; raFlow_ = null;
-                            runAfterSceneEndHold_(function () {
-                                if (!liveWhitePlay_) return;
-                                liveWhitePlay_ = false;
-                                liveWhiteShownKey_ = '';
-                                gotoAfterRainWarnOrScene1_();
-                            });
-                            return;
-                        }
-                        setWhiteMidChipOnly_(q[raFlow_.warnIdx]);
-                        raFlow_.midBandW = rainWhiteMidW;
-                        raFlow_.midMoved = 0;
-                        raFlow_.midBandX = 0;
-                        applyRaWhiteMidX_(0);
-                        raAnimId = requestAnimationFrame(step);
+                        raAnimId = null; raFlow_ = null;
+                        runAfterSceneEndHold_(function () {
+                            if (!liveWhitePlay_) return;
+                            liveWhitePlay_ = false;
+                            liveWhiteShownKey_ = '';
+                            gotoAfterRainWarnOrScene1_();
+                        });
                         return;
                     }
                     raAnimId = requestAnimationFrame(step);
@@ -5372,6 +5559,7 @@
         return (DEMO_SIGNAGE && !DEMO_ONLY) ? DEMO_SCROLL_SPEED_PX : GLOBAL_SCROLL_SPEED_PX;
     }
     let sceneSlideAnimId = null;
+    let sceneSlideGuardId = null;
     let sceneEndHoldTimerId_ = null;
     let scenePostHoldTimerId_ = null;
     /** 全シーン共通スクロール位置（下帯・本体とも継ぎ目でリセットしない） */
@@ -5466,6 +5654,10 @@
         if (sceneSlideAnimId != null) {
             cancelAnimationFrame(sceneSlideAnimId);
             sceneSlideAnimId = null;
+        }
+        if (sceneSlideGuardId != null) {
+            clearTimeout(sceneSlideGuardId);
+            sceneSlideGuardId = null;
         }
     }
     function detectScrollLapCrossed_(prevX, newX) {
@@ -7342,7 +7534,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarnHero') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarn' || el.id === 'sceneWarnHero') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         if (el.id === 'scene6') return 'flex';
         return 'flex';
@@ -7351,6 +7543,7 @@
     function hideSceneEl(el) {
         if (!el) return;
         if (el === sceneWarnHero) stopWarnHero_();
+        if (el === sceneWarn) stopWhiteHero_();
         if (el === s6) setScene6Full_(false);
         el.classList.remove('active');
         el.style.display = 'none';
@@ -7393,9 +7586,25 @@
         applyScrollX_(nextEl, SCENE_W);
         current.style.zIndex = '1';
         if (onComplete) onComplete();
-        const t0 = performance.now();
-        function tick(now) {
-            const p = Math.min(1, (now - t0) / SCENE_SLIDE_MS);
+        const frames = Math.max(1, Math.round(SCENE_SLIDE_MS / 16));
+        let frame = 0;
+        let finished = false;
+        function finishSlide() {
+            if (finished) return;
+            finished = true;
+            sceneSlideAnimId = null;
+            if (sceneSlideGuardId != null) {
+                clearTimeout(sceneSlideGuardId);
+                sceneSlideGuardId = null;
+            }
+            hideSceneEl(current);
+            applyScrollX_(nextEl, 0);
+            nextEl.style.zIndex = '';
+        }
+        function tick() {
+            if (finished) return;
+            frame += 1;
+            const p = frame >= frames ? 1 : (frame / frames);
             const eased = p * (2 - p);
             const off = scrollPx_(eased * SCENE_W);
             applyScrollX_(current, -off);
@@ -7403,13 +7612,11 @@
             if (p < 1) {
                 sceneSlideAnimId = requestAnimationFrame(tick);
             } else {
-                sceneSlideAnimId = null;
-                hideSceneEl(current);
-                applyScrollX_(nextEl, 0);
-                nextEl.style.zIndex = '';
+                finishSlide();
             }
         }
         sceneSlideAnimId = requestAnimationFrame(tick);
+        sceneSlideGuardId = setTimeout(finishSlide, SCENE_SLIDE_MS + 400);
     }
     /* 確認ボード: 提供期間外プレビュー行は非表示のまま一定時間待ってループ */
     function previewOffSeasonHold_(onlyKey, replayFn) {
@@ -8126,34 +8333,19 @@
         const bar = document.querySelector('#scene3 .t3-guid-bar');
         const probe = document.querySelector('#scene3 .t3-guid-bar .s2-meta-msg-scroll');
         if (!bar || !probe) return;
-        const barH = bar.clientHeight > 0 ? bar.clientHeight : 28;
-        const maxH = barH - 1;
+        const barH = bar.clientHeight > 0 ? bar.clientHeight : 32;
         const targets = document.querySelectorAll('#scene3 .t3-guid-bar .s2-meta-msg-scroll');
-        let fz = 15;
-        const minFz = 11;
-        const maxFz = 17;
+        let fz = 24;
+        const minFz = 18;
         const applyGuide_ = function () {
             targets.forEach(function (n) {
                 n.style.fontSize = fz + 'px';
-                n.style.lineHeight = maxH + 'px';
+                n.style.lineHeight = barH + 'px';
+                n.style.fontWeight = '900';
             });
         };
-        const clipsGuide_ = function () {
-            const barR = bar.getBoundingClientRect();
-            const r = probe.getBoundingClientRect();
-            return r.top < barR.top + 1 || r.bottom > barR.bottom - 1 || probe.scrollHeight > maxH;
-        };
         applyGuide_();
-        while (fz < maxFz) {
-            fz += 1;
-            applyGuide_();
-            if (clipsGuide_()) {
-                fz -= 1;
-                applyGuide_();
-                break;
-            }
-        }
-        while (fz > minFz && clipsGuide_()) {
+        while (fz > minFz && probe.scrollHeight > barH) {
             fz -= 1;
             applyGuide_();
         }
@@ -8588,7 +8780,7 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         setScene6Full_(el === s6);
         if (!el) return;
         playingSceneEl_ = el;
@@ -8625,7 +8817,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -8657,7 +8849,7 @@
         warnDemoPlayedThisLoop_ = false;
         liveWhitePlay_ = false;
         liveWhiteShownKey_ = '';
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         transitionToScene(s1, playScene1);
     }
 
