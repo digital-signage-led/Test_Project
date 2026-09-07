@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- 伊豆諸島北部 512×128 サイネージ / 原点 (0,0) / ロゴなし / 時刻・実況・WBGT・4日予報・多言語・警報 -->
-<!-- build:20260907-1635 / 気象庁 r8 130000 / AMeDAS・WBGT 大島 44172 -->
+<!-- build:20260907-1638 / 気象庁 r8 130000 / AMeDAS・WBGT 大島 44172 -->
 <html lang="ja" class="native-640 layout-512">
 <head>
     <meta charset="UTF-8">
@@ -308,7 +308,7 @@
         #scene1, #scene4 { overflow: hidden; position: relative; }
         #scene1.active { display: block; }
         .fc-scroll-wrap {
-            width: 512px; height: 128px; flex-shrink: 0;
+            width: 512px; height: var(--led-col-main-h); flex-shrink: 0;
             overflow: hidden; position: absolute; left: 0; top: 0; z-index: 13;
             background: transparent;
         }
@@ -328,7 +328,8 @@
         /* シーン2・4: 帯の地色は枠ごと。ロゴ列は透明＝ロゴが白帯を覆う */
         #scene2 .s2-meta-bar,
         #scene4 .fc-lv-bar {
-            background: transparent;
+            background: var(--led-foot-bar-bg);
+            z-index: 20;
         }
         #scene1.active .s1-wbgt-bar { display: block; }
         .s1-wbgt-track, .fc-lv-track, .s2-meta-track {
@@ -560,13 +561,15 @@
         .conveyor-track { display: flex; flex-direction: row; width: 3328px; transition: none; gap: 0; }
         #scene2 { overflow: hidden; position: relative; }
         #scene2.active { display: block; }
-        /* 気象9面は本文高。末尾は緑十字+JV3社の128×128（その列の白帯を覆う） */
+        /* 気象9面は本文高。白帯は下32pxに別レイヤーで出す */
         .s2-scroll-wrap {
-            width: 512px; height: 128px; overflow: hidden;
+            width: 512px; height: var(--led-col-main-h); overflow: hidden;
             position: absolute; left: 0; top: 0; z-index: 13;
             background: transparent;
         }
         #scene2 { height: 128px; }
+        #scene2 .s2-panel .col-bg-layer { height: var(--led-col-main-h); }
+        #scene2 .s2-panel .col-bg-foot { display: none; }
         #scene2 .s2-panel:not(.s2-logo-panel), #scene2 .s2-panel-data {
             height: var(--led-col-main-h);
             position: relative;
@@ -603,10 +606,7 @@
             max-width: none; max-height: none;
             object-fit: cover;
         }
-            content: ''; position: absolute; left: -1px; top: 0; width: 2px; height: 100%;
-            background: #ffffff; pointer-events: none; z-index: 3;
-        }
-        #scene2 .s2-meta-bar { z-index: 12; }
+        #scene2 .s2-meta-bar { z-index: 20; }
         /* 白帯は本体と同幅128枠。1〜9に文字、末尾4ロゴ枠は空＝被らない */
         #scene2 .s2-meta-set.s2-meta-set-panels {
             width: auto; height: var(--led-foot-bar-h); flex-shrink: 0;
@@ -712,7 +712,7 @@
             max-width: none; max-height: none;
             object-fit: cover;
         }
-        #scene4 .fc-lv-bar { z-index: 12; }
+        #scene4 .fc-lv-bar { z-index: 20; }
         #scene4 .fc-lv-set.fc-lv-set-sync {
             width: auto; height: var(--led-foot-bar-h); flex-shrink: 0;
             display: flex; flex-direction: row; align-items: stretch;
@@ -6604,7 +6604,7 @@
         humi: '湿度', pres: '気圧', tmaxmin: '高低', gust: '瞬間'
     };
     /* 本体13面と同じ順。白帯文字は1〜9のみ、末尾4ロゴ枠は空 */
-    const SCENE2_PANEL_ORDER = ['weather', 'temp', 'rain', 'wdir', 'wind', 'humi', 'pres', 'tmaxmin', 'gust', 'logo', 'logo', 'logo', 'logo'];
+    const SCENE2_PANEL_ORDER = ['weather', 'temp', 'rain', 'wdir', 'wind', 'humi', 'pres', 'tmaxmin', 'gust'];
     function scene2FootTextForType_(type, obs) {
         switch (type) {
             case 'rain': return obs.time;
