@@ -5,6 +5,7 @@
 <!-- 会場: 〒261-8550 千葉県千葉市美浜区中瀬2-1（幕張メッセ） 35°38'53.2"N 140°02'04.9"E -->
 <!-- WBGT・AMeDAS 45212（千葉・気象庁/環境省）／警報 千葉市美浜区 1220400 -->
 <!-- 本番サイネージはこの1ファイル。天気・WBGT・発表中の警報を同じループで流す -->
+<!-- build 20260907-white-mid-1lap -->
 <html lang="ja" class="native-640">
 <head>
     <meta charset="UTF-8">
@@ -1742,10 +1743,11 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            justify-content: center;
             height: 100%;
             flex: 0 0 auto;
             box-sizing: border-box;
-            padding: 0 4px;
+            padding: 0 8px;
             gap: 8px;
         }
         .ra-white-mid-chip {
@@ -2486,8 +2488,8 @@
 })(typeof window !== 'undefined' ? window : global);
 
 </script>
-<script src="assets/jma-warning-kinds.js"></script>
-<script src="assets/warning-hero.js"></script>
+<script src="assets/jma-warning-kinds.js?v=20260907-white1"></script>
+<script src="assets/warning-hero.js?v=20260907-white1"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード。未指定時は本番（実データ取得） */
@@ -3549,14 +3551,27 @@
         seg.appendChild(whatEl);
         return seg;
     }
-    function buildWhiteFootSeg512_() {
+    function issuedWhiteFootLevels_(entries) {
+        const q = (entries && entries.length) ? entries : (rainWhiteQueue || []);
+        const have = {};
+        q.forEach(function (e) {
+            if (e && e.level && RAIN_WHITE_LEVEL_CHIP[e.level]) have[e.level] = true;
+        });
+        return RAIN_WHITE_FOOT_ORDER.filter(function (lv) { return have[lv]; });
+    }
+    function buildWhiteFootSeg512_(levels) {
+        const list = (levels && levels.length) ? levels : issuedWhiteFootLevels_();
         const seg = document.createElement('div');
         seg.className = 'ra-white-foot-seg';
-        RAIN_WHITE_FOOT_ORDER.forEach(function (levelKey) {
+        const n = Math.max(1, list.length);
+        const cellW = Math.floor(RA_WHITE_BAND_W / n);
+        list.forEach(function (levelKey) {
             const chip = RAIN_WHITE_LEVEL_CHIP[levelKey];
             if (!chip) return;
             const cell = document.createElement('div');
             cell.className = 'ra-white-foot-cell';
+            cell.style.width = cellW + 'px';
+            cell.style.flex = '0 0 ' + cellW + 'px';
             const el = document.createElement('div');
             el.className = 'ra-white-foot-chip ' + chip.cls;
             el.textContent = chip.label;
@@ -3608,9 +3623,7 @@
         mWrap.appendChild(mTrack);
         mWrap.setAttribute('aria-hidden', 'false');
         sizeRainWarnWhiteMidText_();
-        const seg = mTrack.querySelector('.ra-white-mid-seg');
-        const w = seg ? Math.max(1, Math.round(seg.getBoundingClientRect().width)) : RA_WHITE_BAND_W;
-        rainWhiteMidW = cloneFillWhiteLoop_(mTrack, w);
+        rainWhiteMidW = cloneFillWhiteLoop_(mTrack, RA_WHITE_BAND_W);
         return rainWhiteMidW;
     }
     function applyRaWhiteMidX_(x) {
@@ -3875,7 +3888,7 @@
         rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack, Math.round(hTrack.children[0].getBoundingClientRect().width));
         hWrap.setAttribute('aria-hidden', 'false');
     }
-    function initRainWarnWhiteFootBar_() {
+    function initRainWarnWhiteFootBar_(entries) {
         if (!shouldUseWhiteLayout_()) return;
         const pair = document.getElementById('ra-pair');
         if (!pair) return;
@@ -3905,13 +3918,29 @@
         fWrap.textContent = '';
         const fTrack = document.createElement('div');
         fTrack.className = 'ra-white-foot-track';
-        fTrack.appendChild(buildWhiteFootSeg512_());
+        fTrack.appendChild(buildWhiteFootSeg512_(issuedWhiteFootLevels_(entries)));
         fWrap.appendChild(fTrack);
         cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
         fWrap.setAttribute('aria-hidden', 'false');
         const oldBar = pair.querySelector(':scope > .ra-white-foot-bar');
         if (oldBar) oldBar.remove();
         rainWhiteFootInited = true;
+    }
+    function rebuildRainWarnWhiteFootTrack_(entries) {
+        const pair = document.getElementById('ra-pair');
+        if (!pair) return;
+        const fWrap = pair.querySelector(':scope > .ra-white-foot-wrap');
+        if (!fWrap) {
+            initRainWarnWhiteFootBar_(entries);
+            return;
+        }
+        fWrap.textContent = '';
+        const fTrack = document.createElement('div');
+        fTrack.className = 'ra-white-foot-track';
+        fTrack.appendChild(buildWhiteFootSeg512_(issuedWhiteFootLevels_(entries)));
+        fWrap.appendChild(fTrack);
+        cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
+        fWrap.setAttribute('aria-hidden', 'false');
     }
     function applyRaWhiteBandX_(x) {
         const tx = Math.round(x * 100) / 100;
@@ -3971,8 +4000,9 @@
         if (!rainWhiteFootInited) initRainWarnWhiteFootBar_();
         else rebuildRainWarnWhiteHeaderTrack_();
     }
-    function updateRainWarnWhiteFootChip_(levelKey) {
-        if (!rainWhiteFootInited) initRainWarnWhiteFootBar_();
+    function updateRainWarnWhiteFootChip_(levelKey, entries) {
+        if (!rainWhiteFootInited) initRainWarnWhiteFootBar_(entries);
+        else rebuildRainWarnWhiteFootTrack_(entries);
     }
     function parseWarnKindParam_() {
         const v = (query.get('warntype') || query.get('warnkind') || '').toLowerCase();
@@ -4166,7 +4196,7 @@
         return RAIN_HERO_DESIGN;
     }
     function shouldUseWhiteLayout_() {
-        return !!liveWhitePlay_;
+        return false;
     }
     function rainWarnWhiteDisplayText_(levelKey, kindKey, fullName) {
         return {
@@ -4288,32 +4318,37 @@
             return;
         }
         const nextKey = liveWhiteEntryKey_(q);
-        if (nextKey === liveWhiteShownKey_) return;
-        const prevKeys = liveWhiteShownKey_ ? liveWhiteShownKey_.split(',') : [];
-        const added = q.some(function (e) {
-            return prevKeys.indexOf((e.level || '') + '|' + (e.kind || '')) < 0;
-        });
+        if (nextKey === liveWhiteShownKey_) {
+            if (raFlow_ && raFlow_.whiteBundle) raFlow_.whiteQueue = q;
+            return;
+        }
+        const cur = (raFlow_ && raFlow_.whiteQueue) ? raFlow_.whiteQueue[raFlow_.warnIdx] : null;
+        const still = !!(cur && q.some(function (e) {
+            return e.level === cur.level && e.kind === cur.kind;
+        }));
         liveWhiteShownKey_ = nextKey;
-        if (!setRainWarnWhiteBundle_(q)) return;
+        if (raFlow_ && raFlow_.whiteBundle) raFlow_.whiteQueue = q;
+        if (still) {
+            raFlow_.warnIdx = q.findIndex(function (e) {
+                return e.level === cur.level && e.kind === cur.kind;
+            });
+            updateRainWarnWhiteChrome_(true);
+            rebuildRainWarnWhiteFootTrack_(q);
+            return;
+        }
+        const idx = Math.max(0, Math.min(raFlow_ && raFlow_.warnIdx ? raFlow_.warnIdx : 0, q.length - 1));
+        if (raFlow_ && raFlow_.whiteBundle) raFlow_.warnIdx = idx;
+        if (!setRainWarnWhiteBundle_(q, idx)) return;
         if (raFlow_ && raFlow_.whiteBundle) {
             raFlow_.midBandW = rainWhiteMidW;
             raFlow_.topBandW = rainWhiteHeaderW || RA_WHITE_BAND_W;
-            if (added) raFlow_.midMoved = 0;
-            else if (rainWhiteMidW) raFlow_.midMoved = (raFlow_.midMoved || 0) % rainWhiteMidW;
-            const moved = raFlow_.midMoved || 0;
-            raFlow_.bandX = wrapScrollX_(-moved, raFlow_.topBandW);
-            raFlow_.footBandX = wrapScrollX_(-moved, RA_WHITE_BAND_W);
-            raFlow_.midBandX = wrapScrollX_(-moved, raFlow_.midBandW);
-            applyRaWhiteBandX_(raFlow_.bandX);
-            applyRaWhiteFootX_(raFlow_.footBandX);
-            applyRaWhiteMidX_(raFlow_.midBandX);
+            raFlow_.midMoved = 0;
+            raFlow_.midBandX = 0;
+            applyRaWhiteMidX_(0);
         }
     }
     function startLiveWarnPoll_() {
-        if (liveWarnPollId_ || !isProductionLiveWarn_()) return;
-        liveWarnPollId_ = setInterval(function () {
-            updateRainWarnFromJmaDirect_().catch(function () {});
-        }, LIVE_WARN_POLL_MS);
+        return;
     }
     function rainWarnDemoLaps_() {
         if (liveWhitePlay_) return 1;
@@ -4551,19 +4586,27 @@
             setAll(fz);
         }
     }
-    function setRainWarnWhiteBundle_(entries) {
+    function setWhiteMidChipOnly_(entry) {
+        if (!entry) return false;
+        initRainWarnWhiteMidBand_([entry]);
+        applyRaWhiteMidX_(0);
+        return true;
+    }
+    function setRainWarnWhiteBundle_(entries, midIdx) {
         const q = (entries || []).slice();
         const pair = document.getElementById('ra-pair');
         if (!q.length || !pair) return false;
-        const topLevel = highestWhiteLevel_(q);
+        const i = Math.max(0, Math.min(midIdx == null ? 0 : midIdx, q.length - 1));
+        const mid = q[i];
+        const topLevel = (mid && RAIN_WARN_LEVELS[mid.level]) ? mid.level : highestWhiteLevel_(q);
         const def = RAIN_WARN_LEVELS[topLevel];
         if (!def) return false;
         pair.classList.remove('ra-early', 'ra-advisory', 'ra-warning', 'ra-hero-mode', 'ra-white-mode', 'ra-white-bundle', 'ra-danger', 'ra-special', 'ra-line-announce', 'ra-line-announce-done');
         pair.classList.add(def.cls, 'ra-white-mode', 'ra-white-bundle');
         const contentArea = document.querySelector('.content-area');
         if (contentArea) contentArea.classList.add('ra-white-canvas');
-        initRainWarnWhiteMidBand_(q);
-        updateRainWarnWhiteFootChip_(topLevel);
+        initRainWarnWhiteMidBand_([mid]);
+        updateRainWarnWhiteFootChip_(highestWhiteLevel_(q), q);
         updateRainWarnWhiteChrome_(true);
         applySignageLogoPanel_();
         return true;
@@ -4642,7 +4685,7 @@
     }
     function setRainWarn_(levelIdx, kindIdx) {
         if (shouldUseWhiteLayout_()) {
-            return setRainWarnWhiteBundle_(getRainWhiteScrollQueue_());
+            return setRainWarnWhiteBundle_(getRainWhiteScrollQueue_(), levelIdx);
         }
         const key = rainWarnActive[levelIdx != null ? levelIdx : 0] || rainWarnActive[0];
         const def = RAIN_WARN_LEVELS[key];
@@ -4789,23 +4832,7 @@
         playWarnHero_(items, null);
     }
     async function gotoAfterRainWarnOrScene1_() {
-        if (!warnHeroPlayedThisLoop_) {
-            warnHeroPlayedThisLoop_ = true;
-            if (isProductionLiveWarn_()) {
-                try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
-                const liveWhite = getLiveWhiteEntries_();
-                if (liveWhite.length && sceneRainWarn) {
-                    liveWhitePlay_ = true;
-                    rainWhiteQueue = liveWhite;
-                    liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
-                    transitionToScene(sceneRainWarn, function () {
-                        playSceneRainWarn(0);
-                    });
-                    return;
-                }
-            }
-            liveWhitePlay_ = false;
-        }
+        warnHeroPlayedThisLoop_ = true;
         liveWhitePlay_ = false;
         const contentArea = document.querySelector('.content-area');
         if (contentArea) contentArea.classList.remove('ra-white-canvas');
@@ -4869,6 +4896,8 @@
             botBandW: rainHeroBotW,
             midBandW: whiteBundle ? rainWhiteMidW : (heroBundle ? rainHeroMidW : RA_WHITE_BAND_W),
             midMoved: 0,
+            chromeMoved: 0,
+            whiteQueue: whiteBundle ? getRainWhiteScrollQueue_().slice() : [],
             midLaps: 0,
             warnIdx: idx,
             kindIdx: 0,
@@ -4892,23 +4921,36 @@
             if (raFlow_.midBundle) {
                 if (raFlow_.whiteBundle) {
                     const speed = getScrollSpeedPx_();
+                    raFlow_.chromeMoved = (raFlow_.chromeMoved || 0) + speed;
                     raFlow_.midMoved = (raFlow_.midMoved || 0) + speed;
                     const midW = raFlow_.midBandW || rainWhiteMidW || RA_WHITE_BAND_W;
                     const headW = raFlow_.topBandW || rainWhiteHeaderW || RA_WHITE_BAND_W;
-                    raFlow_.bandX = wrapScrollX_(-raFlow_.midMoved, headW);
-                    raFlow_.footBandX = wrapScrollX_(-raFlow_.midMoved, RA_WHITE_BAND_W);
+                    raFlow_.bandX = wrapScrollX_(-raFlow_.chromeMoved, headW);
+                    raFlow_.footBandX = wrapScrollX_(-raFlow_.chromeMoved, RA_WHITE_BAND_W);
                     raFlow_.midBandX = wrapScrollX_(-raFlow_.midMoved, midW);
                     applyRaWhiteBandX_(raFlow_.bandX);
                     applyRaWhiteFootX_(raFlow_.footBandX);
                     applyRaWhiteMidX_(raFlow_.midBandX);
                     if (raFlow_.midMoved >= midW) {
-                        raAnimId = null; raFlow_ = null;
-                        runAfterSceneEndHold_(function () {
-                            if (!liveWhitePlay_) return;
-                            liveWhitePlay_ = false;
-                            liveWhiteShownKey_ = '';
-                            gotoAfterRainWarnOrScene1_();
-                        });
+                        const q = getRainWhiteScrollQueue_().slice();
+                        raFlow_.whiteQueue = q;
+                        raFlow_.warnIdx = (raFlow_.warnIdx || 0) + 1;
+                        if (!q.length || raFlow_.warnIdx >= q.length) {
+                            raAnimId = null; raFlow_ = null;
+                            runAfterSceneEndHold_(function () {
+                                if (!liveWhitePlay_) return;
+                                liveWhitePlay_ = false;
+                                liveWhiteShownKey_ = '';
+                                gotoAfterRainWarnOrScene1_();
+                            });
+                            return;
+                        }
+                        setWhiteMidChipOnly_(q[raFlow_.warnIdx]);
+                        raFlow_.midBandW = rainWhiteMidW;
+                        raFlow_.midMoved = 0;
+                        raFlow_.midBandX = 0;
+                        applyRaWhiteMidX_(0);
+                        raAnimId = requestAnimationFrame(step);
                         return;
                     }
                     raAnimId = requestAnimationFrame(step);
