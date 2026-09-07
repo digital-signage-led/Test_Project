@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<!-- 伊豆諸島北部 警報情報 512×128 / ロゴなし / 気象庁 r8 + 環境省地点 大島44172（警報本文は気象庁） -->
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>伊豆諸島北部 警報情報</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --stage-w: 512px;
+        --stage-h: 128px;
+        --band-top-h: 40px;
+        --band-mid-h: 48px;
+        --band-bot-h: 40px;
+        --unit-w: 256px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        background: #15202b;
+        color: #e8eef4;
+        font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        padding: 28px 16px 36px;
+      }
+
+      .demo-chrome {
+        width: min(920px, 100%);
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .demo-chrome h1 {
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+      }
+
+      .demo-chrome p {
+        font-size: 12px;
+        color: #9fb0c0;
+        font-weight: 700;
+      }
+
+      .demo-badge {
+        display: inline-flex;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #1e3a5f;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+      }
+
+      .stage-frame {
+        width: min(920px, 100%);
+        display: grid;
+        place-items: center;
+        padding: 28px 16px;
+        background: #0f1720;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      .stage-scale {
+        width: 512px;
+        height: 128px;
+        transform-origin: center center;
+      }
+
+      .hero {
+        width: 512px;
+        height: 128px;
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: 40px 48px 40px;
+        grid-template-columns: 512px;
+        background: #fa2900;
+        transition: background-color 0.35s ease;
+      }
+
+      .hero.is-advisory {
+        background: #f2e700;
+      }
+      .hero.is-warning {
+        background: #fa2900;
+      }
+      .hero.is-danger {
+        background: #ab00aa;
+      }
+      .hero.is-special {
+        background: #000000;
+      }
+
+      .band {
+        position: relative;
+        left: auto;
+        top: auto;
+        bottom: auto;
+        width: 512px;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+      }
+
+      .band-top {
+        height: 40px;
+      }
+
+      .band-mid {
+        height: 48px;
+      }
+
+      .band-mid::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        animation: mid-pulse 1.5s ease-in-out infinite;
+      }
+
+      .hero.is-advisory .band-mid::before {
+        background: #cdb800;
+      }
+      .hero.is-warning .band-mid::before {
+        background: #c82400;
+      }
+      .hero.is-danger .band-mid::before {
+        background: #7a0078;
+      }
+      .hero.is-special .band-mid::before {
+        background: #333333;
+      }
+
+      @keyframes mid-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.88;
+        }
+      }
+
+      .band-bot {
+        height: 40px;
+      }
+
+      .track {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        height: 100%;
+        width: max-content;
+        will-change: transform;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .seg {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 256px;
+        width: 256px;
+        min-width: 256px;
+        max-width: 256px;
+        height: 100%;
+        padding: 0 8px;
+        gap: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+        contain: paint;
+      }
+
+      .band-mid .track,
+      .band-mid .seg {
+        align-items: center;
+      }
+
+      .band-mid .seg {
+        height: var(--band-mid-h);
+        width: auto;
+        min-width: 256px;
+        max-width: none;
+        flex: 0 0 auto;
+        overflow: hidden;
+      }
+
+      .top-label,
+      .bot-txt,
+      .mid-chip {
+        font-weight: 900;
+      }
+
+      .unit,
+      .mid-chip,
+      .bot-txt {
+        padding-right: 0;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .unit {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        flex: 1 1 auto;
+        width: 100%;
+        max-width: 100%;
+        gap: 8px;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .top-label {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        font-size: 20px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+      }
+
+      .bot-txt {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        max-height: 36px;
+        overflow: hidden;
+        white-space: normal;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1.15;
+        letter-spacing: 0.02em;
+      }
+
+      .mid-chip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: auto;
+        max-width: none;
+        height: 48px;
+        overflow: visible;
+        white-space: nowrap;
+        font-size: 36px;
+        line-height: 48px;
+        letter-spacing: 0.04em;
+        transform: translateY(-3px);
+        -webkit-text-stroke: 3px #000000;
+        paint-order: stroke fill;
+      }
+
+      .badge {
+        flex: 0 0 auto;
+        background: #ffffff;
+        padding: 3px 8px;
+        border-radius: 2px;
+        line-height: 1;
+      }
+
+      .badge span {
+        display: block;
+        color: #1a1a1a;
+        font-weight: 900;
+        font-size: 15px;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .hero.is-advisory .top-label,
+      .hero.is-advisory .bot-txt {
+        color: #1a1a1a;
+      }
+
+      .hero.is-advisory .mid-chip {
+        color: #ffffff;
+      }
+
+      .hero.is-warning .top-label,
+      .hero.is-warning .bot-txt,
+      .hero.is-warning .mid-chip,
+      .hero.is-danger .top-label,
+      .hero.is-danger .bot-txt,
+      .hero.is-danger .mid-chip,
+      .hero.is-special .top-label,
+      .hero.is-special .bot-txt,
+      .hero.is-special .mid-chip {
+        color: #ffffff;
+      }
+
+      .scene-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        max-width: 920px;
+      }
+
+      .scene-btn {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #243140;
+        color: #d7e2ec;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .scene-btn.is-on {
+        background: #e8eef4;
+        color: #15202b;
+      }
+
+      .scene-btn[data-lv="2"].is-on {
+        background: #f2e700;
+        color: #111;
+      }
+      .scene-btn[data-lv="3"].is-on {
+        background: #fa2900;
+        color: #fff;
+      }
+      .scene-btn[data-lv="4"].is-on {
+        background: #ab00aa;
+        color: #fff;
+      }
+      .scene-btn[data-lv="5"].is-on {
+        background: #000;
+        color: #fff;
+      }
+      .scene-btn[data-group="evac"].is-on {
+        background: #1e3a5f;
+        color: #fff;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #8ea0b0;
+        text-align: center;
+      }
+
+      .hero.is-idle {
+        background: #1a2a38;
+      }
+
+      .hero.is-idle .band-mid::before {
+        display: none;
+      }
+
+      .idle-msg {
+        display: none;
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        align-items: center;
+        justify-content: center;
+        padding: 0 16px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        color: #d7e2ec;
+      }
+
+      .hero.is-idle .idle-msg {
+        display: flex;
+      }
+
+      html.embed,
+      html.embed body {
+        width: 512px;
+        height: 128px;
+        min-height: 128px;
+        max-width: 512px;
+        max-height: 128px;
+        overflow: hidden;
+        background: #000;
+        padding: 0;
+        gap: 0;
+      }
+
+      html.embed .demo-chrome,
+      html.embed .scene-bar,
+      html.embed .hint {
+        display: none;
+      }
+
+      html.embed .stage-frame {
+        display: grid;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        width: 512px;
+      }
+
+      html.embed .stage-scale {
+        transform: none !important;
+        margin: 0 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="demo-chrome">
+      <div>
+        <h1>伊豆諸島北部 警報情報</h1>
+        <p>東京都伊豆諸島北部 ／ 気象庁 令和8年体系 ／ 4面 512×128 ／ ロゴなし</p>
+      </div>
+      <span class="demo-badge" id="modeBadge">発表中</span>
+    </header>
+
+    <div class="stage-frame">
+      <div class="stage-scale" id="stageScale">
+        <div class="hero is-warning" id="hero" aria-live="polite">
+          <div class="idle-msg" id="idleMsg">発表中の対象警報はありません</div>
+          <div class="band band-top">
+            <div class="track" id="topTrack"></div>
+          </div>
+          <div class="band band-mid">
+            <div class="track" id="midTrack"></div>
+          </div>
+          <div class="band band-bot">
+            <div class="track" id="botTrack"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="scene-bar" id="sceneBar" aria-label="デモシーン" hidden></nav>
+    <p class="hint" id="statusHint">気象庁の発表を取得しています…</p>
+
+    <script>
+      const KINDS = ["大雨", "土砂災害", "氾濫", "高潮"];
+      const LEVELS = [
+        {
+          group: "l2",
+          label: "注意報",
+          lv: 2,
+          cls: "advisory",
+          suffix: "注意報",
+          bot: "避難行動・避難経路の確認（ハザードマップ等の再チェック）",
+        },
+        {
+          group: "l3",
+          label: "警報",
+          lv: 3,
+          cls: "warning",
+          suffix: "警報",
+          bot: "高齢者や避難に時間のかかる人は避難",
+        },
+        {
+          group: "l4",
+          label: "危険警報",
+          lv: 4,
+          cls: "danger",
+          suffix: "危険警報",
+          bot: "危険な場所から全員避難（自治体の「避難指示」相当）",
+        },
+        {
+          group: "l5",
+          label: "特別警報",
+          lv: 5,
+          cls: "special",
+          suffix: "特別警報",
+          bot: "命を守るための最善の行動をとる（すでに災害発生または切迫）",
+        },
+      ];
+      const WARN_ITEMS = LEVELS.flatMap((lv) =>
+        KINDS.map((kind) => ({
+          group: lv.group,
+          label: lv.label,
+          lv: lv.lv,
+          cls: lv.cls,
+          levelLabel: "警戒レベル" + lv.lv,
+          mid: "レベル" + lv.lv + kind + lv.suffix,
+          bot: lv.bot,
+          badge: "発表中",
+        }))
+      );
+      const EVAC_ITEMS = [
+        {
+          group: "evac",
+          label: "避難情報",
+          lv: 3,
+          cls: "warning",
+          levelLabel: "警戒レベル3",
+          mid: "レベル3高齢者等避難",
+          bot: "高齢者や避難に時間のかかる人は避難",
+          badge: "発表中",
+        },
+        {
+          group: "evac",
+          label: "避難情報",
+          lv: 4,
+          cls: "danger",
+          levelLabel: "警戒レベル4",
+          mid: "レベル4避難指示",
+          bot: "危険な場所から全員避難",
+          badge: "発表中",
+        },
+        {
+          group: "evac",
+          label: "避難情報",
+          lv: 5,
+          cls: "special",
+          levelLabel: "警戒レベル5",
+          mid: "レベル5緊急安全確保",
+          bot: "命を守るための最善の行動をとる（すでに災害発生または切迫）",
+          badge: "発表中",
+        },
+      ];
+      const DEMO_ITEMS = WARN_ITEMS.concat(EVAC_ITEMS);
+      let ITEMS = [];
+
+      const GROUPS = [
+        { id: "l2", label: "注意報", lv: 2 },
+        { id: "l3", label: "警報", lv: 3 },
+        { id: "l4", label: "危険警報", lv: 4 },
+        { id: "l5", label: "特別警報", lv: 5 },
+        { id: "evac", label: "避難情報" },
+      ];
+
+      const SITE = {
+        locationLabel: "伊豆諸島北部",
+        prefecture: "東京都",
+        warnArea: "130000",
+        warnRegion: "130020",
+        warnCities: ["1336100", "1336200", "1336300", "1336400"],
+        cityNames: {
+          "130020": "伊豆諸島北部",
+          "1336100": "大島町",
+          "1336200": "利島村",
+          "1336300": "新島村",
+          "1336400": "神津島村",
+        },
+        jma: {
+          forecastArea: "130000",
+          amedasPoint: "44172",
+          amedasName: "大島",
+        },
+        moe: {
+          point: "44172",
+          pointName: "大島",
+          alertArea: "東京都",
+          region: "03",
+          prefecture: "44",
+        },
+        geo: { lat: 34.747, lon: 139.361 },
+      };
+
+      const KIND_CODES = {
+        "10": { kind: "大雨", lv: 2 },
+        "03": { kind: "大雨", lv: 3 },
+        "43": { kind: "大雨", lv: 4 },
+        "33": { kind: "大雨", lv: 5 },
+        "29": { kind: "土砂災害", lv: 2 },
+        "09": { kind: "土砂災害", lv: 3 },
+        "49": { kind: "土砂災害", lv: 4 },
+        "39": { kind: "土砂災害", lv: 5 },
+        "18": { kind: "氾濫", lv: 2 },
+        "04": { kind: "氾濫", lv: 3 },
+        "44": { kind: "氾濫", lv: 4 },
+        "34": { kind: "氾濫", lv: 5 },
+        "40": { kind: "氾濫", lv: 4 },
+        "41": { kind: "氾濫", lv: 4 },
+        "30": { kind: "氾濫", lv: 3 },
+        "31": { kind: "氾濫", lv: 3 },
+        "51": { kind: "氾濫", lv: 5 },
+        "53": { kind: "氾濫", lv: 5 },
+        "19": { kind: "高潮", lv: 2 },
+        "08": { kind: "高潮", lv: 3 },
+        "48": { kind: "高潮", lv: 4 },
+        "38": { kind: "高潮", lv: 5 },
+      };
+      const FLOOD_CODE_MAP = { "20": "18", "30": "04", "40": "44", "50": "34" };
+      const ACTIVE_STATUS = new Set([
+        "発表",
+        "継続",
+        "警報から注意報",
+        "注意報から警報",
+        "危険警報から注意報",
+      ]);
+      const KIND_ORDER = { 大雨: 0, 土砂災害: 1, 氾濫: 2, 高潮: 3 };
+
+      const query = new URLSearchParams(location.search);
+      const DEMO_MODE = query.get("demo") === "1";
+      const EMBED_MODE = query.get("embed") === "1" || query.get("native") === "1";
+      if (EMBED_MODE) document.documentElement.classList.add("embed");
+
+      const hero = document.getElementById("hero");
+      const topTrack = document.getElementById("topTrack");
+      const midTrack = document.getElementById("midTrack");
+      const botTrack = document.getElementById("botTrack");
+      const sceneBar = document.getElementById("sceneBar");
+      const stageScale = document.getElementById("stageScale");
+      const modeBadge = document.getElementById("modeBadge");
+      const statusHint = document.getElementById("statusHint");
+      const idleMsg = document.getElementById("idleMsg");
+
+      const SPEED = 56;
+      const UNIT_W = 256;
+      const POLL_MS = 60000;
+      let itemIndex = 0;
+      let playGen = 0;
+      let rafId = 0;
+      let lastSignature = "";
+
+      function scaleStage() {
+        const availW = Math.min(window.innerWidth - 48, 960);
+        const availH = Math.min(window.innerHeight - 220, 420);
+        const scale = Math.max(1, Math.min(availW / 512, availH / 128));
+        stageScale.style.transform = `scale(${scale})`;
+        stageScale.style.margin = `${(128 * (scale - 1)) / 2}px ${(512 * (scale - 1)) / 2}px`;
+      }
+
+      function makeTopSeg(scene) {
+        const seg = document.createElement("div");
+        seg.className = "seg";
+        const unit = document.createElement("div");
+        unit.className = "unit";
+        const level = document.createElement("span");
+        level.className = "top-label";
+        level.textContent = scene.levelLabel;
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.innerHTML = `<span>${scene.badge}</span>`;
+        unit.append(level, badge);
+        seg.appendChild(unit);
+        return seg;
+      }
+
+      function makeMidSeg(scene) {
+        const seg = document.createElement("div");
+        seg.className = "seg";
+        const chip = document.createElement("span");
+        chip.className = "mid-chip";
+        chip.textContent = scene.mid;
+        seg.appendChild(chip);
+        return seg;
+      }
+
+      function makeBotSeg(scene) {
+        const seg = document.createElement("div");
+        seg.className = "seg";
+        const txt = document.createElement("span");
+        txt.className = "bot-txt";
+        txt.textContent = scene.bot;
+        seg.appendChild(txt);
+        return seg;
+      }
+
+      function fillTrack(track, makeSeg, scene) {
+        track.style.transform = "translate3d(0,0,0)";
+        track.replaceChildren(makeSeg(scene));
+      }
+
+      function fitToWidth(el, maxW, maxPx) {
+        if (!el) return;
+        const isMid = el.classList.contains("mid-chip");
+        el.style.letterSpacing = "0.02em";
+        el.style.fontSize = maxPx + "px";
+        el.style.transform = isMid ? "translateY(-3px)" : "none";
+        el.style.width = "auto";
+        el.style.maxWidth = "none";
+        el.style.flex = "0 0 auto";
+        let w = el.offsetWidth;
+        if (w > maxW && w > 0) {
+          el.style.fontSize = Math.max(8, (maxW / w) * maxPx) + "px";
+          w = el.offsetWidth;
+        }
+        if (w > maxW) {
+          el.style.letterSpacing = "0";
+          w = el.offsetWidth;
+        }
+        if (w > maxW && w > 0) {
+          el.style.fontSize = Math.max(7, (maxW / w) * parseFloat(el.style.fontSize)) + "px";
+        }
+        el.style.maxWidth = maxW + "px";
+        el.style.overflow = "hidden";
+      }
+
+      function fitBot(el, maxW, maxH) {
+        if (!el) return;
+        el.style.whiteSpace = "normal";
+        el.style.width = maxW + "px";
+        el.style.maxWidth = maxW + "px";
+        el.style.flex = "0 0 auto";
+        let size = 16;
+        el.style.fontSize = size + "px";
+        el.style.lineHeight = "1.15";
+        let guard = 20;
+        while (el.scrollHeight > maxH && size > 10 && guard-- > 0) {
+          size -= 0.5;
+          el.style.fontSize = size + "px";
+        }
+      }
+
+      function prepareTrack(track) {
+        const first = track.children[0];
+        if (!first) return 0;
+        const innerW = UNIT_W - 16;
+        const mid = first.querySelector(".mid-chip");
+        const bot = first.querySelector(".bot-txt");
+        const top = first.querySelector(".top-label");
+        if (bot) fitBot(bot, innerW, 36);
+        if (top) fitToWidth(top, 160, 20);
+        let loopW = UNIT_W;
+        if (mid) {
+          mid.style.fontSize = "36px";
+          mid.style.letterSpacing = "0.04em";
+          mid.style.width = "auto";
+          mid.style.maxWidth = "none";
+          mid.style.flex = "0 0 auto";
+          mid.style.transform = "translateY(-3px)";
+          const w = Math.max(UNIT_W, mid.offsetWidth + 16);
+          first.style.width = w + "px";
+          first.style.minWidth = w + "px";
+          first.style.maxWidth = w + "px";
+          first.style.flex = "0 0 " + w + "px";
+          loopW = w;
+        } else {
+          first.style.width = UNIT_W + "px";
+          first.style.minWidth = UNIT_W + "px";
+          first.style.maxWidth = UNIT_W + "px";
+          first.style.flex = "0 0 " + UNIT_W + "px";
+        }
+        while (track.children.length > 1) track.removeChild(track.lastChild);
+        const copies = 6;
+        for (let i = 1; i < copies; i++) {
+          track.appendChild(first.cloneNode(true));
+        }
+        return loopW;
+      }
+
+      function nextItem() {
+        if (!ITEMS.length) return;
+        itemIndex = (itemIndex + 1) % ITEMS.length;
+        renderItem(itemIndex);
+      }
+
+      function sceneFromMeta(kind, lv) {
+        const row = LEVELS.find((x) => x.lv === lv);
+        return {
+          group: row.group,
+          label: row.label,
+          lv: row.lv,
+          cls: row.cls,
+          levelLabel: "警戒レベル" + lv,
+          mid: "レベル" + lv + kind + row.suffix,
+          bot: row.bot,
+          badge: "発表中",
+        };
+      }
+
+      function signatureOf(list) {
+        return list.map((it) => it.mid).join("|");
+      }
+
+      function setStatus(text) {
+        if (statusHint) statusHint.textContent = text;
+      }
+
+      function setIdle(on) {
+        hero.classList.toggle("is-idle", on);
+        if (idleMsg) {
+          idleMsg.textContent = on
+            ? SITE.locationLabel + "に対象の警報・注意報はありません"
+            : "";
+        }
+      }
+
+      function applyQueue(list, note) {
+        const next = list.slice();
+        const sig = signatureOf(next);
+        if (sig === lastSignature && ITEMS.length) return;
+        lastSignature = sig;
+        ITEMS = next;
+        itemIndex = 0;
+        if (!ITEMS.length) {
+          if (rafId) cancelAnimationFrame(rafId);
+          playGen += 1;
+          setIdle(true);
+          hero.className = "hero is-idle";
+          topTrack.replaceChildren();
+          midTrack.replaceChildren();
+          botTrack.replaceChildren();
+          setStatus(note || SITE.locationLabel + "　発表なし（この画面は出さない）");
+          return;
+        }
+        setIdle(false);
+        setStatus(note || "");
+        renderItem(0);
+      }
+
+      function startSharedScroll(gen, loopWs) {
+        if (rafId) cancelAnimationFrame(rafId);
+        let scrollX = 0;
+        let lastTs = 0;
+        let switched = false;
+        const oneLoop = loopWs[1] || UNIT_W;
+
+        const step = (ts) => {
+          if (gen !== playGen) return;
+          if (!lastTs) lastTs = ts;
+          const dt = Math.min(0.05, (ts - lastTs) / 1000);
+          lastTs = ts;
+          scrollX += SPEED * dt;
+          [topTrack, midTrack, botTrack].forEach((track, i) => {
+            const w = loopWs[i];
+            if (w < 1) return;
+            track.style.transform = `translate3d(${-(scrollX % w)}px,0,0)`;
+          });
+          if (!switched && ITEMS.length > 1 && oneLoop > 0 && scrollX >= oneLoop) {
+            switched = true;
+            nextItem();
+            return;
+          }
+          rafId = requestAnimationFrame(step);
+        };
+        rafId = requestAnimationFrame(step);
+      }
+
+      function renderItem(index) {
+        if (!ITEMS.length) return;
+        const gen = ++playGen;
+        itemIndex = index;
+        const scene = ITEMS[index];
+        setIdle(false);
+        hero.className = `hero is-${scene.cls}`;
+        fillTrack(topTrack, makeTopSeg, scene);
+        fillTrack(midTrack, makeMidSeg, scene);
+        fillTrack(botTrack, makeBotSeg, scene);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (gen !== playGen) return;
+            const loopWs = [prepareTrack(topTrack), prepareTrack(midTrack), prepareTrack(botTrack)];
+            startSharedScroll(gen, loopWs);
+          });
+        });
+        [...sceneBar.children].forEach((btn) => {
+          btn.classList.toggle("is-on", btn.dataset.group === scene.group);
+        });
+      }
+
+      function parseJmaR8(payload) {
+        const byKind = new Map();
+        const citySet = new Set(SITE.warnCities);
+        const areas = [];
+        let reportDatetime = "";
+        let newestMs = -Infinity;
+
+        if (!Array.isArray(payload)) return { items: [], reportDatetime: "" };
+
+        payload.forEach((entry) => {
+          if (!entry || !entry.warning) return;
+          const class20 = Array.isArray(entry.warning.class20Items)
+            ? entry.warning.class20Items
+            : [];
+          class20.forEach((area) => {
+            if (!citySet.has(String(area.areaCode))) return;
+            const kinds = Array.isArray(area.kinds) ? area.kinds : [];
+            kinds.forEach((kind) => {
+              if (!kind || !kind.code) return;
+              if (!ACTIVE_STATUS.has(kind.status)) return;
+              const key = String(kind.code).padStart(2, "0");
+              const meta = KIND_CODES[key];
+              if (!meta) return;
+              const prev = byKind.get(meta.kind);
+              if (!prev || meta.lv > prev.lv) {
+                byKind.set(meta.kind, { kind: meta.kind, lv: meta.lv });
+              }
+              const name = SITE.cityNames[area.areaCode];
+              if (name && areas.indexOf(name) < 0) areas.push(name);
+            });
+          });
+          const t = entry.reportDatetime ? Date.parse(entry.reportDatetime) : NaN;
+          if (Number.isFinite(t) && t >= newestMs) {
+            newestMs = t;
+            reportDatetime = entry.reportDatetime;
+          }
+        });
+
+        const items = [...byKind.values()]
+          .sort((a, b) => b.lv - a.lv || KIND_ORDER[a.kind] - KIND_ORDER[b.kind])
+          .map((row) => sceneFromMeta(row.kind, row.lv));
+        return { items, reportDatetime, areas };
+      }
+
+      function parseFlood(payload) {
+        const byKind = new Map();
+        const citySet = new Set(SITE.warnCities);
+        if (!Array.isArray(payload)) return [];
+        payload.forEach((entry) => {
+          if (!entry || entry.infoType === "取消") return;
+          const name = String((entry.item && entry.item.name) || "");
+          if (name.indexOf("解除") >= 0) return;
+          const cities = Array.isArray(entry.class20Codes)
+            ? entry.class20Codes.map(String)
+            : [];
+          if (!cities.some((code) => citySet.has(code))) return;
+          const floodCode = String((entry.item && entry.item.code) || "").padStart(2, "0");
+          const warnCode = FLOOD_CODE_MAP[floodCode] || floodCode;
+          const meta = KIND_CODES[warnCode];
+          if (!meta || meta.kind !== "氾濫") return;
+          const prev = byKind.get("氾濫");
+          if (!prev || meta.lv > prev.lv) byKind.set("氾濫", { kind: "氾濫", lv: meta.lv });
+        });
+        return [...byKind.values()].map((row) => sceneFromMeta(row.kind, row.lv));
+      }
+
+      function mergeByKind(base, extra) {
+        const map = new Map();
+        base.concat(extra).forEach((item) => {
+          const kind = KINDS.find((k) => item.mid.indexOf(k) >= 0);
+          if (!kind) return;
+          const prev = map.get(kind);
+          if (!prev || item.lv > prev.lv) map.set(kind, item);
+        });
+        return [...map.values()].sort(
+          (a, b) => b.lv - a.lv || KIND_ORDER[KINDS.find((k) => a.mid.indexOf(k) >= 0)] - KIND_ORDER[KINDS.find((k) => b.mid.indexOf(k) >= 0)]
+        );
+      }
+
+      function formatJst(raw) {
+        if (!raw) return "";
+        const ms = Date.parse(raw);
+        if (!Number.isFinite(ms)) return "";
+        const p = new Intl.DateTimeFormat("ja-JP", {
+          timeZone: "Asia/Tokyo",
+          month: "numeric",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).formatToParts(new Date(ms));
+        const get = (t) => (p.find((x) => x.type === t) || {}).value || "";
+        return get("month") + "/" + get("day") + " " + get("hour") + ":" + get("minute");
+      }
+
+      async function fetchJson(url) {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      }
+
+      async function loadLive() {
+        try {
+          const warn = await fetchJson(
+            "https://www.jma.go.jp/bosai/warning/data/r8/" + SITE.warnArea + ".json"
+          );
+          const parsed = parseJmaR8(warn);
+          let floodItems = [];
+          try {
+            const flood = await fetchJson("https://www.jma.go.jp/bosai/flood/data/r8/flood_xml.json");
+            floodItems = parseFlood(flood);
+          } catch (_) {}
+          const items = mergeByKind(parsed.items, floodItems);
+          const when = formatJst(parsed.reportDatetime);
+          const areaTxt = parsed.areas.length ? parsed.areas.join("・") : SITE.locationLabel;
+          const note = items.length
+            ? SITE.prefecture + SITE.locationLabel + "　" + areaTxt + (when ? "　発表 " + when : "") + "　出典：気象庁"
+            : SITE.prefecture + SITE.locationLabel + "　対象の発表なし　出典：気象庁";
+          applyQueue(items, note);
+        } catch (err) {
+          applyQueue([], "取得失敗のためこの画面は出さない（デモで埋めない）");
+          console.warn("[警報]", err);
+        }
+      }
+
+      function startDemo() {
+        if (modeBadge) modeBadge.textContent = "DEMO ・ 伊豆諸島北部";
+        sceneBar.hidden = false;
+        GROUPS.forEach((group) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "scene-btn";
+          if (group.lv) btn.dataset.lv = String(group.lv);
+          btn.dataset.group = group.id;
+          btn.textContent = group.label;
+          btn.addEventListener("click", () => {
+            const first = ITEMS.findIndex((it) => it.group === group.id);
+            if (first >= 0) renderItem(first);
+          });
+          sceneBar.appendChild(btn);
+        });
+        applyQueue(DEMO_ITEMS, "デモ　全16種＋避難3種　?demo=1");
+      }
+
+      scaleStage();
+      window.addEventListener("resize", scaleStage);
+      if (modeBadge && !DEMO_MODE) modeBadge.textContent = "発表中 ・ 伊豆諸島北部";
+
+      const boot = () => {
+        if (DEMO_MODE) startDemo();
+        else {
+          loadLive();
+          setInterval(loadLive, POLL_MS);
+        }
+      };
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(boot).catch(boot);
+      } else {
+        boot();
+      }
+    </script>
+  </body>
+</html>
