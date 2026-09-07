@@ -912,7 +912,7 @@
         .content-area.scene6-white { background: #ffffff !important; }
 
         #sceneWarnHero { width: 512px; height: 128px; overflow: hidden; background: #000; }
-        #sceneWarnHero.active { display: block; }
+        #sceneWarnHero.active { display: block; z-index: 3; }
         #sceneWarnHero .hero {
             width: 512px; height: 128px; position: relative; overflow: hidden;
             display: grid; grid-template-rows: 40px 48px 40px; grid-template-columns: 512px;
@@ -1175,7 +1175,7 @@
         .ha-pair.ha-special .ha-l1 { color: #FF5A5A; }
         .ha-pair.ha-special .ha-l2 { color: #FFFFFF; }
         /* --- 大雨警報（256×128×2・熱中症アラートと同型） --- */
-        #sceneRainWarn.active { display: block; }
+        #sceneRainWarn.active { display: block; z-index: 3; }
         .ra-pair { width: 512px; height: 128px; display: flex; flex-direction: row; font-family: "Noto Sans JP", sans-serif; }
         .ra-unit {
             width: 256px; height: 128px; box-sizing: border-box; flex-shrink: 0;
@@ -1769,7 +1769,7 @@
         .ra-white-mid-chip.ra-white-mid-warning { background: #D62828; }
         .ra-white-mid-chip.ra-white-mid-danger { background: #AB00AA; }
         .ra-white-mid-chip.ra-white-mid-special { background: #000000; }
-        .ra-white-header { display: none; }
+        .ra-white-header { display: none !important; }
         .ra-white-header-wrap { display: none; }
         .ra-pair.ra-white-mode .ra-white-header-wrap {
             display: block;
@@ -1784,16 +1784,22 @@
             box-sizing: border-box;
         }
         .ra-white-header-track {
-            display: flex;
+            display: inline-flex;
             flex-direction: row;
+            flex-wrap: nowrap;
             align-items: center;
+            width: max-content;
+            min-width: max-content;
             height: 100%;
+            gap: 0;
             will-change: transform;
             backface-visibility: hidden;
         }
         .ra-white-header-seg {
             width: auto;
+            min-width: max-content;
             flex: 0 0 auto;
+            flex-shrink: 0;
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -1802,9 +1808,13 @@
             padding: 0 16px 0 10px;
             box-sizing: border-box;
             gap: 10px;
+            overflow: visible;
         }
         .ra-white-area {
             flex: 0 0 auto;
+            flex-shrink: 0;
+            position: static;
+            display: inline-block;
             font-size: 15px;
             font-weight: 900;
             color: #0854A8;
@@ -1813,7 +1823,9 @@
         }
         .ra-white-what {
             flex: 0 0 auto;
-            min-width: 0;
+            flex-shrink: 0;
+            position: static;
+            display: inline-block;
             font-size: 14px;
             font-weight: 700;
             color: #0854A8;
@@ -1823,6 +1835,9 @@
         }
         .ra-white-time {
             flex: 0 0 auto;
+            flex-shrink: 0;
+            position: static;
+            display: inline-block;
             font-size: 14px;
             font-weight: 700;
             color: #0854A8;
@@ -1849,6 +1864,7 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            width: max-content;
             height: 100%;
             will-change: transform;
             backface-visibility: hidden;
@@ -1859,8 +1875,11 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            justify-content: flex-start;
             height: 100%;
             box-sizing: border-box;
+            padding: 0;
+            gap: 0;
         }
         .ra-white-foot-cell {
             width: 128px;
@@ -1870,15 +1889,16 @@
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
-            padding: 0 5px;
+            padding: 0 6px;
         }
         .ra-white-foot-chip {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 100%;
+            width: auto;
+            max-width: 100%;
             height: 24px;
-            padding: 0 6px;
+            padding: 0 10px;
             border-radius: 9999px;
             font-size: 11px;
             font-weight: 900;
@@ -2488,8 +2508,8 @@
 })(typeof window !== 'undefined' ? window : global);
 
 </script>
-<script src="assets/jma-warning-kinds.js?v=20260907-white1"></script>
-<script src="assets/warning-hero.js?v=20260907-white1"></script>
+<script src="./assets/jma-warning-kinds.js?v=20260907-led2"></script>
+<script src="./assets/warning-hero.js?v=20260907-led2"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード。未指定時は本番（実データ取得） */
@@ -2497,6 +2517,7 @@
     const DEMO_SIGNAGE = demoParam === '1' || demoParam === 'all' || demoParam === 'full';
     const DEMO_ALERT_ONLY = demoParam === 'alert' || query.get('only') === 'alert';  /* アラートのみ流すデモ */
     const DEMO_RAINWARN_ONLY = demoParam === 'rainwarn' || query.get('only') === 'rainwarn';
+    const PREVIEW_WARN = query.get('preview'); /* white | color | demo */
     const WBGT_ONLY = query.get('wbgtOnly') === '1';
     const SITE_CFG = window.SignageConfig || {};
     /** 表示時刻は常に日本標準時（JST） */
@@ -3517,21 +3538,64 @@
     let rainWhiteFootInited = false;
     let rainWhiteMidW = RA_WHITE_BAND_W;
     let rainWhiteHeaderW = RA_WHITE_BAND_W;
+    let rainWhiteFootW = RA_WHITE_BAND_W;
     let rainHeroMidW = RA_WHITE_BAND_W;
     let rainHeroTopW = RA_HERO_BAND_W;
     let rainHeroBotW = RA_HERO_BAND_W;
     const RA_HERO_BAND_SCROLL_PX = RA_WHITE_BAND_SCROLL_PX;
+    function measureWhiteSegW_(el) {
+        if (!el) return 0;
+        let textW = 0;
+        const kids = el.children;
+        if (kids && kids.length) {
+            const canvas = measureWhiteSegW_._c || (measureWhiteSegW_._c = document.createElement('canvas'));
+            const ctx = canvas.getContext('2d');
+            const csEl = window.getComputedStyle(el);
+            const gap = parseFloat(csEl.gap) || parseFloat(csEl.columnGap) || 0;
+            for (let i = 0; i < kids.length; i++) {
+                const kid = kids[i];
+                const cs = window.getComputedStyle(kid);
+                ctx.font = cs.font || ((cs.fontWeight || '700') + ' ' + (cs.fontSize || '14px') + ' ' + (cs.fontFamily || 'sans-serif'));
+                const ls = parseFloat(cs.letterSpacing) || 0;
+                const t = kid.textContent || '';
+                textW += ctx.measureText(t).width + ls * Math.max(0, t.length - 1);
+                if (i) textW += gap;
+            }
+            const padL = parseFloat(csEl.paddingLeft) || 0;
+            const padR = parseFloat(csEl.paddingRight) || 0;
+            textW += padL + padR;
+        }
+        const layoutW = Math.max(Math.round(el.scrollWidth || 0), Math.round(el.offsetWidth || 0));
+        return Math.max(Math.ceil(textW), layoutW, 1);
+    }
     function cloneFillWhiteLoop_(track, loopW) {
         const first = track && track.children[0];
         if (!first) return Math.max(1, loopW || RA_WHITE_BAND_W);
-        const w = Math.max(1, loopW || Math.round(first.getBoundingClientRect().width) || RA_WHITE_BAND_W);
-        first.style.width = w + 'px';
-        first.style.flex = '0 0 ' + w + 'px';
-        first.style.minWidth = w + 'px';
-        first.style.maxWidth = w + 'px';
+        track.style.width = 'max-content';
+        track.style.minWidth = 'max-content';
+        first.style.width = 'auto';
+        first.style.minWidth = 'max-content';
+        first.style.maxWidth = 'none';
+        first.style.flex = '0 0 auto';
+        const natural = measureWhiteSegW_(first) + (loopW ? 0 : 80);
+        const gap = loopW ? 0 : 40;
+        const w = Math.max(natural + gap, Math.round(loopW || 0), 1);
+        first.style.width = (loopW ? w : natural) + 'px';
+        first.style.minWidth = (loopW ? w : natural) + 'px';
+        first.style.maxWidth = 'none';
+        first.style.flex = '0 0 ' + (loopW ? w : natural) + 'px';
+        first.style.flexShrink = '0';
         while (track.children.length > 1) track.removeChild(track.lastChild);
-        const copies = Math.max(2, Math.ceil(RA_WHITE_BAND_W / w) + 1);
-        for (let i = 1; i < copies; i++) track.appendChild(first.cloneNode(true));
+        const copies = Math.max(2, Math.ceil(RA_WHITE_BAND_W / Math.max(loopW ? w : natural, 1)) + 2);
+        for (let i = 1; i < copies; i++) {
+            if (!loopW) {
+                const spacer = document.createElement('div');
+                spacer.setAttribute('aria-hidden', 'true');
+                spacer.style.cssText = 'flex:0 0 40px;width:40px;min-width:40px;height:1px;background:transparent;';
+                track.appendChild(spacer);
+            }
+            track.appendChild(first.cloneNode(true));
+        }
         return w;
     }
     function buildWhiteHeaderSeg_(area, timeText, whatText) {
@@ -3560,24 +3624,22 @@
         return RAIN_WHITE_FOOT_ORDER.filter(function (lv) { return have[lv]; });
     }
     function buildWhiteFootSeg512_(levels) {
-        const list = (levels && levels.length) ? levels : issuedWhiteFootLevels_();
+        const issued = (levels && levels.length) ? levels : issuedWhiteFootLevels_();
         const seg = document.createElement('div');
         seg.className = 'ra-white-foot-seg';
-        const n = Math.max(1, list.length);
-        const cellW = Math.floor(RA_WHITE_BAND_W / n);
-        list.forEach(function (levelKey) {
+        const cells = Math.round(RA_WHITE_BAND_W / 128);
+        for (let i = 0; i < cells; i++) {
+            const levelKey = issued.length ? issued[i % issued.length] : 'advisory';
             const chip = RAIN_WHITE_LEVEL_CHIP[levelKey];
-            if (!chip) return;
+            if (!chip) continue;
             const cell = document.createElement('div');
             cell.className = 'ra-white-foot-cell';
-            cell.style.width = cellW + 'px';
-            cell.style.flex = '0 0 ' + cellW + 'px';
             const el = document.createElement('div');
             el.className = 'ra-white-foot-chip ' + chip.cls;
             el.textContent = chip.label;
             cell.appendChild(el);
             seg.appendChild(cell);
-        });
+        }
         return seg;
     }
     function demoWarnName_(name) {
@@ -3885,13 +3947,15 @@
         hTrack.className = 'ra-white-header-track';
         hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.time, texts.what));
         hWrap.appendChild(hTrack);
-        rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack, Math.round(hTrack.children[0].getBoundingClientRect().width));
+        rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack);
         hWrap.setAttribute('aria-hidden', 'false');
     }
     function initRainWarnWhiteFootBar_(entries) {
         if (!shouldUseWhiteLayout_()) return;
         const pair = document.getElementById('ra-pair');
         if (!pair) return;
+        const staleHead = pair.querySelector('.ra-white-header');
+        if (staleHead) staleHead.remove();
         document.querySelectorAll('#sceneRainWarn .ra-unit .ra-white-foot-wrap').forEach(function (n) { n.remove(); });
         const texts = whiteHeaderTexts_();
         let hWrap = pair.querySelector('.ra-white-header-wrap');
@@ -3906,9 +3970,16 @@
         hTrack.className = 'ra-white-header-track';
         hTrack.appendChild(buildWhiteHeaderSeg_(texts.area, texts.time, texts.what));
         hWrap.appendChild(hTrack);
-        rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack, Math.round(hTrack.children[0].getBoundingClientRect().width));
+        rainWhiteHeaderW = cloneFillWhiteLoop_(hTrack);
         hWrap.setAttribute('aria-hidden', 'false');
-        let fWrap = pair.querySelector(':scope > .ra-white-foot-wrap');
+        let fWrap = null;
+        const fKids = pair.children;
+        for (let fi = 0; fi < fKids.length; fi++) {
+            if (fKids[fi].className && String(fKids[fi].className).indexOf('ra-white-foot-wrap') >= 0) {
+                fWrap = fKids[fi];
+                break;
+            }
+        }
         if (!fWrap) {
             fWrap = document.createElement('div');
             fWrap.className = 'ra-white-foot-wrap';
@@ -3920,16 +3991,39 @@
         fTrack.className = 'ra-white-foot-track';
         fTrack.appendChild(buildWhiteFootSeg512_(issuedWhiteFootLevels_(entries)));
         fWrap.appendChild(fTrack);
-        cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
+        rainWhiteFootW = cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
         fWrap.setAttribute('aria-hidden', 'false');
-        const oldBar = pair.querySelector(':scope > .ra-white-foot-bar');
+        let oldBar = null;
+        const barKids = pair.children;
+        for (let bi = 0; bi < barKids.length; bi++) {
+            if (barKids[bi].className && String(barKids[bi].className).indexOf('ra-white-foot-bar') >= 0) {
+                oldBar = barKids[bi];
+                break;
+            }
+        }
         if (oldBar) oldBar.remove();
         rainWhiteFootInited = true;
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function () {
+                const p = document.getElementById('ra-pair');
+                if (p && p.classList.contains('ra-white-mode')) {
+                    rebuildRainWarnWhiteHeaderTrack_();
+                    rebuildRainWarnWhiteFootTrack_();
+                }
+            });
+        }
     }
     function rebuildRainWarnWhiteFootTrack_(entries) {
         const pair = document.getElementById('ra-pair');
         if (!pair) return;
-        const fWrap = pair.querySelector(':scope > .ra-white-foot-wrap');
+        let fWrap = null;
+        const wrapKids = pair.children;
+        for (let wi = 0; wi < wrapKids.length; wi++) {
+            if (wrapKids[wi].className && String(wrapKids[wi].className).indexOf('ra-white-foot-wrap') >= 0) {
+                fWrap = wrapKids[wi];
+                break;
+            }
+        }
         if (!fWrap) {
             initRainWarnWhiteFootBar_(entries);
             return;
@@ -3939,7 +4033,7 @@
         fTrack.className = 'ra-white-foot-track';
         fTrack.appendChild(buildWhiteFootSeg512_(issuedWhiteFootLevels_(entries)));
         fWrap.appendChild(fTrack);
-        cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
+        rainWhiteFootW = cloneFillWhiteLoop_(fTrack, RA_WHITE_BAND_W);
         fWrap.setAttribute('aria-hidden', 'false');
     }
     function applyRaWhiteBandX_(x) {
@@ -4196,7 +4290,7 @@
         return RAIN_HERO_DESIGN;
     }
     function shouldUseWhiteLayout_() {
-        return false;
+        return !!liveWhitePlay_;
     }
     function rainWarnWhiteDisplayText_(levelKey, kindKey, fullName) {
         return {
@@ -4348,7 +4442,10 @@
         }
     }
     function startLiveWarnPoll_() {
-        return;
+        if (liveWarnPollId_ || !isProductionLiveWarn_()) return;
+        liveWarnPollId_ = setInterval(function () {
+            updateRainWarnFromJmaDirect_().catch(function () {});
+        }, LIVE_WARN_POLL_MS);
     }
     function rainWarnDemoLaps_() {
         if (liveWhitePlay_) return 1;
@@ -4541,7 +4638,11 @@
     async function updateRainWarnFromJmaDirect_() {
         if (WBGT_ONLY || NO_JMA_WARN) return;
         try {
-            const wRes = await fetch('https://www.jma.go.jp/bosai/warning/data/warning/' + JMA_WARN_AREA + '.json', { cache: 'no-store' });
+            const wRes = await fetchWithTimeout_(
+                fetch('https://www.jma.go.jp/bosai/warning/data/warning/' + JMA_WARN_AREA + '.json', { cache: 'no-store' }),
+                4000,
+                'jma-warn'
+            );
             const warnJson = wRes.ok ? await wRes.json() : null;
             if (!warnJson) {
                 console.warn('[大雨警報] 気象庁応答なし（直前の発表を維持）');
@@ -4761,9 +4862,11 @@
     }
     let warnHeroPlayer_ = null;
     let warnHeroPlayedThisLoop_ = false;
+    let warnColorLivePlayedThisLoop_ = false;
     let warnDemoPlayedThisLoop_ = false;
     function finishMainLoopToS1_() {
         warnHeroPlayedThisLoop_ = false;
+        warnColorLivePlayedThisLoop_ = false;
         warnDemoPlayedThisLoop_ = false;
         liveWhitePlay_ = false;
         liveWhiteShownKey_ = '';
@@ -4831,21 +4934,100 @@
         if (!DEMO_EMBED) document.title = 'WBGT Signage デモ - 警報情報';
         playWarnHero_(items, null);
     }
+    async function startWhiteWarnPreview_() {
+        resetLogoRotation();
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
+        let liveWhite = getLiveWhiteEntries_();
+        if (!liveWhite.length) {
+            liveWhite = [{
+                level: 'advisory',
+                kind: 'fog',
+                name: jmaKindName_('advisory', 'fog') || '濃霧注意報'
+            }];
+        }
+        liveWhitePlay_ = true;
+        rainWhiteQueue = liveWhite;
+        liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
+        if (!sceneRainWarn) return;
+        sceneRainWarn.style.display = sceneDisplayMode(sceneRainWarn);
+        sceneRainWarn.classList.add('active');
+        sceneRainWarn.style.transform = 'translateX(0px)';
+        playSceneRainWarn(0);
+    }
+    async function startColorWarnPreview_() {
+        resetLogoRotation();
+        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
+        let items = getWarnHeroLiveItems_();
+        if (!items.length) {
+            items = getWarnHeroDemoItems_().filter(function (it) {
+                return it.lv === 3 && it.kind === 'rain';
+            });
+            if (!items.length) items = getWarnHeroDemoItems_().slice(0, 1);
+            items = items.map(function (it) {
+                return Object.assign({}, it, { demo: false, badge: '発表中' });
+            });
+        }
+        if (!items.length || !sceneWarnHero) return;
+        sceneWarnHero.style.display = 'block';
+        sceneWarnHero.classList.add('active');
+        sceneWarnHero.style.transform = 'translateX(0px)';
+        playWarnHero_(items, null);
+    }
+    function playWarnHeroThenContinue_(items) {
+        if (!items || !items.length || !sceneWarnHero) {
+            gotoAfterRainWarnOrScene1_();
+            return;
+        }
+        transitionToScene(sceneWarnHero, function () {
+            try {
+                playWarnHero_(items, function () {
+                    stopWarnHero_();
+                    gotoAfterRainWarnOrScene1_();
+                });
+            } catch (err) {
+                stopWarnHero_();
+                gotoAfterRainWarnOrScene1_();
+            }
+        });
+    }
     async function gotoAfterRainWarnOrScene1_() {
-        warnHeroPlayedThisLoop_ = true;
+        if (s6) setScene6Full_(false);
+        if (!warnHeroPlayedThisLoop_) {
+            warnHeroPlayedThisLoop_ = true;
+            if (isProductionLiveWarn_()) {
+                try {
+                    await fetchWithTimeout_(updateRainWarnFromJmaDirect_(), 4500, 'jma-warn-loop');
+                } catch (e) {}
+                const liveWhite = getLiveWhiteEntries_();
+                if (liveWhite.length && sceneRainWarn) {
+                    liveWhitePlay_ = true;
+                    rainWhiteQueue = liveWhite;
+                    liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
+                    transitionToScene(sceneRainWarn, function () {
+                        playSceneRainWarn(0);
+                    });
+                    return;
+                }
+            }
+        }
         liveWhitePlay_ = false;
         const contentArea = document.querySelector('.content-area');
         if (contentArea) contentArea.classList.remove('ra-white-canvas');
+        if (sceneWarnHero && window.WarningHero && !warnColorLivePlayedThisLoop_) {
+            warnColorLivePlayedThisLoop_ = true;
+            const liveColor = getWarnHeroLiveItems_();
+            if (liveColor.length) {
+                playWarnHeroThenContinue_(liveColor);
+                return;
+            }
+        }
         if (sceneWarnHero && window.WarningHero && !warnDemoPlayedThisLoop_) {
             const demoHero = getWarnHeroDemoItems_();
             if (demoHero.length) {
                 warnDemoPlayedThisLoop_ = true;
-                transitionToScene(sceneWarnHero, function () {
-                    playWarnHero_(demoHero, function () {
-                        stopWarnHero_();
-                        finishMainLoopToS1_();
-                    });
-                });
+                playWarnHeroThenContinue_(demoHero);
                 return;
             }
         }
@@ -4862,13 +5044,13 @@
         const hasQueue = whiteBundle ? getRainWhiteScrollQueue_().length : rainWarnActive.length;
         if (!hasQueue) {
             if (DEMO_RAINWARN_ONLY) return;
-            finishMainLoopToS1_();
+            gotoAfterRainWarnOrScene1_();
             return;
         }
         const idx = startIdx || 0;
         if (!setRainWarn_(idx)) {
             if (DEMO_RAINWARN_ONLY) return;
-            finishMainLoopToS1_();
+            gotoAfterRainWarnOrScene1_();
             return;
         }
         const heroBundle = !whiteBundle && pairEl && pairEl.classList.contains('ra-hero-bundle');
@@ -4878,7 +5060,7 @@
         const tracks = document.querySelectorAll('#sceneRainWarn .ra-track');
         if (!tracks.length && !midBundle) {
             if (DEMO_RAINWARN_ONLY) return;
-            finishMainLoopToS1_();
+            gotoAfterRainWarnOrScene1_();
             return;
         }
         raFlow_ = {
@@ -4926,7 +5108,7 @@
                     const midW = raFlow_.midBandW || rainWhiteMidW || RA_WHITE_BAND_W;
                     const headW = raFlow_.topBandW || rainWhiteHeaderW || RA_WHITE_BAND_W;
                     raFlow_.bandX = wrapScrollX_(-raFlow_.chromeMoved, headW);
-                    raFlow_.footBandX = wrapScrollX_(-raFlow_.chromeMoved, RA_WHITE_BAND_W);
+                    raFlow_.footBandX = wrapScrollX_(-raFlow_.chromeMoved, rainWhiteFootW || RA_WHITE_BAND_W);
                     raFlow_.midBandX = wrapScrollX_(-raFlow_.midMoved, midW);
                     applyRaWhiteBandX_(raFlow_.bandX);
                     applyRaWhiteFootX_(raFlow_.footBandX);
@@ -4981,7 +5163,7 @@
                         return;
                     } else {
                         raAnimId = null; raFlow_ = null;
-                        runAfterSceneEndHold_(finishMainLoopToS1_);
+                        runAfterSceneEndHold_(gotoAfterRainWarnOrScene1_);
                         return;
                     }
                 }
@@ -5020,7 +5202,7 @@
                             return;
                         } else {
                             raAnimId = null; raFlow_ = null;
-                            finishMainLoopToS1_();
+                            gotoAfterRainWarnOrScene1_();
                             return;
                         }
                     }
@@ -5160,6 +5342,8 @@
     const SCENE6_COPIES = 3;
     let scene6HoldTimerId = null;
     let scene6AnimId = null;
+    let scene6SafetyTimerId = null;
+    let scene6SlideGuardId = null;
     let scene6Step_ = 0;
     const T3_UNIT_W = 256;
     const T3_USABLE_W = T3_UNIT_W - 8;
@@ -7163,37 +7347,52 @@
         if (el.id === 'scene6') return 'flex';
         return 'flex';
     }
+    let playingSceneEl_ = null;
     function hideSceneEl(el) {
         if (!el) return;
         if (el === sceneWarnHero) stopWarnHero_();
+        if (el === s6) setScene6Full_(false);
         el.classList.remove('active');
         el.style.display = 'none';
         el.style.transform = '';
         el.style.zIndex = '';
+        if (playingSceneEl_ === el) playingSceneEl_ = null;
     }
     function getActiveScene() {
-        return document.querySelector('.content-area .scene.active');
+        if (playingSceneEl_ && playingSceneEl_.classList.contains('active')) return playingSceneEl_;
+        const all = document.querySelectorAll('.content-area .scene.active');
+        return all.length ? all[all.length - 1] : null;
     }
     function transitionToScene(nextEl, onComplete) {
         clearSceneEndHoldTimer_();
         clearSceneSlideAnim_();
         clearOutgoingSceneAnims_();
-        const current = getActiveScene();
-        if (!nextEl) { onComplete?.(); return; }
-        if (current === nextEl) { onComplete?.(); return; }
+        if (!nextEl) { if (onComplete) onComplete(); return; }
+        const current = (playingSceneEl_ && playingSceneEl_ !== nextEl && playingSceneEl_.classList.contains('active'))
+            ? playingSceneEl_
+            : getActiveScene();
+        document.querySelectorAll('.content-area .scene.active').forEach(function (el) {
+            if (el !== nextEl && el !== current) hideSceneEl(el);
+        });
+        if (current === nextEl) {
+            playingSceneEl_ = nextEl;
+            if (onComplete) onComplete();
+            return;
+        }
+        playingSceneEl_ = nextEl;
         nextEl.style.display = sceneDisplayMode(nextEl);
         nextEl.classList.add('active');
         if (!current || SCENE_SLIDE_MS <= 0) {
             if (current) hideSceneEl(current);
             applyScrollX_(nextEl, 0);
             nextEl.style.zIndex = '';
-            onComplete?.();
+            if (onComplete) onComplete();
             return;
         }
         nextEl.style.zIndex = '2';
         applyScrollX_(nextEl, SCENE_W);
         current.style.zIndex = '1';
-        onComplete?.();
+        if (onComplete) onComplete();
         const t0 = performance.now();
         function tick(now) {
             const p = Math.min(1, (now - t0) / SCENE_SLIDE_MS);
@@ -7256,6 +7455,8 @@
     function clearScene6Timers_() {
         if (scene6HoldTimerId) { clearTimeout(scene6HoldTimerId); scene6HoldTimerId = null; }
         if (scene6AnimId) { cancelAnimationFrame(scene6AnimId); scene6AnimId = null; }
+        if (scene6SafetyTimerId) { clearTimeout(scene6SafetyTimerId); scene6SafetyTimerId = null; }
+        if (scene6SlideGuardId) { clearTimeout(scene6SlideGuardId); scene6SlideGuardId = null; }
     }
     function applyScene6TrackX_(x) {
         const track = document.getElementById('s6-track');
@@ -7284,6 +7485,7 @@
         scene6Step_ = 0;
         setScene6Full_(false);
         if (demoOnlyLoop_('s6', playScene6)) return;
+        hideSceneEl(s6);
         gotoAfterScene3Tail_();
     }
     function playScene6() {
@@ -7300,6 +7502,37 @@
             return;
         }
         applyScene6TrackX_(0);
+        const safetyMs = SCENE_SCROLL_HOLD_MS + steps * (SCENE6_STEP_MS + SCENE6_SLIDE_MS) + SCENE_END_HOLD_MS + 4000;
+        scene6SafetyTimerId = setTimeout(function () {
+            scene6SafetyTimerId = null;
+            finishScene6();
+        }, safetyMs);
+        function slideByFrames_(fromX, toX, done) {
+            const frames = Math.max(1, Math.round(SCENE6_SLIDE_MS / 16));
+            let frame = 0;
+            let finished = false;
+            function finishSlide() {
+                if (finished) return;
+                finished = true;
+                if (scene6AnimId) { cancelAnimationFrame(scene6AnimId); scene6AnimId = null; }
+                applyScene6TrackX_(toX);
+                done();
+            }
+            function tick() {
+                if (finished) return;
+                frame += 1;
+                const p = frame >= frames ? 1 : (frame / frames);
+                applyScene6TrackX_(fromX + (toX - fromX) * easeScene6_(p));
+                if (p < 1) {
+                    scene6AnimId = requestAnimationFrame(tick);
+                } else {
+                    scene6AnimId = null;
+                    finishSlide();
+                }
+            }
+            scene6AnimId = requestAnimationFrame(tick);
+            scene6SlideGuardId = setTimeout(finishSlide, SCENE6_SLIDE_MS + 400);
+        }
         function holdThenSlide() {
             if (scene6Step_ >= steps) {
                 applyScene6TrackX_(scene6Step_ * SCENE6_FACE_W);
@@ -7316,19 +7549,7 @@
                 const fromX = scene6Step_ * SCENE6_FACE_W;
                 scene6Step_ += 1;
                 const toX = scene6Step_ * SCENE6_FACE_W;
-                const t0 = performance.now();
-                function tick(now) {
-                    const p = Math.min(1, (now - t0) / SCENE6_SLIDE_MS);
-                    applyScene6TrackX_(fromX + (toX - fromX) * easeScene6_(p));
-                    if (p < 1) {
-                        scene6AnimId = requestAnimationFrame(tick);
-                    } else {
-                        scene6AnimId = null;
-                        applyScene6TrackX_(toX);
-                        holdThenSlide();
-                    }
-                }
-                scene6AnimId = requestAnimationFrame(tick);
+                slideByFrames_(fromX, toX, holdThenSlide);
             }, wait);
         }
         holdThenSlide();
@@ -8370,6 +8591,7 @@
         [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
         setScene6Full_(el === s6);
         if (!el) return;
+        playingSceneEl_ = el;
         el.style.display = sceneDisplayMode(el);
         el.classList.add('active');
         el.style.transform = 'translateX(0px)';
@@ -8431,6 +8653,7 @@
         resetLogoRotation();
         setScene6Full_(false);
         warnHeroPlayedThisLoop_ = false;
+        warnColorLivePlayedThisLoop_ = false;
         warnDemoPlayedThisLoop_ = false;
         liveWhitePlay_ = false;
         liveWhiteShownKey_ = '';
@@ -8455,7 +8678,17 @@
             setTimeout(startAlertOnlyDemo_, 300);
             return;
         }
-        if (DEMO_RAINWARN_ONLY) {
+        if (PREVIEW_WARN === 'white') {
+            bootDisplayHold_ = false;
+            setTimeout(startWhiteWarnPreview_, 300);
+            return;
+        }
+        if (PREVIEW_WARN === 'color') {
+            bootDisplayHold_ = false;
+            setTimeout(startColorWarnPreview_, 300);
+            return;
+        }
+        if (PREVIEW_WARN === 'demo' || DEMO_RAINWARN_ONLY) {
             bootDisplayHold_ = false;
             setTimeout(startRainWarnOnlyDemo_, 300);
             return;

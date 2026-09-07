@@ -42,9 +42,12 @@
   };
 
   function warnItems() {
-    return KINDS.flatMap(function (kind) {
-      return LEVELS.map(function (lv) {
-        return {
+    var out = [];
+    for (var i = 0; i < KINDS.length; i++) {
+      var kind = KINDS[i];
+      for (var j = 0; j < LEVELS.length; j++) {
+        var lv = LEVELS[j];
+        out.push({
           group: lv.group,
           levelKey: lv.key,
           kind: kind.key,
@@ -55,9 +58,10 @@
           mid: 'レベル' + lv.lv + kind.label + lv.suffix,
           bot: lv.bot,
           badge: '発表中'
-        };
-      });
-    });
+        });
+      }
+    }
+    return out;
   }
 
   function levelDemoItems() {
@@ -198,7 +202,8 @@
     var badge = document.createElement('span');
     badge.className = 'badge';
     badge.innerHTML = '<span>' + (scene.badge || '発表中') + '</span>';
-    unit.append(level, badge);
+    unit.appendChild(level);
+    unit.appendChild(badge);
     seg.appendChild(unit);
     return seg;
   }
@@ -225,7 +230,8 @@
 
   function fillTrack(track, makeSeg, scene) {
     track.style.transform = 'translate3d(0,0,0)';
-    track.replaceChildren(makeSeg(scene));
+    while (track.firstChild) track.removeChild(track.firstChild);
+    track.appendChild(makeSeg(scene));
   }
 
   function fitToWidth(el, maxW, maxPx) {
