@@ -968,6 +968,14 @@
         text-shadow: none;
       }
 
+      /* LED 実機（512/640×128）: 3px 縁が画素どおり太くなるので WEB 相当へ */
+      @media (max-width: 640px) and (max-height: 128px) {
+        .hero:not(.is-white) .mid-chip,
+        #heroLevel .mid-chip {
+          -webkit-text-stroke-width: 1px;
+        }
+      }
+
       .hero.is-white .mid-chip.chip-advisory,
       .white-foot-chip.chip-advisory {
         background: #cdb800;
@@ -1113,7 +1121,7 @@
       (function () {})();
 
       const SITE = {
-        locationLabel: "伊豆諸島北部",
+        locationLabel: "東京都伊豆諸島北部",
         amedasLabel: "名古屋",
         customer: "鈴中工業・昭和土木・おかむら特定建設工事共同体",
         siteName: "金城ふ頭埋立地用地整備工事",
