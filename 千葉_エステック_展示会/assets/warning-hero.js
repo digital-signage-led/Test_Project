@@ -759,7 +759,9 @@
     }
     lockSegWidth(first, UNIT_W);
     while (track.children.length > 1) track.removeChild(track.lastChild);
-    if (first.parentNode) track.appendChild(first.cloneNode(true));
+    for (var i = 1; i < 4; i++) {
+      if (first.parentNode) track.appendChild(first.cloneNode(true));
+    }
     return UNIT_W;
   }
 
@@ -796,8 +798,19 @@
     var itemIndex = 0;
     var playGen = 0;
     var rafId = 0;
+    var holdId = 0;
     var cycles = Math.max(1, Number(opts.cycles) || 1);
     var cycleCount = 0;
+    var holdStartMs = opts.holdStartMs != null ? Number(opts.holdStartMs) : 1000;
+    var holdEndMs = opts.holdEndMs != null ? Number(opts.holdEndMs) : 1000;
+    var needStartHold = true;
+
+    function clearHold_() {
+      if (holdId) {
+        clearTimeout(holdId);
+        holdId = 0;
+      }
+    }
 
     function applyTrackX_(loopWs, scrollX) {
       var x = Math.round(scrollX);
@@ -813,6 +826,8 @@
       var scrollX = 0;
       var lastWall = Date.now();
       var oneLoop = loopWs[1] || UNIT_W;
+      var waitStart = needStartHold ? holdStartMs : 0;
+      needStartHold = false;
       var step = function () {
         if (gen !== playGen) return;
         var now = Date.now();
@@ -822,13 +837,24 @@
         scrollX += SPEED * dt;
         while (oneLoop > 0 && scrollX >= oneLoop) {
           scrollX -= oneLoop;
-          if (!advanceAfterLap_()) return;
+          if (!advanceAfterLap_(gen, loopWs, scrollX)) return;
         }
         applyTrackX_(loopWs, scrollX);
         rafId = requestAnimationFrame(step);
       };
       applyTrackX_(loopWs, 0);
-      rafId = requestAnimationFrame(step);
+      function begin() {
+        holdId = 0;
+        if (gen !== playGen) return;
+        lastWall = Date.now();
+        rafId = requestAnimationFrame(step);
+      }
+      if (waitStart > 0) {
+        clearHold_();
+        holdId = setTimeout(begin, waitStart);
+      } else {
+        begin();
+      }
     }
 
     function renderItem(index) {
@@ -848,12 +874,18 @@
       });
     }
 
-    function advanceAfterLap_() {
+    function advanceAfterLap_(gen, loopWs, scrollX) {
       var next = itemIndex + 1;
       if (next >= items.length) {
         cycleCount += 1;
         if (onCycleEnd && cycleCount >= cycles) {
-          onCycleEnd();
+          applyTrackX_(loopWs, scrollX);
+          clearHold_();
+          holdId = setTimeout(function () {
+            holdId = 0;
+            if (gen !== playGen) return;
+            onCycleEnd();
+          }, holdEndMs);
           return false;
         }
         next = 0;
@@ -865,8 +897,17 @@
 
     return {
       setItems: function (next) { items = (next || []).slice(); itemIndex = 0; cycleCount = 0; },
-      play: function (index) { cycleCount = 0; renderItem(index || 0); },
-      stop: function () { playGen += 1; if (rafId) cancelAnimationFrame(rafId); rafId = 0; },
+      play: function (index) {
+        cycleCount = 0;
+        needStartHold = true;
+        renderItem(index || 0);
+      },
+      stop: function () {
+        playGen += 1;
+        clearHold_();
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = 0;
+      },
       items: function () { return items; }
     };
   }
