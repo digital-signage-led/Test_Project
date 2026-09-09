@@ -18,7 +18,6 @@
     <title>WBGT Signage 5面 - 株式会社エステック 幕張メッセ</title>
     <link rel="preload" as="image" href="./assets/estec_foot_lockup.png?v=2">
     <link rel="preload" as="image" href="./assets/estec_logo.png?v=1">
-    <link rel="preload" as="image" href="./assets/green_cross.png?v=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=swap">
@@ -920,50 +919,6 @@
             border-color: #ffffff;
         }
         #scene5 { overflow: hidden; }
-
-        /* 最後のコンテンツ: 512×128 = 128×4（緑十字 | ESTEC | 緑十字 | ESTEC） */
-        #scene6 {
-            overflow: hidden; position: relative;
-            width: 512px; height: 128px;
-            flex-direction: row; align-items: stretch; justify-content: flex-start;
-            background: #ffffff; gap: 0; padding: 0; margin: 0;
-            border: none; outline: none;
-        }
-        #scene6.active { display: flex; }
-        #scene6::before {
-            content: "";
-            position: absolute; left: 0; top: 0; width: 512px; height: 128px;
-            background: #ffffff; z-index: 0; pointer-events: none;
-        }
-        #scene6 .s6-track {
-            display: flex; flex-direction: row; align-items: stretch;
-            height: 128px; flex-shrink: 0; gap: 0; padding: 0; margin: 0;
-            will-change: transform; backface-visibility: hidden;
-            position: relative; z-index: 1;
-            background: #ffffff;
-        }
-        #scene6 .s6-face {
-            width: 129px; min-width: 129px; max-width: 129px;
-            height: 128px; min-height: 128px; max-height: 128px;
-            flex: 0 0 129px;
-            margin: 0 -1px 0 0;
-            display: flex; align-items: center; justify-content: center;
-            background: #ffffff; overflow: hidden; box-sizing: border-box;
-            padding: 0;
-            border: none; outline: none; box-shadow: none;
-            position: relative; z-index: 1;
-        }
-        #scene6 .s6-face-img {
-            display: block; width: 129px; height: 128px;
-            max-width: none; max-height: none;
-            object-fit: cover; object-position: center center;
-            background: #ffffff; flex-shrink: 0;
-            border: none; outline: none;
-        }
-        #scene6 .s6-face-mark { background: #009944; }
-        #scene6 .s6-face-mark .s6-face-img { background: transparent; }
-        #scene6 .s6-face-logo { background: #ffffff; }
-        .content-area.scene6-white { background: #ffffff !important; }
 
         /* 色3段（警戒レベル）— 外部CSSが落ちても横一列で見えるようここに正を置く */
         #sceneWarnHero { width: 512px; height: 128px; overflow: hidden; background: #000; }
@@ -2257,14 +2212,7 @@
     logoCorpSrc: '',
     footLogoSrc: '',
     /* 時刻下白帯：マーク＋株式会社エステック（256px枠で会場名と流す） */
-    footBannerSrc: './assets/estec_foot_lockup.png?v=2',
-    /* 最後のコンテンツ: 512×128 = 緑十字 | ESTEC | 緑十字 | ESTEC */
-    jvLogos: [
-      { src: './assets/green_cross.png?v=1', alt: '緑十字' },
-      { src: './assets/estec_logo.png?v=1', alt: '株式会社エステック' },
-      { src: './assets/green_cross.png?v=1', alt: '緑十字' },
-      { src: './assets/estec_logo.png?v=1', alt: '株式会社エステック' }
-    ]
+    footBannerSrc: './assets/estec_foot_lockup.png?v=2'
   };
 })(typeof window !== 'undefined' ? window : global);
 
@@ -2467,14 +2415,6 @@
         </div>
     </div>
 
-    <div class="scene" id="scene6" aria-label="緑十字とESTEC">
-        <div class="s6-track" id="s6-track">
-            <div class="s6-face s6-face-mark"><img class="s6-face-img" src="./assets/green_cross.png?v=1" alt="緑十字" decoding="sync"></div>
-            <div class="s6-face s6-face-logo"><img class="s6-face-img" src="./assets/estec_logo.png?v=1" alt="株式会社エステック" decoding="sync"></div>
-            <div class="s6-face s6-face-mark"><img class="s6-face-img" src="./assets/green_cross.png?v=1" alt="緑十字" decoding="sync"></div>
-            <div class="s6-face s6-face-logo"><img class="s6-face-img" src="./assets/estec_logo.png?v=1" alt="株式会社エステック" decoding="sync"></div>
-        </div>
-    </div>
     </div>
     <div class="logo-panel">
         <div class="logo-rotator" id="logo-rotator">
@@ -2832,7 +2772,7 @@
         return map[v] || null;
     }
     const SCENE_LABEL_BY_KEY = {
-        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', s6: '緑十字', rainwarn: '大雨警報'
+        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', rainwarn: '大雨警報'
     };
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
@@ -3477,7 +3417,6 @@
     const fcConveyor = document.getElementById('fc-conveyor');
     const fcLvTrack = document.getElementById('fc-lv-track');
     const s5 = document.getElementById('scene5');
-    const s6 = document.getElementById('scene6');
     const sceneAlert = document.getElementById('sceneAlert');
     const sceneRainWarn = document.getElementById('sceneRainWarn');
     const sceneWarn = document.getElementById('sceneWarn');
@@ -5767,7 +5706,7 @@
     }
     function startWarnHeroOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         const items = getWarnHeroDemoItems_();
         if (!items.length || !sceneWarnHero) return;
         sceneWarnHero.style.display = 'block';
@@ -5783,7 +5722,7 @@
     }
     async function startWhiteWarnPreview_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         if (!sceneWarn || !heroWhite) return;
         sceneWarn.style.display = sceneDisplayMode(sceneWarn);
         sceneWarn.classList.add('active');
@@ -5802,7 +5741,7 @@
     }
     async function startColorWarnPreview_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
         startLiveWarnPoll_();
         if (!sceneWarnHero) return;
@@ -5856,7 +5795,6 @@
         if (warnPhase_ <= 0) gotoAfterRainWarnOrScene1_();
     }
     async function runWarnPhase_() {
-        if (s6) setScene6Full_(false);
         if (warnPhase_ === 1) {
             if (isProductionLiveWarn_()) {
                 try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
@@ -6239,16 +6177,6 @@
     const SCENE5_SCROLL_PX = 0.8;
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
     let scene5AnimId = null;
-    const SCENE6_FACE_W = 128;
-    const SCENE6_LAPS = 1;
-    const SCENE6_SLIDE_MS = 450;
-    const SCENE6_STEP_MS = 3000;
-    const SCENE6_COPIES = 3;
-    let scene6HoldTimerId = null;
-    let scene6AnimId = null;
-    let scene6SafetyTimerId = null;
-    let scene6SlideGuardId = null;
-    let scene6Step_ = 0;
     const T3_UNIT_W = 256;
     const T3_USABLE_W = T3_UNIT_W - 8;
     const T3_SLOT_GAP = 2;
@@ -6390,7 +6318,6 @@
         if (tickerAnimId) { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; }
         if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
-        if (scene6AnimId) { cancelAnimationFrame(scene6AnimId); scene6AnimId = null; }
     }
     let scene2AnimId = null;
     let clockIntervalId = null;
@@ -8253,7 +8180,6 @@
         if (!el) return 'block';
         if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarn' || el.id === 'sceneWarnHero') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
-        if (el.id === 'scene6') return 'flex';
         return 'flex';
     }
     let playingSceneEl_ = null;
@@ -8261,7 +8187,6 @@
         if (!el) return;
         if (el === sceneWarnHero) stopWarnHero_();
         if (el === sceneWarn) stopWhiteHero_();
-        if (el === s6) setScene6Full_(false);
         el.classList.remove('active');
         el.style.display = 'none';
         el.style.transform = '';
@@ -8359,131 +8284,7 @@
         }
         gotoAfterRainWarnOrScene1_();
     }
-    function setScene6Full_(on) {
-        const content = document.querySelector('.content-area');
-        if (content) content.classList.toggle('scene6-white', !!on);
-        const canvas = document.querySelector('.canvas');
-        if (canvas) canvas.classList.remove('scene6-full');
-    }
-    function getScene6Logos_() {
-        const cfg = (typeof window !== 'undefined' && window.SIGNAGE_CONFIG) || {};
-        const logos = Array.isArray(cfg.jvLogos) ? cfg.jvLogos.filter(function (r) { return r && r.src; }) : [];
-        return logos.slice(0, 4);
-    }
-    function scene6FaceHtml_(row) {
-        const mark = /green_cross/.test(String(row.src)) ? ' s6-face-mark' : ' s6-face-logo';
-        return '<div class="s6-face' + mark + '"><img class="s6-face-img" src="'
-            + escapeS1Html(row.src) + '" alt="' + escapeS1Html(row.alt || '')
-            + '" decoding="sync"></div>';
-    }
-    function clearScene6Timers_() {
-        if (scene6HoldTimerId) { clearTimeout(scene6HoldTimerId); scene6HoldTimerId = null; }
-        if (scene6AnimId) { cancelAnimationFrame(scene6AnimId); scene6AnimId = null; }
-        if (scene6SafetyTimerId) { clearTimeout(scene6SafetyTimerId); scene6SafetyTimerId = null; }
-        if (scene6SlideGuardId) { clearTimeout(scene6SlideGuardId); scene6SlideGuardId = null; }
-    }
-    function applyScene6TrackX_(x) {
-        const track = document.getElementById('s6-track');
-        if (!track) return;
-        track.style.transition = 'none';
-        track.style.transform = 'translate3d(' + (-Math.round(x)) + 'px,0,0)';
-    }
-    function easeScene6_(p) {
-        return p * (2 - p);
-    }
-    function buildScene6Track_() {
-        const track = document.getElementById('s6-track');
-        const logos = getScene6Logos_();
-        if (!track || !logos.length) return logos.length;
-        let html = '';
-        for (let c = 0; c < SCENE6_COPIES; c++) {
-            logos.forEach(function (row) { html += scene6FaceHtml_(row); });
-        }
-        track.innerHTML = html;
-        applyScene6TrackX_(0);
-        return logos.length;
-    }
-    function finishScene6() {
-        clearScene6Timers_();
-        applyScene6TrackX_(0);
-        scene6Step_ = 0;
-        setScene6Full_(false);
-        if (demoOnlyLoop_('s6', playScene6)) return;
-        hideSceneEl(s6);
-        gotoAfterScene3Tail_();
-    }
-    function playScene6() {
-        if (!s6) { gotoAfterScene3Tail_(); return; }
-        clearScene6Timers_();
-        setScene6Full_(true);
-        applyDisplayRefreshAtSceneEntry_();
-        applyPendingSignageBgAtScene_();
-        scene6Step_ = 0;
-        const nFace = Math.max(1, buildScene6Track_() || 4);
-        const steps = nFace * SCENE6_LAPS;
-        if (isFullDemoStep_()) {
-            scheduleDemoStep_(finishScene6);
-            return;
-        }
-        applyScene6TrackX_(0);
-        const safetyMs = SCENE_SCROLL_HOLD_MS + steps * (SCENE6_STEP_MS + SCENE6_SLIDE_MS) + SCENE_END_HOLD_MS + 4000;
-        scene6SafetyTimerId = setTimeout(function () {
-            scene6SafetyTimerId = null;
-            finishScene6();
-        }, safetyMs);
-        function slideByFrames_(fromX, toX, done) {
-            const frames = Math.max(1, Math.round(SCENE6_SLIDE_MS / 16));
-            let frame = 0;
-            let finished = false;
-            function finishSlide() {
-                if (finished) return;
-                finished = true;
-                if (scene6AnimId) { cancelAnimationFrame(scene6AnimId); scene6AnimId = null; }
-                applyScene6TrackX_(toX);
-                done();
-            }
-            function tick() {
-                if (finished) return;
-                frame += 1;
-                const p = frame >= frames ? 1 : (frame / frames);
-                applyScene6TrackX_(fromX + (toX - fromX) * easeScene6_(p));
-                if (p < 1) {
-                    scene6AnimId = requestAnimationFrame(tick);
-                } else {
-                    scene6AnimId = null;
-                    finishSlide();
-                }
-            }
-            scene6AnimId = requestAnimationFrame(tick);
-            scene6SlideGuardId = setTimeout(finishSlide, SCENE6_SLIDE_MS + 400);
-        }
-        function holdThenSlide() {
-            if (scene6Step_ >= steps) {
-                applyScene6TrackX_(scene6Step_ * SCENE6_FACE_W);
-                runAfterSceneEndHold_(finishScene6);
-                return;
-            }
-            const wait = scene6Step_ === 0 ? SCENE_SCROLL_HOLD_MS : SCENE6_STEP_MS;
-            scene6HoldTimerId = setTimeout(function () {
-                scene6HoldTimerId = null;
-                if (scene6Step_ === 0 && s6) {
-                    s6.style.transform = '';
-                    s6.style.zIndex = '';
-                }
-                const fromX = scene6Step_ * SCENE6_FACE_W;
-                scene6Step_ += 1;
-                const toX = scene6Step_ * SCENE6_FACE_W;
-                slideByFrames_(fromX, toX, holdThenSlide);
-            }, wait);
-        }
-        holdThenSlide();
-    }
     function gotoAfterScene3_() {
-        if (s6) {
-            setScene6Full_(true);
-            transitionToScene(s6, playScene6);
-            return;
-        }
         gotoAfterScene3Tail_();
     }
     /* 256×128スロット中央に収まるサイズ（256÷128=2 のパネル内で中央揃え） */
@@ -8602,7 +8403,7 @@
     }
     function startAlertOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, s6, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneRainWarn, sceneWarnHero].forEach(hideSceneEl);
         if (sceneAlert) {
             sceneAlert.style.display = 'block';
             sceneAlert.classList.add('active');
@@ -9499,8 +9300,7 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
-        setScene6Full_(el === s6);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         if (!el) return;
         playingSceneEl_ = el;
         el.style.display = sceneDisplayMode(el);
@@ -9527,7 +9327,6 @@
                 case 's3': showOnlyScene_(s3, playScene3); break;
                 case 's4': showOnlyScene_(s4, playScene4); break;
                 case 's5': showOnlyScene_(s5, playScene5); break;
-                case 's6': showOnlyScene_(s6, playScene6); break;
                 default: break;
             }
         }
@@ -9536,7 +9335,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -9562,7 +9361,6 @@
     function startSequence() {
         clearDemoStepTimer_();
         resetLogoRotation();
-        setScene6Full_(false);
         resetWarnPhase_();
         playLiveThenClock_();
     }
