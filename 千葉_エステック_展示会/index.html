@@ -4,7 +4,7 @@
 <!-- 白帯: マーク＋株式会社エステック | 幕張メッセ -->
 <!-- 同階層: assets/estec_foot_lockup.png（時刻下白帯・マーク＋株式会社エステック） / assets/estec_logo.png（縦ロックアップ・5列目） -->
 <!-- 会場: 〒261-8550 千葉県千葉市美浜区中瀬2-1（幕張メッセ） 35°38'53.2"N 140°02'04.9"E -->
-<!-- WBGT・AMeDAS 45212（千葉・気象庁/環境省）／警報 千葉市美浜区 1220400 -->
+<!-- WBGT・AMeDAS 45212（千葉・気象庁/環境省）／警報 千葉市 1210000 -->
 <!-- 本番サイネージはこの1ファイル。天気・WBGT・発表中の警報を同じループで流す -->
 <!-- build 20260907-native-640 -->
 <html lang="ja">
@@ -126,7 +126,17 @@
         }
         html.native-640 .demo-badge,
         body.native-640 .demo-badge { display: none !important; }
-        html.native-640, body.native-640 {
+        /* html の background はビューポート全体に塗られる。余白は黒、本体下地は .canvas */
+        html.native-640 {
+            width: 640px !important; height: 128px !important;
+            min-width: 640px; min-height: 128px;
+            max-width: 640px; max-height: 128px;
+            margin: 0 !important; padding: 0 !important;
+            overflow: hidden !important;
+            background: #1a1a1a;
+            position: relative;
+        }
+        body.native-640 {
             width: 640px !important; height: 128px !important;
             min-width: 640px; min-height: 128px;
             max-width: 640px; max-height: 128px;
@@ -172,7 +182,7 @@
         body.native-640 .content-area > .scene {
             will-change: auto;
         }
-        .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0; transform-origin: top left; }
+        .canvas { width: 640px; height: 128px; position: relative; overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0; transform-origin: top left; background: #308DD8; }
         @media screen and (min-width: 641px) {
             html:not(.native-640) .canvas { transform: scale(calc(100vw / 640)); }
         }
@@ -962,20 +972,20 @@
             width: 512px; height: 128px; min-height: 128px; position: relative; overflow: hidden;
             display: flex; flex-direction: column; flex-wrap: nowrap;
             background: #fa2900;
-            font-family: "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans JP", "Hiragino Sans", sans-serif;
+            font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, "Hiragino Sans", sans-serif;
         }
         #sceneWarnHero .hero.is-advisory { background: #f2e700; }
         #sceneWarnHero .hero.is-warning { background: #fa2900; }
         #sceneWarnHero .hero.is-danger { background: #ab00aa; }
         #sceneWarnHero .hero.is-special { background: #000000; }
         #sceneWarnHero .band {
-            position: relative; width: 512px; height: 100%; min-height: 0;
-            overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap;
-            align-items: center; align-self: stretch;
+            position: relative; width: 512px; overflow: hidden;
+            display: flex; flex-direction: row; flex-wrap: nowrap;
+            align-items: center; align-self: stretch; flex-shrink: 0;
         }
-        #sceneWarnHero .band-top { height: 40px; }
-        #sceneWarnHero .band-mid { height: 48px; }
-        #sceneWarnHero .band-bot { height: 40px; }
+        #sceneWarnHero .band-top { height: 40px; max-height: 40px; flex: 0 0 40px; }
+        #sceneWarnHero .band-mid { height: 48px; max-height: 48px; flex: 0 0 48px; }
+        #sceneWarnHero .band-bot { height: 40px; max-height: 40px; flex: 0 0 40px; }
         #sceneWarnHero .hero.is-advisory .band-mid { background: #cdb800; }
         #sceneWarnHero .hero.is-warning .band-mid { background: #c82400; }
         #sceneWarnHero .hero.is-danger .band-mid { background: #7a0078; }
@@ -995,59 +1005,74 @@
         #sceneWarnHero .seg {
             display: flex; flex-direction: row; flex-wrap: nowrap;
             align-items: center; justify-content: center;
-            flex: 0 0 auto; width: auto; min-width: 0; max-width: none;
+            flex: 0 0 256px; width: 256px; min-width: 256px; max-width: 256px;
             height: 100%; padding: 0 8px; gap: 0; box-sizing: border-box;
             overflow: hidden;
         }
-        #sceneWarnHero .band-mid .seg { height: 48px; padding: 0 8px; }
+        #sceneWarnHero .band-mid .seg {
+            height: 48px; width: 256px; min-width: 256px; max-width: 256px; flex: 0 0 256px;
+        }
         #sceneWarnHero .top-label, #sceneWarnHero .bot-txt, #sceneWarnHero .mid-chip { font-weight: 900; }
         #sceneWarnHero .unit {
-            display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
-            flex: 0 0 auto; width: auto; gap: 8px; min-width: 0; overflow: visible;
+            display: flex; flex-direction: row; align-items: center; justify-content: center;
+            flex: 0 0 auto; width: auto; max-width: 100%; gap: 4px; min-width: 0;
+            overflow: visible; margin: 0 auto;
         }
-        #sceneWarnHero .top-label {
-            flex: 0 0 auto; white-space: nowrap; font-size: 20px; line-height: 1; letter-spacing: 0.04em;
+        #sceneWarnHero .top-place, #sceneWarnHero .top-label, #sceneWarnHero .top-sep, #sceneWarnHero .top-time {
+            flex: 0 0 auto; white-space: nowrap; line-height: 1; font-weight: 900;
+        }
+        #sceneWarnHero .top-place { font-size: 18px; letter-spacing: 0.04em; }
+        #sceneWarnHero .top-sep { opacity: 0.4; font-size: 16px; font-weight: 700; padding: 0 1px; }
+        #sceneWarnHero .top-label { font-size: 20px; letter-spacing: 0.02em; overflow: visible; text-align: center; }
+        #sceneWarnHero .top-time {
+            font-size: 16px; letter-spacing: 0.03em; padding: 3px 6px; border-radius: 2px;
+            background: rgba(255,255,255,0.2);
         }
         #sceneWarnHero .bot-txt {
-            display: block; max-height: 36px; overflow: hidden; white-space: pre-line;
-            text-align: center; font-size: 14px; line-height: 1.15; letter-spacing: 0.02em;
+            display: block; width: 100%; max-width: 100%; max-height: 38px; overflow: hidden;
+            white-space: pre-line; word-break: keep-all; text-align: center;
+            font-size: 15px; line-height: 1.12; letter-spacing: 0.01em; margin: 0 auto;
         }
         #sceneWarnHero .mid-chip {
             display: flex; align-items: center; justify-content: center;
-            flex: 0 0 auto; height: 48px; overflow: visible; white-space: nowrap;
-            font-size: 36px; line-height: 48px; letter-spacing: 0.04em;
-            transform: translateY(-3px); color: #fff; padding: 0 6px;
+            flex: 0 0 auto; width: 100%; max-width: 100%; height: 48px; overflow: hidden;
+            white-space: nowrap; text-align: center; font-size: 40px; line-height: 1;
+            letter-spacing: 0.02em; transform: none; color: #fff; padding: 0 4px;
+            box-sizing: border-box; margin: 0 auto;
             -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: none;
         }
-        /* LEDは stroke が太く潰れる。WEBと同じ白字細縁に合わせる */
-        html.native-640 #sceneWarnHero .mid-chip,
-        body.native-640 #sceneWarnHero .mid-chip {
-            -webkit-text-stroke: 0;
-            paint-order: normal;
-            transform: none;
-            text-shadow:
-                -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000,
-                -1px -1px #000, 1px -1px #000, -1px 1px #000, 1px 1px #000;
-        }
         #sceneWarnHero .badge {
-            flex: 0 0 auto; background: #fff; padding: 3px 8px; border-radius: 2px; line-height: 1;
+            flex: 0 0 auto; background: #fff; padding: 2px 6px; border-radius: 2px; line-height: 1;
         }
         #sceneWarnHero .badge span {
-            display: block; color: #1a1a1a; font-weight: 900; font-size: 15px;
+            display: block; color: #1a1a1a; font-weight: 900; font-size: 14px;
             letter-spacing: 0.04em; white-space: nowrap;
         }
         #sceneWarnHero .hero.is-demo .badge { background: #111; }
         #sceneWarnHero .hero.is-demo .badge span { color: #f2e700; }
+        #sceneWarnHero .hero.is-advisory .top-place,
+        #sceneWarnHero .hero.is-advisory .top-sep,
         #sceneWarnHero .hero.is-advisory .top-label,
+        #sceneWarnHero .hero.is-advisory .top-time,
         #sceneWarnHero .hero.is-advisory .bot-txt { color: #1a1a1a; }
+        #sceneWarnHero .hero.is-advisory .top-time { background: rgba(0,0,0,0.14); }
         #sceneWarnHero .hero.is-advisory .mid-chip { color: #fff; }
+        #sceneWarnHero .hero.is-warning .top-place,
+        #sceneWarnHero .hero.is-warning .top-sep,
         #sceneWarnHero .hero.is-warning .top-label,
+        #sceneWarnHero .hero.is-warning .top-time,
         #sceneWarnHero .hero.is-warning .bot-txt,
         #sceneWarnHero .hero.is-warning .mid-chip,
+        #sceneWarnHero .hero.is-danger .top-place,
+        #sceneWarnHero .hero.is-danger .top-sep,
         #sceneWarnHero .hero.is-danger .top-label,
+        #sceneWarnHero .hero.is-danger .top-time,
         #sceneWarnHero .hero.is-danger .bot-txt,
         #sceneWarnHero .hero.is-danger .mid-chip,
+        #sceneWarnHero .hero.is-special .top-place,
+        #sceneWarnHero .hero.is-special .top-sep,
         #sceneWarnHero .hero.is-special .top-label,
+        #sceneWarnHero .hero.is-special .top-time,
         #sceneWarnHero .hero.is-special .bot-txt,
         #sceneWarnHero .hero.is-special .mid-chip { color: #fff; }
 
@@ -1669,10 +1694,10 @@
         .ra-pair.ra-special .ra-line { background: #FFFFFF; }
         .ra-pair.ra-special .ra-l1 { color: #FFFFFF; }
         .ra-pair.ra-special .ra-l2 { color: #FFFFFF; }
-        /* レベル無し 白3段（正）512×128 — signage-512.html .hero.is-white
-           上40 地域 + 特別警報|警報|注意報 + 発表中
-           中48 発表中の種だけチップ（特別=黒 / 警報=赤 / 注意報=黄）
-           下40 凡例 特別警報 | 警報 | 注意報
+        /* 白3段 512×128 — .hero.is-white
+           上40 地域 + 発表 HH:MM + 更新 HH:MM + 発表中
+           中48 チップ（レベルあり256 / なし128）
+           下40 凡例 特別警報 | 危険警報 | 警報 | 注意報
            3段とも 56px/秒 シームレス横スクロール。数字を変えるな。 */
         .content-area.ra-white-canvas { background: #fff9f0 !important; }
         .ra-white-layout { display: none; }
@@ -1966,15 +1991,191 @@
         .ra-foot-special { background: #000000; }
         .ra-pair.ra-white-mode .ra-zone-bot { display: none; }
         .ra-pair.ra-white-mode::after { display: none; }
-        /* 白3段は white-hero.css を正。従来3段と混ぜない */
+        /* 白3段は white-hero.css を正。外部CSSが落ちてもチップが見えるようここにも置く */
         #sceneWarn.active {
             display: block !important;
             z-index: 3;
             background: #fff9f0;
         }
+        #sceneWarn .hero.is-white {
+            width: 512px;
+            height: 128px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            background: #fff9f0;
+            font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+        }
+        #sceneWarn .hero.is-white .band {
+            position: relative;
+            width: 512px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            flex-wrap: nowrap;
+        }
+        #sceneWarn .hero.is-white .band-top { height: 40px; max-height: 40px; flex: 0 0 40px; }
+        #sceneWarn .hero.is-white .band-mid { height: 48px; max-height: 48px; flex: 0 0 48px; }
+        #sceneWarn .hero.is-white .band-bot { height: 40px; max-height: 40px; flex: 0 0 40px; }
+        #sceneWarn .hero.is-white .band-mid::before {
+            content: "";
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            z-index: 0;
+            background: #d5d1c9;
+        }
+        #sceneWarn .hero.is-white .track {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            height: 100%;
+            width: max-content;
+        }
+        #sceneWarn .white-top-seg {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            height: 40px;
+            padding: 0 4px;
+            gap: 8px;
+            flex: 0 0 auto;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+        #sceneWarn .white-area,
+        #sceneWarn .white-what {
+            flex: 0 0 auto;
+            color: #0854a8;
+            white-space: nowrap;
+            font-weight: 900;
+        }
+        #sceneWarn .white-area { font-size: 15px; letter-spacing: 0.3px; }
+        #sceneWarn .white-what { font-size: 14px; font-weight: 900; letter-spacing: 0.2px; }
+        #sceneWarn .hero.is-white .badge {
+            flex: 0 0 auto;
+            background: #fff;
+            border: 1px solid #0854a8;
+            padding: 3px 8px;
+            border-radius: 2px;
+            line-height: 1;
+        }
+        #sceneWarn .hero.is-white .badge span {
+            display: block;
+            color: #1a1a1a;
+            font-weight: 900;
+            font-size: 15px;
+            white-space: nowrap;
+        }
+        #sceneWarn .mid-set {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            height: 48px;
+            gap: 0;
+            padding: 0;
+            flex: 0 0 auto;
+            box-sizing: border-box;
+        }
+        #sceneWarn .mid-unit {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 128px;
+            min-width: 128px;
+            max-width: 128px;
+            flex: 0 0 128px;
+            height: 48px;
+            box-sizing: border-box;
+            padding: 2px 8px;
+        }
+        #sceneWarn .mid-unit.is-wide {
+            width: 256px;
+            min-width: 256px;
+            max-width: 256px;
+            flex: 0 0 256px;
+        }
+        #sceneWarn .hero.is-white .mid-chip {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 100%;
+            height: 100%;
+            padding: 0 6px;
+            min-height: 0;
+            border: 2px solid #cdb800;
+            border-radius: 3px;
+            font-weight: 900;
+            letter-spacing: 0;
+            white-space: nowrap;
+            text-align: center;
+            color: #1a1a1a;
+            -webkit-text-stroke: 0;
+            paint-order: normal;
+            text-shadow: none;
+            box-sizing: border-box;
+        }
+        #sceneWarn .hero.is-white .mid-chip-lv { display: block; font-size: 15px; line-height: 1; font-weight: 900; letter-spacing: 0.02em; text-align: center; }
+        #sceneWarn .hero.is-white .mid-chip-name { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 32px; line-height: 1; font-weight: 900; letter-spacing: 0; text-align: center; box-sizing: border-box; }
+        #sceneWarn .mid-unit.is-wide .mid-chip-name { font-size: 32px; }
+        #sceneWarn .hero.is-white .mid-chip.chip-special { background: #000000; color: #fff; border-color: #333333; }
+        #sceneWarn .hero.is-white .mid-chip.chip-danger { background: #ab00aa; color: #fff; border-color: #7a0078; }
+        #sceneWarn .hero.is-white .mid-chip.chip-warning { background: #fa2900; color: #fff; border-color: #c82400; }
+        #sceneWarn .hero.is-white .mid-chip.chip-advisory { background: #f2e700; color: #1a1a1a; border-color: #cdb800; }
+        #sceneWarn .white-foot-seg {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            height: 40px;
+            width: 512px;
+            min-width: 512px;
+            flex: 0 0 512px;
+            padding: 0;
+            gap: 0;
+            box-sizing: border-box;
+        }
+        #sceneWarn .white-foot-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 128px;
+            min-width: 128px;
+            max-width: 128px;
+            flex: 0 0 128px;
+            height: 40px;
+            padding: 0 8px;
+            box-sizing: border-box;
+        }
+        #sceneWarn .white-foot-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 30px;
+            padding: 0;
+            border-radius: 9999px;
+            font-size: 16px;
+            font-weight: 900;
+            color: #fff;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+        #sceneWarn .white-foot-chip.chip-special { background: #000000; color: #fff; }
+        #sceneWarn .white-foot-chip.chip-danger { background: #ab00aa; color: #fff; }
+        #sceneWarn .white-foot-chip.chip-warning { background: #fa2900; color: #fff; }
+        #sceneWarn .white-foot-chip.chip-advisory { background: #f2e700; color: #1a1a1a; }
     </style>
-    <link rel="stylesheet" href="./assets/white-hero.css?v=20260907-foot128">
-    <link rel="stylesheet" href="./assets/color-hero.css?v=20260907-stroke1">
+    <link rel="stylesheet" href="./assets/white-hero.css?v=20260907-vpad">
+    <link rel="stylesheet" href="./assets/color-hero.css?v=20260908-mid40">
 </head>
 <body class="native-640">
 <script>
@@ -2022,7 +2223,9 @@
       forecastArea: '120000',
       forecastLabel: '幕張',
       warnArea: '120000',
-      warnCity: '1220400'
+      warnCity: '1210000',
+      /* 気象庁コード 1210000＝千葉市（市町村。区の美浜区ではない） */
+      warnCityLabel: '千葉市'
     },
     geo: { lat: 35.6481, lon: 140.0347 },
     timeZone: 'Asia/Tokyo',
@@ -2576,8 +2779,8 @@
 })(typeof window !== 'undefined' ? window : global);
 
 </script>
-<script src="./assets/jma-warning-kinds.js?v=20260907-led2"></script>
-<script src="./assets/warning-hero.js?v=20260907-ledsync"></script>
+<script src="./assets/jma-warning-kinds.js?v=20260907-nolev"></script>
+<script src="./assets/warning-hero.js?v=20260909-evac"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード。未指定時は本番（実データ取得） */
@@ -3402,25 +3605,31 @@
     const RAIN_WARN_ORDER = ['early', 'advisory', 'warning', 'danger', 'special'];
     /** 白ベース: 特別→危険→警報→注意（早期注意情報は運用外） */
     const RAIN_WHITE_LEVEL_ORDER = ['special', 'danger', 'warning', 'advisory'];
-    /** 気象庁 reportcode → 段階＋種別（運用コード一覧準拠） */
+    /** 気象庁 reportcode → 段階＋種別（令和8年体系・bosai/warning/data/r8） */
     const JMA_WARN_CODE_MAP = {
         /* L5 特別警報 */
         '32': { level: 'special', kind: 'blizzard' },
         '33': { level: 'special', kind: 'rain' },
-        '34': { level: 'special', kind: 'megatsunami' },
+        '34': { level: 'special', kind: 'flood' },
         '35': { level: 'special', kind: 'wind' },
         '36': { level: 'special', kind: 'snow' },
         '37': { level: 'special', kind: 'wave' },
         '38': { level: 'special', kind: 'surge' },
+        '39': { level: 'special', kind: 'landslide' },
+        /* L4 危険警報 */
+        '43': { level: 'danger', kind: 'rain' },
+        '44': { level: 'danger', kind: 'flood' },
+        '48': { level: 'danger', kind: 'surge' },
+        '49': { level: 'danger', kind: 'landslide' },
         /* L3 警報 */
-        '02': { level: 'warning', kind: 'wind' },
+        '02': { level: 'warning', kind: 'blizzard' },
         '03': { level: 'warning', kind: 'rain' },
         '04': { level: 'warning', kind: 'flood' },
-        '05': { level: 'warning', kind: 'blizzard' },
+        '05': { level: 'warning', kind: 'wind' },
         '06': { level: 'warning', kind: 'snow' },
         '07': { level: 'warning', kind: 'wave' },
         '08': { level: 'warning', kind: 'surge' },
-        '09': { level: 'warning', kind: 'surge' },
+        '09': { level: 'warning', kind: 'landslide' },
         '11': { level: 'warning', kind: 'tsunami' },
         /* L2 注意報 */
         '10': { level: 'advisory', kind: 'rain' },
@@ -3439,7 +3648,7 @@
         '24': { level: 'advisory', kind: 'frost' },
         '25': { level: 'advisory', kind: 'ice' },
         '26': { level: 'advisory', kind: 'snowacc' },
-        '29': { level: 'advisory', kind: 'tsunami' }
+        '29': { level: 'advisory', kind: 'landslide' }
     };
     function jmaLevelFromWarnCode_(code, dangerHeadline) {
         const c = String(code || '');
@@ -3542,8 +3751,27 @@
         };
     }
     const JMA_WARN_AREA = query.get('warnArea') || (SITE_CFG.jma && SITE_CFG.jma.warnArea) || '120000';   /* 千葉県 */
-    const JMA_WARN_CITY = query.get('warnCity') || (SITE_CFG.jma && SITE_CFG.jma.warnCity) || '1220400';  /* 千葉市美浜区（気象庁） */
-    const JMA_WARN_CITY_LABELS = { '1220400': '幕張', '1220410': '幕張', '1210000': '千葉市', '120000': '千葉県' };
+    const JMA_WARN_CITY = query.get('warnCity') || (SITE_CFG.jma && SITE_CFG.jma.warnCity) || '1210000';  /* 千葉市（気象庁・市町村） */
+    const JMA_WARN_CITY_LABELS = {
+        '1220400': '千葉市',
+        '1220410': '千葉市',
+        '1210000': '千葉市',
+        '120000': '千葉市'
+    };
+    function municipalityLabel_(name, code) {
+        const n = String(name || '').trim();
+        const c = String(code || '');
+        const city = n.match(/^(.*?市)/);
+        if (city && (/区/.test(n) || /市.+区/.test(n))) return city[1];
+        if (/[市町村]$/.test(n) && n.indexOf('県') < 0) return n;
+        if (c === '1210000' || c.indexOf('1220') === 0) return '千葉市';
+        return JMA_WARN_CITY_LABELS[c]
+            || (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel)
+            || '千葉市';
+    }
+    function getJmaWarnPlaceLabel_() {
+        return municipalityLabel_(rainWarnMeta.cityName, JMA_WARN_CITY);
+    }
     function jmaWarnMatchCodes_() {
         const city = String(JMA_WARN_CITY || '');
         const area = String(JMA_WARN_AREA || '');
@@ -3559,8 +3787,8 @@
             if (out.indexOf(c) < 0) out.push(c);
         }
         add(city);
-        add(area);
         (extra[city] || []).forEach(add);
+        add(area);
         return out;
     }
     function jmaWarnAreaMatches_(area) {
@@ -3570,6 +3798,67 @@
         const s = String(st || '');
         if (!s || s.indexOf('解除') >= 0 || s.indexOf('なし') >= 0) return false;
         return s.indexOf('発表') >= 0 || s.indexOf('継続') >= 0;
+    }
+    function jmaWarningDataUrl_(area) {
+        return 'https://www.jma.go.jp/bosai/warning/data/r8/' + encodeURIComponent(area || JMA_WARN_AREA) + '.json?t=' + Date.now();
+    }
+    function jmaR8KindItemsFromRecord_(rec) {
+        const w = (rec && rec.warning) || rec || {};
+        return [].concat(
+            w.class20Items || [],
+            w.class15Items || [],
+            w.class15sItems || [],
+            w.class10Items || []
+        );
+    }
+    /** r8 は報ごと配列。旧 areaTypes 形式はそのまま通す */
+    function normalizeJmaWarningPayload_(raw) {
+        if (!raw) return null;
+        if (!Array.isArray(raw) && raw.areaTypes) return raw;
+        const records = Array.isArray(raw) ? raw : [raw];
+        const byArea = {};
+        let latestDt = '';
+        let headline = '';
+        let headlineDt = '';
+        records.forEach(function (rec) {
+            if (!rec || typeof rec !== 'object') return;
+            const dt = rec.reportDatetime || '';
+            if (dt && (!latestDt || dt > latestDt)) latestDt = dt;
+            const ht = rec.headlineText || '';
+            if (ht && dt && (!headlineDt || dt > headlineDt)) {
+                headline = ht;
+                headlineDt = dt;
+            }
+            jmaR8KindItemsFromRecord_(rec).forEach(function (it) {
+                const code = String(it.areaCode || it.code || '');
+                if (!code) return;
+                if (!byArea[code]) byArea[code] = { code: code, name: it.areaName || '', warnings: {} };
+                if (it.areaName) byArea[code].name = it.areaName;
+                (it.kinds || it.warnings || []).forEach(function (k) {
+                    const kc = String(k.code || '');
+                    if (!kc || kc === '-') return;
+                    const st = String(k.status || '');
+                    if (!jmaWarnStatusActive_(st)) return;
+                    const prev = byArea[code].warnings[kc];
+                    if (!prev || (dt && (!prev.issuedAt || dt > prev.issuedAt))) {
+                        byArea[code].warnings[kc] = { code: kc, status: st, issuedAt: dt };
+                    }
+                });
+            });
+        });
+        const areas = Object.keys(byArea).map(function (code) {
+            const a = byArea[code];
+            return {
+                code: a.code,
+                name: a.name,
+                warnings: Object.keys(a.warnings).map(function (c) { return a.warnings[c]; })
+            };
+        }).filter(function (a) { return a.warnings.length; });
+        return {
+            reportDatetime: latestDt,
+            headlineText: headline,
+            areaTypes: [{ areas: areas }]
+        };
     }
     /** 最も狭い対象（美浜区など）だけを使う。親地域と混ぜない＝解除後に残らない */
     function jmaWarnAreasForPreferredCode_(warnJson) {
@@ -3588,7 +3877,8 @@
         return [];
     }
     let rainWarnMeta = {
-        cityName: JMA_WARN_CITY_LABELS[JMA_WARN_CITY] || getSiteLocationLabel_(),
+        cityName: (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel) || '千葉市',
+        issuedAt: '',
         updatedAt: ''
     };
     const RAIN_WHITE_LEVEL_CHIP = {
@@ -3990,7 +4280,7 @@
         return '警報';
     }
     function whiteHeaderAreaPhrase_() {
-        return rainWarnMeta.cityName || JMA_WARN_CITY_LABELS[JMA_WARN_CITY] || getSiteLocationLabel_();
+        return municipalityLabel_(rainWarnMeta.cityName, JMA_WARN_CITY);
     }
     function whiteHeaderTexts_() {
         return {
@@ -4138,15 +4428,19 @@
         return '発表 ' + s.slice(0, 16);
     }
     function applyRainWarnMeta_(payload, warnJson) {
-        const cityFromJma = warnJson ? jmaAreaNameFromWarnJson_(warnJson, JMA_WARN_CITY) : '';
-        rainWarnMeta.cityName = cityFromJma
-            || (payload && payload.cityName)
-            || JMA_WARN_CITY_LABELS[JMA_WARN_CITY]
-            || getSiteLocationLabel_();
-        rainWarnMeta.updatedAt = (payload && payload.updatedAt)
-            || (warnJson && warnJson.reportDatetime)
-            || rainWarnMeta.updatedAt
+        const cityFromJma = warnJson
+            ? (jmaAreaNameFromWarnJson_(warnJson, '1210000')
+                || jmaAreaNameFromWarnJson_(warnJson, JMA_WARN_CITY))
+            : '';
+        rainWarnMeta.cityName = municipalityLabel_(
+            cityFromJma || (payload && payload.cityName) || '',
+            cityFromJma ? '1210000' : JMA_WARN_CITY
+        );
+        rainWarnMeta.issuedAt = (warnJson && warnJson.reportDatetime)
+            || rainWarnMeta.issuedAt
             || '';
+        rainWarnMeta.updatedAt = (payload && payload.updatedAt)
+            || new Date().toISOString();
         updateRainWarnWhiteChrome_();
     }
     function updateRainWarnWhiteChrome_(force) {
@@ -4280,15 +4574,16 @@
             rainWarnActive = rainWhiteQueue.length ? [rainWhiteQueue[0].level] : [];
         }
     }
-    function jmaEntryFromWarnCode_(code, warnJson) {
+    function jmaEntryFromWarnCode_(code, warnJson, issuedAt) {
         const c = String(code || '');
         const headline = String((warnJson && warnJson.headlineText) || '');
+        const when = issuedAt || (warnJson && warnJson.reportDatetime) || '';
         if (c === '03') {
             if (headline.indexOf('危険警報') >= 0 || headline.indexOf('土砂災害警戒情報') >= 0) {
                 if (headline.indexOf('土砂') >= 0) {
-                    return { level: 'danger', kind: 'landslide', name: jmaKindName_('danger', 'landslide'), code: c };
+                    return { level: 'danger', kind: 'landslide', name: jmaKindName_('danger', 'landslide'), code: c, issuedAt: when };
                 }
-                return { level: 'danger', kind: 'rain', name: jmaKindName_('danger', 'rain'), code: c };
+                return { level: 'danger', kind: 'rain', name: jmaKindName_('danger', 'rain'), code: c, issuedAt: when };
             }
         }
         const base = JMA_WARN_CODE_MAP[c];
@@ -4298,7 +4593,8 @@
             level: base.level,
             kind: kind,
             name: jmaKindName_(base.level, kind),
-            code: c
+            code: c,
+            issuedAt: when
         };
     }
     function parseJmaActiveWhiteEntries_(warnJson) {
@@ -4307,7 +4603,7 @@
         jmaWarnAreasForPreferredCode_(warnJson).forEach(function (area) {
             (area.warnings || []).forEach(function (w) {
                 if (!jmaWarnStatusActive_(w.status)) return;
-                const entry = jmaEntryFromWarnCode_(w.code, warnJson);
+                const entry = jmaEntryFromWarnCode_(w.code, warnJson, w.issuedAt);
                 if (!entry || !entry.name) return;
                 const key = entry.level + '|' + entry.kind + '|' + entry.code;
                 if (seen[key]) return;
@@ -4440,14 +4736,16 @@
     const RA_LAPS_BEFORE_SWITCH = 4;
     let liveWhitePlay_ = false;
     let liveWhiteShownKey_ = '';
-    const LIVE_WARN_POLL_MS = 60000;
+    const LIVE_WARN_POLL_MS = 30000;
+    const JMA_WARN_FETCH_MS = 20000;
     let liveWarnPollId_ = null;
     function liveWhiteEntryKey_(entries) {
         return (entries || []).map(function (e) {
-            return (e.level || '') + '|' + (e.kind || '');
+            return (e.level || '') + '|' + (e.kind || '') + '|' + (e.issuedAt || '');
         }).join(',');
     }
     function stopLiveWhiteAndContinue_() {
+        if (PREVIEW_WARN === 'white') return;
         if (!liveWhitePlay_) return;
         clearSceneEndHoldTimer_();
         clearScenePostHoldTimer_();
@@ -4459,9 +4757,28 @@
         if (contentArea) contentArea.classList.remove('ra-white-canvas');
         gotoAfterRainWarnOrScene1_();
     }
+    function replayWhitePreview_() {
+        if (PREVIEW_WARN !== 'white') return;
+        const live = getLiveWhiteEntries_();
+        if (!live.length || !sceneWarn || !heroWhite) return;
+        liveWhitePlay_ = true;
+        rainWhiteQueue = live;
+        liveWhiteShownKey_ = liveWhiteEntryKey_(live);
+        playWhite(function () {
+            updateRainWarnFromJmaDirect_().then(replayWhitePreview_).catch(replayWhitePreview_);
+        }, live);
+    }
     function syncLiveWhiteTickerFromQueue_() {
         const q = getLiveWhiteEntries_();
         rainWhiteQueue = q;
+        if (PREVIEW_WARN === 'white') {
+            if (!sceneWarn || !sceneWarn.classList.contains('active')) return;
+            const nextKey = liveWhiteEntryKey_(q);
+            if (nextKey === liveWhiteShownKey_) return;
+            liveWhiteShownKey_ = nextKey;
+            if (q.length) replayWhitePreview_();
+            return;
+        }
         if (!liveWhitePlay_) return;
         if (!sceneWarn || !sceneWarn.classList.contains('active')) return;
         if (!q.length) {
@@ -4477,7 +4794,8 @@
         });
     }
     function startLiveWarnPoll_() {
-        if (liveWarnPollId_ || !isProductionLiveWarn_()) return;
+        if (liveWarnPollId_) return;
+        if (!isProductionLiveWarn_() && PREVIEW_WARN !== 'white' && PREVIEW_WARN !== 'color') return;
         liveWarnPollId_ = setInterval(function () {
             updateRainWarnFromJmaDirect_().catch(function () {});
         }, LIVE_WARN_POLL_MS);
@@ -4521,14 +4839,36 @@
             const first = rainWarnActive[0];
             rainWarnKindActive = first ? rainWarnLiveByLevel_[first].slice() : ['rain'];
             syncLiveWhiteTickerFromQueue_();
+            syncLiveColorTickerFromQueue_();
         }
         if (!(liveWhitePlay_ && raFlow_)) queueDisplayRefresh_();
     }
     const WHITE_LEVEL_HAZARDS_ = ['flood', 'rain', 'landslide', 'surge'];
     function whiteLevelLabel_(lv) {
         if (lv === 'special') return '特別警報';
+        if (lv === 'danger') return '危険警報';
         if (lv === 'warning') return '警報';
         return '注意報';
+    }
+    function whiteLvNum_(lv) {
+        if (lv === 'special') return 5;
+        if (lv === 'danger') return 4;
+        if (lv === 'warning') return 3;
+        if (lv === 'advisory') return 2;
+        return 0;
+    }
+    function whiteHazardMid_(kind) {
+        if (kind === 'flood') return '氾濫';
+        if (kind === 'rain') return '大雨';
+        if (kind === 'landslide') return '土砂災害';
+        if (kind === 'surge') return '高潮';
+        return '';
+    }
+    function whiteChipColors_(cls) {
+        if (cls === 'special') return { bg: '#000000', frame: '#333333', ink: '#fff' };
+        if (cls === 'danger') return { bg: '#ab00aa', frame: '#7a0078', ink: '#fff' };
+        if (cls === 'warning') return { bg: '#fa2900', frame: '#c82400', ink: '#fff' };
+        return { bg: '#f2e700', frame: '#cdb800', ink: '#1a1a1a' };
     }
     function isWhitePlainKind_(level, kind) {
         if (!level || !kind) return false;
@@ -4540,31 +4880,42 @@
         if (order.indexOf(kind) < 0) return false;
         return true;
     }
+    function isWhiteLevelKind_(level, kind) {
+        if (!level || !kind) return false;
+        if (level === 'early') return false;
+        if (WHITE_LEVEL_HAZARDS_.indexOf(kind) < 0) return false;
+        const order = JMA_CATALOG_KIND_ORDER[level] || [];
+        if (order.indexOf(kind) < 0) return false;
+        const meta = jmaKindMeta_(level, kind);
+        return !!(meta && meta.hasLevel);
+    }
+    function isWhiteScatterKind_(level, kind) {
+        return isWhitePlainKind_(level, kind) || isWhiteLevelKind_(level, kind);
+    }
     function toWhitePlayItem_(e) {
         const name = (e && e.name) || jmaKindName_(e.level, e.kind);
+        const hasLevel = isWhiteLevelKind_(e.level, e.kind);
+        const meta = jmaKindMeta_(e.level, e.kind);
+        const lvNum = hasLevel ? ((meta && meta.levelNum) || whiteLvNum_(e.level)) : 0;
+        const hazard = hasLevel ? (whiteHazardMid_(e.kind) || whiteMidChipLabel_({ name: name })) : '';
         return {
             level: e.level,
             kind: e.kind,
             name: name,
             cls: e.level,
-            hasLevel: false,
+            hasLevel: hasLevel,
+            lv: lvNum,
+            hazard: hazard,
+            unitW: hasLevel ? 256 : 128,
             levelLabel: whiteLevelLabel_(e.level),
-            mid: name
+            mid: hasLevel ? hazard : name,
+            issuedAt: (e && e.issuedAt) || rainWarnMeta.issuedAt || rainWarnMeta.updatedAt || ''
         };
     }
-    function getLiveWhiteEntriesFrom_(entries) {
-        const seen = {};
-        const out = [];
-        (entries || []).forEach(function (e) {
-            if (!e || !isWhitePlainKind_(e.level, e.kind)) return;
-            const key = e.level + '|' + e.kind;
-            if (seen[key]) return;
-            seen[key] = true;
-            out.push(toWhitePlayItem_(e));
-        });
+    function whiteSortItems_(out) {
         out.sort(function (a, b) {
-            const la = ['special', 'warning', 'advisory'].indexOf(a.level);
-            const lb = ['special', 'warning', 'advisory'].indexOf(b.level);
+            const la = RAIN_WHITE_LEVEL_ORDER.indexOf(a.level);
+            const lb = RAIN_WHITE_LEVEL_ORDER.indexOf(b.level);
             if (la !== lb) return la - lb;
             const oa = (JMA_CATALOG_KIND_ORDER[a.level] || []).indexOf(a.kind);
             const ob = (JMA_CATALOG_KIND_ORDER[b.level] || []).indexOf(b.kind);
@@ -4572,17 +4923,69 @@
         });
         return out;
     }
+    function getLiveWhiteEntriesFrom_(entries) {
+        const seen = {};
+        const out = [];
+        (entries || []).forEach(function (e) {
+            if (!e || !isWhiteScatterKind_(e.level, e.kind)) return;
+            const key = e.level + '|' + e.kind;
+            if (seen[key]) return;
+            seen[key] = true;
+            out.push(toWhitePlayItem_(e));
+        });
+        return whiteSortItems_(out);
+    }
+    function getWhiteDemoFallbackItems_() {
+        const rows = [
+            { level: 'special', kind: 'rain', name: '大雨特別警報' },
+            { level: 'special', kind: 'snow', name: '大雪特別警報' },
+            { level: 'danger', kind: 'rain', name: '大雨危険警報' },
+            { level: 'warning', kind: 'rain', name: '大雨警報' },
+            { level: 'warning', kind: 'snow', name: '大雪警報' },
+            { level: 'advisory', kind: 'thunder', name: '雷注意報' },
+            { level: 'advisory', kind: 'fog', name: '濃霧注意報' },
+            { level: 'advisory', kind: 'flood', name: '氾濫注意報' }
+        ];
+        return rows.map(function (e) {
+            const it = toWhitePlayItem_(e);
+            it.demo = true;
+            return it;
+        });
+    }
+    function getWhiteDemoItems_() {
+        const out = [];
+        ['special', 'danger', 'warning', 'advisory'].forEach(function (lv) {
+            const order = JMA_CATALOG_KIND_ORDER[lv] || [];
+            order.forEach(function (kind) {
+                if (!isWhiteScatterKind_(lv, kind)) return;
+                const it = toWhitePlayItem_({
+                    level: lv,
+                    kind: kind,
+                    name: jmaKindName_(lv, kind)
+                });
+                it.demo = true;
+                out.push(it);
+            });
+        });
+        return out.length ? out : getWhiteDemoFallbackItems_();
+    }
+    function isWhitePlayItem_(e) {
+        return !!(e && (e.mid || e.name) && (e.level || e.cls) && e.unitW);
+    }
     function getLiveWhiteEntries_() {
         if (rainWhiteQueue.length) {
-            return rainWhiteQueue.filter(function (e) { return isWhitePlainKind_(e.level, e.kind); });
+            return rainWhiteQueue.filter(function (e) {
+                if (isWhitePlayItem_(e)) return true;
+                return isWhiteScatterKind_(e.level, e.kind);
+            });
         }
         const out = [];
-        ['special', 'warning', 'advisory'].forEach(function (lv) {
+        ['special', 'danger', 'warning', 'advisory'].forEach(function (lv) {
             const kinds = rainWarnLiveByLevel_[lv] || [];
             const order = JMA_CATALOG_KIND_ORDER[lv] || [];
             order.forEach(function (kind) {
                 if (kinds.indexOf(kind) < 0) return;
-                if (!isWhitePlainKind_(lv, kind)) return;
+                if (!isWhiteScatterKind_(lv, kind)) return;
                 out.push(toWhitePlayItem_({ level: lv, kind: kind, name: jmaKindName_(lv, kind) }));
             });
         });
@@ -4606,61 +5009,145 @@
         track.style.transform = 'translate(0,0)';
         while (track.firstChild) track.removeChild(track.firstChild);
     }
-    function makeWhiteTopSeg_(label) {
+    function whiteFormatIssuedClock_(raw) {
+        var ms = Date.parse(String(raw || ''));
+        if (!isFinite(ms)) ms = getNowMs();
+        var p = jstPartsFromMs(ms);
+        var h = p.hour < 10 ? '0' + p.hour : String(p.hour);
+        var m = p.minute < 10 ? '0' + p.minute : String(p.minute);
+        return h + ':' + m;
+    }
+    function makeWhiteTopSeg_(issuedAt, isDemo, updatedAt) {
         const seg = document.createElement('div');
         seg.className = 'white-top-seg';
+        seg.style.cssText = 'display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;height:40px;padding:0 4px;gap:8px;flex:0 0 auto;white-space:nowrap;box-sizing:border-box';
         const area = document.createElement('span');
         area.className = 'white-area';
-        area.textContent = getSiteLocationLabel_();
-        const what = document.createElement('span');
-        what.className = 'white-what';
-        what.textContent = label;
+        area.style.cssText = 'flex:0 0 auto;font-size:15px;font-weight:900;color:#0854a8;letter-spacing:0.3px;white-space:nowrap';
+        area.textContent = getJmaWarnPlaceLabel_();
+        const clock = whiteFormatIssuedClock_(issuedAt);
+        const updatedClock = whiteFormatIssuedClock_(updatedAt || issuedAt);
+        const issued = document.createElement('span');
+        issued.className = 'white-what';
+        issued.style.cssText = 'flex:0 0 auto;font-size:14px;font-weight:900;color:#0854a8;letter-spacing:0.2px;white-space:nowrap';
+        issued.textContent = '発表 ' + clock;
+        const updated = document.createElement('span');
+        updated.className = 'white-what';
+        updated.style.cssText = 'flex:0 0 auto;font-size:14px;font-weight:900;color:#0854a8;letter-spacing:0.2px;white-space:nowrap';
+        updated.textContent = '更新 ' + updatedClock;
         const badge = document.createElement('span');
         badge.className = 'badge';
+        badge.style.cssText = 'flex:0 0 auto;background:#fff;border:1px solid #0854a8;padding:3px 8px;border-radius:2px;line-height:1';
         const badgeTxt = document.createElement('span');
-        badgeTxt.textContent = '発表中';
+        badgeTxt.style.cssText = 'display:block;color:#1a1a1a;font-weight:900;font-size:15px;white-space:nowrap';
+        badgeTxt.textContent = isDemo ? 'デモ' : '発表中';
         badge.appendChild(badgeTxt);
         seg.appendChild(area);
-        seg.appendChild(what);
+        seg.appendChild(issued);
+        seg.appendChild(updated);
         seg.appendChild(badge);
         return seg;
     }
     function makeWhiteBotSeg_() {
         const seg = document.createElement('div');
         seg.className = 'white-foot-seg';
+        const cycleW = 128 * 4;
+        seg.style.cssText = 'display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;height:40px;width:' + cycleW + 'px;min-width:' + cycleW + 'px;flex:0 0 ' + cycleW + 'px;padding:0;gap:0;box-sizing:border-box';
         const items = [
-            ['chip-special', '特別警報'],
-            ['chip-warning', '警報'],
-            ['chip-advisory', '注意報']
+            ['chip-special', '特別警報', '#000000', '#fff'],
+            ['chip-danger', '危険警報', '#ab00aa', '#fff'],
+            ['chip-warning', '警報', '#fa2900', '#fff'],
+            ['chip-advisory', '注意報', '#f2e700', '#1a1a1a']
         ];
         for (let i = 0; i < items.length; i++) {
+            const row = items[i];
+            const cell = document.createElement('div');
+            cell.className = 'white-foot-cell';
+            cell.style.cssText = 'display:flex;align-items:center;justify-content:center;width:128px;min-width:128px;max-width:128px;flex:0 0 128px;height:40px;padding:0 8px;box-sizing:border-box';
             const chip = document.createElement('span');
-            chip.className = 'white-foot-chip ' + items[i][0];
-            chip.textContent = items[i][1];
-            seg.appendChild(chip);
+            chip.className = 'white-foot-chip ' + row[0];
+            chip.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:100%;height:30px;padding:0;border-radius:9999px;font-size:16px;font-weight:900;color:' + row[3] + ';white-space:nowrap;background:' + row[2];
+            chip.textContent = row[1];
+            cell.appendChild(chip);
+            seg.appendChild(cell);
         }
         return seg;
     }
+    function whiteMidChipLabel_(scene) {
+        return String((scene && (scene.hazard || scene.mid || scene.name)) || '')
+            .replace(/危険警報$|特別警報$|注意報$|警報$/, '');
+    }
+    function whiteMidNamePx_(text, unitW) {
+        const n = String(text || '').length || 1;
+        const inner = unitW - 32;
+        let px = Math.floor(inner / n);
+        if (px > 32) px = 32;
+        if (px < 24) px = 24;
+        return px;
+    }
     function makeWhiteMidChip_(scene) {
+        const hasLevel = !!(scene && scene.hasLevel);
+        const unitW = hasLevel ? 256 : 128;
+        const unit = document.createElement('div');
+        unit.className = hasLevel ? 'mid-unit is-wide' : 'mid-unit';
+        unit.style.cssText = 'display:flex;align-items:center;justify-content:center;width:' + unitW + 'px;min-width:' + unitW + 'px;max-width:' + unitW + 'px;flex:0 0 ' + unitW + 'px;height:48px;box-sizing:border-box;padding:2px 8px';
         const chip = document.createElement('span');
-        chip.className = 'mid-chip chip-' + scene.cls;
-        chip.textContent = scene.mid;
-        return chip;
+        const cls = (scene && scene.cls) || 'advisory';
+        const pal = whiteChipColors_(cls);
+        chip.className = 'mid-chip chip-' + cls;
+        chip.style.cssText = 'display:flex;flex-direction:row;align-items:center;justify-content:center;width:100%;max-width:100%;height:100%;padding:0 6px;border:2px solid ' + pal.frame + ';border-radius:3px;font-weight:900;letter-spacing:0;white-space:nowrap;text-align:center;color:' + pal.ink + ';-webkit-text-stroke:0;background:' + pal.bg + ';box-sizing:border-box';
+        const nameEl = document.createElement('span');
+        nameEl.className = 'mid-chip-name';
+        let label = whiteMidChipLabel_(scene);
+        if (hasLevel) label = 'レベル' + ((scene && scene.lv) || whiteLvNum_(cls)) + label;
+        const fs = whiteMidNamePx_(label, unitW);
+        nameEl.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:' + fs + 'px;line-height:1;font-weight:900;letter-spacing:0;text-align:center;box-sizing:border-box';
+        nameEl.textContent = label;
+        chip.appendChild(nameEl);
+        unit.appendChild(chip);
+        return unit;
     }
     function fillWhiteMidChips_(track, items) {
         whiteClearTrack_(track);
         const set = document.createElement('div');
         set.className = 'mid-set';
+        set.style.cssText = 'display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;height:48px;gap:0;padding:0;flex:0 0 auto;box-sizing:border-box';
         items.forEach(function (item) { set.appendChild(makeWhiteMidChip_(item)); });
         track.appendChild(set);
     }
     function prepareWhiteMidChips_(track) {
         const set = track && track.children[0];
         if (!set) return 0;
-        set.style.width = 'auto';
-        set.style.minWidth = '0';
-        set.style.maxWidth = 'none';
-        const w = Math.max(1, Math.ceil(set.offsetWidth));
+        const isFoot = set.className.indexOf('white-foot-seg') >= 0;
+        let w;
+        if (isFoot) {
+            w = 128 * 4;
+        } else if (set.className.indexOf('mid-set') >= 0) {
+            w = 0;
+            for (let i = 0; i < set.children.length; i++) {
+                const el = set.children[i];
+                const wide = String(el.className || '').indexOf('is-wide') >= 0;
+                w += wide ? 256 : 128;
+                const nameEl = el.querySelector('.mid-chip-name');
+                const chip = el.querySelector('.mid-chip');
+                if (nameEl && chip) {
+                    const maxW = Math.max(48, (chip.clientWidth || (wide ? 240 : 112)) - 4);
+                    let px = parseFloat(nameEl.style.fontSize) || 32;
+                    let guard = 20;
+                    while (guard-- > 0 && nameEl.scrollWidth > maxW && px > 14) {
+                        px -= 1;
+                        nameEl.style.fontSize = px + 'px';
+                    }
+                }
+            }
+            if (w < 1) w = 128;
+        } else {
+            set.style.width = 'auto';
+            set.style.minWidth = '0';
+            set.style.maxWidth = 'none';
+            set.style.flexWrap = 'nowrap';
+            w = Math.max(256, Math.ceil(set.offsetWidth || set.scrollWidth || 0));
+        }
         set.style.width = w + 'px';
         set.style.minWidth = w + 'px';
         set.style.maxWidth = w + 'px';
@@ -4669,22 +5156,42 @@
         for (let i = 1; i < 8; i++) track.appendChild(set.cloneNode(true));
         return w;
     }
-    function playWhite(onDone) {
-        const items = getLiveWhiteEntries_().filter(function (x) { return x && !x.hasLevel; });
+    function whitePlayItems_(override) {
+        const src = (override && override.length) ? override : getLiveWhiteEntries_();
+        const out = [];
+        src.forEach(function (x) {
+            if (!x) return;
+            if (x.unitW === 128 || x.unitW === 256) {
+                out.push(x);
+                return;
+            }
+            if (isWhiteScatterKind_(x.level, x.kind)) out.push(toWhitePlayItem_(x));
+        });
+        return out;
+    }
+    function playWhite(onDone, itemsOverride) {
+        const items = whitePlayItems_(itemsOverride);
         if (!items.length || !heroWhite || !whiteTopTrack || !whiteMidTrack || !whiteBotTrack) {
-            if (onDone) onDone();
+            if (onDone && PREVIEW_WARN !== 'white') onDone();
             return;
         }
+        const issuedFallback = rainWarnMeta.issuedAt || rainWarnMeta.updatedAt || new Date(getNowMs()).toISOString();
+        items.forEach(function (it) {
+            if (it && !it.issuedAt) it.issuedAt = issuedFallback;
+        });
+        let issuedAt = issuedFallback;
+        items.forEach(function (it) {
+            if (it && it.issuedAt && it.issuedAt > issuedAt) issuedAt = it.issuedAt;
+        });
+        const updatedAt = rainWarnMeta.updatedAt || issuedFallback;
         const gen = ++whitePlayGen_;
         if (whiteRafId_) { cancelAnimationFrame(whiteRafId_); whiteRafId_ = 0; }
         liveWhitePlay_ = true;
         if (heroWhite) heroWhite.className = 'hero is-white';
-        const highest = items[0];
-        let label = highest.levelLabel || '注意報';
-        if (String(label).indexOf('警戒レベル') === 0) label = '注意報';
+        const isDemo = items.some(function (x) { return x.demo; });
         whiteClearTrack_(whiteTopTrack);
         whiteClearTrack_(whiteBotTrack);
-        whiteTopTrack.appendChild(makeWhiteTopSeg_(label));
+        whiteTopTrack.appendChild(makeWhiteTopSeg_(issuedAt, isDemo, updatedAt));
         whiteBotTrack.appendChild(makeWhiteBotSeg_());
         fillWhiteMidChips_(whiteMidTrack, items);
         requestAnimationFrame(function () {
@@ -4776,38 +5283,11 @@
         if (WBGT_ONLY || NO_JMA_WARN) return;
         if (whiteModeForced_()) return;
         await updateRainWarnFromJmaDirect_();
-        if (isProductionLiveWarn_()) return;
-        if (rainWarnForced && !RAIN_WHITE_DESIGN && !(isDemoFullRainLoop_() && demoRainPassKind_() === 'white')) return;
-        const base = appendMoePointToUrl(MOE_WBGT_API_URL);
-        if (!base) { await updateRainWarnFromJmaDirect_(); return; }
-        const sep = base.indexOf('?') >= 0 ? '&' : '?';
-        const url = base + sep + 'type=rainwarn&area=' + encodeURIComponent(JMA_WARN_AREA) + '&city=' + encodeURIComponent(JMA_WARN_CITY);
-        let json = null;
-        try {
-            const res = await fetch(url, { cache: 'no-store', redirect: 'follow', mode: 'cors' });
-            if (!res.ok) throw new Error('rainwarn HTTP ' + res.status);
-            json = JSON.parse(await res.text());
-        } catch (fetchErr) {
-            try { json = await fetchMoeViaJsonp(url); }
-            catch (e2) {
-                console.warn('[大雨警報] GAS取得失敗、気象庁直取得を試行:', e2.message || e2);
-                await updateRainWarnFromJmaDirect_();
-                return;
-            }
-        }
-        if (RAIN_WHITE_DESIGN && !whiteModeForced_()) {
-            await refreshRainWhiteQueueFromJma_();
-        } else {
-            applyRainWarnLevel_(json && json.level, json && json.l3Kinds);
-        }
-        applyRainWarnMeta_(json, null);
-        console.log('[大雨警報]', (json && json.level) || 'none', json && json.label ? json.label : '',
-            RAIN_WHITE_DESIGN ? ('白ベース ' + rainWhiteQueue.length + '件') : '');
     }
     async function refreshRainWhiteQueueFromJma_() {
         try {
-            const wRes = await fetch('https://www.jma.go.jp/bosai/warning/data/warning/' + JMA_WARN_AREA + '.json', { cache: 'no-store' });
-            const warnJson = wRes.ok ? await wRes.json() : null;
+            const wRes = await fetch(jmaWarningDataUrl_(JMA_WARN_AREA), { cache: 'no-store' });
+            const warnJson = wRes.ok ? normalizeJmaWarningPayload_(await wRes.json()) : null;
             const kinds = parseJmaActiveL3Kinds_(warnJson);
             applyRainWarnLevel_(parseJmaRainWarnLevel_(warnJson, null), kinds, warnJson);
             if (warnJson) applyRainWarnMeta_(null, warnJson);
@@ -4861,19 +5341,21 @@
         if (WBGT_ONLY || NO_JMA_WARN) return;
         try {
             const wRes = await fetchWithTimeout_(
-                fetch('https://www.jma.go.jp/bosai/warning/data/warning/' + JMA_WARN_AREA + '.json', { cache: 'no-store' }),
-                4000,
+                fetch(jmaWarningDataUrl_(JMA_WARN_AREA), { cache: 'no-store' }),
+                JMA_WARN_FETCH_MS,
                 'jma-warn'
             );
-            const warnJson = wRes.ok ? await wRes.json() : null;
+            const warnJson = wRes.ok ? normalizeJmaWarningPayload_(await wRes.json()) : null;
             if (!warnJson) {
-                console.warn('[大雨警報] 気象庁応答なし（直前の発表を維持）');
+                console.warn('[警報] 気象庁応答なし（直前の発表を維持）');
                 return;
             }
             applyRainWarnMeta_(null, warnJson);
             applyRainWarnLiveEntries_(parseJmaActiveWhiteEntries_(warnJson));
+            console.log('[警報] 気象庁', rainWhiteQueue.length + '件',
+                rainWhiteQueue.map(function (e) { return e.name || (e.level + '/' + e.kind); }).join('・') || '発表なし');
         } catch (e) {
-            console.warn('[大雨警報] 気象庁直取得失敗（直前の発表を維持）:', e.message || e);
+            console.warn('[警報] 気象庁取得失敗（直前の発表を維持）:', e.message || e);
         }
     }
     function sizeRainWarnWhiteMidText_() {
@@ -5085,13 +5567,87 @@
     let warnHeroPlayer_ = null;
     let warnHeroPlayedThisLoop_ = false;
     let warnColorLivePlayedThisLoop_ = false;
+    let warnEvacPlayedThisLoop_ = false;
     let warnDemoPlayedThisLoop_ = false;
+    let liveColorPlay_ = false;
+    let liveEvacPlay_ = false;
+    let liveColorShownKey_ = '';
+    let liveEvacShownKey_ = '';
+    function liveColorEntryKey_(items) {
+        return (items || []).map(function (it) {
+            return (it.levelKey || it.lv || '') + '|' + (it.kind || '') + '|' + (it.issuedAt || '');
+        }).join(',');
+    }
+    function replayColorPreview_() {
+        if (PREVIEW_WARN !== 'color') return;
+        const items = getWarnHeroLiveItems_().concat(getWarnHeroEvacItems_());
+        if (!items.length || !sceneWarnHero) return;
+        liveColorPlay_ = true;
+        liveColorShownKey_ = liveColorEntryKey_(items);
+        playWarnHero_(items, function () {
+            updateRainWarnFromJmaDirect_().then(replayColorPreview_).catch(replayColorPreview_);
+        }, 1);
+    }
+    function syncLiveColorTickerFromQueue_() {
+        if (PREVIEW_WARN === 'color') {
+            if (!sceneWarnHero || !sceneWarnHero.classList.contains('active')) return;
+            const items = getWarnHeroLiveItems_().concat(getWarnHeroEvacItems_());
+            const nextKey = liveColorEntryKey_(items);
+            if (nextKey === liveColorShownKey_) return;
+            liveColorShownKey_ = nextKey;
+            if (items.length) replayColorPreview_();
+            return;
+        }
+        if (liveColorPlay_ && sceneWarnHero && sceneWarnHero.classList.contains('active')) {
+            const items = getWarnHeroLiveItems_();
+            const nextKey = liveColorEntryKey_(items);
+            if (!items.length) {
+                liveColorPlay_ = false;
+                liveColorShownKey_ = '';
+                stopWarnHero_();
+                gotoAfterRainWarnOrScene1_();
+                return;
+            }
+            if (nextKey !== liveColorShownKey_) {
+                liveColorShownKey_ = nextKey;
+                playWarnHero_(items, function () {
+                    liveColorPlay_ = false;
+                    stopWarnHero_();
+                    gotoAfterRainWarnOrScene1_();
+                }, 2);
+            }
+        }
+        if (liveEvacPlay_ && sceneWarnHero && sceneWarnHero.classList.contains('active')) {
+            const items = getWarnHeroEvacItems_();
+            const nextKey = liveColorEntryKey_(items);
+            if (!items.length) {
+                liveEvacPlay_ = false;
+                liveEvacShownKey_ = '';
+                stopWarnHero_();
+                gotoAfterRainWarnOrScene1_();
+                return;
+            }
+            if (nextKey !== liveEvacShownKey_) {
+                liveEvacShownKey_ = nextKey;
+                playWarnHero_(items, function () {
+                    liveEvacPlay_ = false;
+                    stopWarnHero_();
+                    gotoAfterRainWarnOrScene1_();
+                }, 2);
+            }
+        }
+    }
     function finishMainLoopToS1_() {
         warnHeroPlayedThisLoop_ = false;
         warnColorLivePlayedThisLoop_ = false;
+        warnEvacPlayedThisLoop_ = false;
         warnDemoPlayedThisLoop_ = false;
         liveWhitePlay_ = false;
         liveWhiteShownKey_ = '';
+        liveColorPlay_ = false;
+        liveEvacPlay_ = false;
+        liveColorShownKey_ = '';
+        liveEvacShownKey_ = '';
         stopWhiteHero_();
         stopWarnHero_();
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
@@ -5103,8 +5659,53 @@
         ['special', 'danger', 'warning', 'advisory'].forEach(function (lv) {
             (rainWarnLiveByLevel_[lv] || []).forEach(function (kind) {
                 const it = WarningHero.itemFromLive(lv, kind);
-                if (it) out.push(it);
+                if (it && (it.kind === 'flood' || it.kind === 'rain' || it.kind === 'landslide' || it.kind === 'surge')) {
+                    if (typeof WarningHero.stampPlaceTime === 'function') {
+                        WarningHero.stampPlaceTime(it, rainWarnMeta.cityName, rainWarnMeta.issuedAt || rainWarnMeta.updatedAt);
+                    } else {
+                        it.place = rainWarnMeta.cityName || it.place;
+                        it.issuedAt = rainWarnMeta.issuedAt || rainWarnMeta.updatedAt || it.issuedAt;
+                    }
+                    out.push(it);
+                }
             });
+        });
+        return out;
+    }
+    function getWarnHeroEvacItems_() {
+        if (!window.WarningHero || typeof WarningHero.itemFromEvac !== 'function') return [];
+        const hazards = WHITE_LEVEL_HAZARDS_;
+        const rows = [
+            { key: 'special', lv: 5 },
+            { key: 'danger', lv: 4 },
+            { key: 'warning', lv: 3 }
+        ];
+        const out = [];
+        rows.forEach(function (row) {
+            const kinds = rainWarnLiveByLevel_[row.key] || [];
+            let hit = false;
+            let issuedAt = '';
+            kinds.forEach(function (kind) {
+                if (hazards.indexOf(kind) < 0) return;
+                hit = true;
+            });
+            if (!hit) return;
+            (rainWhiteQueue || []).forEach(function (e) {
+                if (!e || e.level !== row.key) return;
+                if (hazards.indexOf(e.kind) < 0) return;
+                if (e.issuedAt && (!issuedAt || e.issuedAt > issuedAt)) issuedAt = e.issuedAt;
+            });
+            const it = WarningHero.itemFromEvac(row.lv);
+            if (!it) return;
+            if (typeof WarningHero.stampPlaceTime === 'function') {
+                WarningHero.stampPlaceTime(it, rainWarnMeta.cityName, issuedAt || rainWarnMeta.issuedAt || rainWarnMeta.updatedAt);
+            } else {
+                it.place = rainWarnMeta.cityName || it.place;
+                it.issuedAt = issuedAt || rainWarnMeta.issuedAt || rainWarnMeta.updatedAt || it.issuedAt;
+            }
+            it.demo = false;
+            it.badge = '発表中';
+            out.push(it);
         });
         return out;
     }
@@ -5136,10 +5737,20 @@
         const rows = typeof WarningHero.levelDemoItems === 'function'
             ? WarningHero.levelDemoItems()
             : (WarningHero.warnItems ? WarningHero.warnItems() : []);
-        return rows.filter(function (it) {
+        const out = rows.filter(function (it) {
             return it && it.lv >= 2 && it.lv <= 5 && it.kind &&
                 (it.kind === 'flood' || it.kind === 'rain' || it.kind === 'landslide' || it.kind === 'surge');
         });
+        if (typeof WarningHero.itemFromEvac === 'function') {
+            [3, 4, 5].forEach(function (lv) {
+                const it = WarningHero.itemFromEvac(lv);
+                if (!it) return;
+                it.demo = true;
+                it.badge = 'デモ';
+                out.push(it);
+            });
+        }
+        return out;
     }
     function startWarnHeroOnlyDemo_() {
         resetLogoRotation();
@@ -5160,40 +5771,32 @@
     async function startWhiteWarnPreview_() {
         resetLogoRotation();
         [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
-        try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
-        const liveWhite = getLiveWhiteEntries_();
-        if (!liveWhite.length || !sceneWarn) return;
-        liveWhitePlay_ = true;
-        rainWhiteQueue = liveWhite;
-        liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
+        if (!sceneWarn || !heroWhite) return;
         sceneWarn.style.display = sceneDisplayMode(sceneWarn);
         sceneWarn.classList.add('active');
         sceneWarn.style.transform = 'translateX(0px)';
         playingSceneEl_ = sceneWarn;
-        playWhite(function replayWhitePreview_() {
-            if (PREVIEW_WARN !== 'white') return;
-            playWhite(replayWhitePreview_);
-        });
+        try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
+        startLiveWarnPoll_();
+        const liveWhite = getLiveWhiteEntries_();
+        if (!liveWhite.length) {
+            setTimeout(function () {
+                updateRainWarnFromJmaDirect_().then(replayWhitePreview_).catch(replayWhitePreview_);
+            }, 3000);
+            return;
+        }
+        replayWhitePreview_();
     }
     async function startColorWarnPreview_() {
         resetLogoRotation();
         [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
-        let items = getWarnHeroLiveItems_();
-        if (!items.length) {
-            items = getWarnHeroDemoItems_().filter(function (it) {
-                return it.lv === 3 && it.kind === 'rain';
-            });
-            if (!items.length) items = getWarnHeroDemoItems_().slice(0, 1);
-            items = items.map(function (it) {
-                return Object.assign({}, it, { demo: false, badge: '発表中' });
-            });
-        }
-        if (!items.length || !sceneWarnHero) return;
+        startLiveWarnPoll_();
+        if (!sceneWarnHero) return;
         sceneWarnHero.style.display = 'block';
         sceneWarnHero.classList.add('active');
         sceneWarnHero.style.transform = 'translateX(0px)';
-        playWarnHero_(items, null);
+        replayColorPreview_();
     }
     function playWarnHeroThenContinue_(items, cycles) {
         if (!items || !items.length || !sceneWarnHero) {
@@ -5203,10 +5806,14 @@
         transitionToScene(sceneWarnHero, function () {
             try {
                 playWarnHero_(items, function () {
+                    liveColorPlay_ = false;
+                    liveEvacPlay_ = false;
                     stopWarnHero_();
                     gotoAfterRainWarnOrScene1_();
                 }, cycles || 1);
             } catch (err) {
+                liveColorPlay_ = false;
+                liveEvacPlay_ = false;
                 stopWarnHero_();
                 gotoAfterRainWarnOrScene1_();
             }
@@ -5218,7 +5825,7 @@
             warnHeroPlayedThisLoop_ = true;
             if (isProductionLiveWarn_()) {
                 try {
-                    await fetchWithTimeout_(updateRainWarnFromJmaDirect_(), 4500, 'jma-warn-loop');
+                    await updateRainWarnFromJmaDirect_();
                 } catch (e) {}
                 const liveWhite = getLiveWhiteEntries_();
                 if (liveWhite.length && sceneWarn) {
@@ -5229,7 +5836,7 @@
                         playWhite(function () {
                             liveWhitePlay_ = false;
                             gotoAfterRainWarnOrScene1_();
-                        });
+                        }, liveWhite);
                     });
                     return;
                 }
@@ -5242,11 +5849,23 @@
             warnColorLivePlayedThisLoop_ = true;
             const liveColor = getWarnHeroLiveItems_();
             if (liveColor.length) {
+                liveColorPlay_ = true;
+                liveColorShownKey_ = liveColorEntryKey_(liveColor);
                 playWarnHeroThenContinue_(liveColor, 2);
                 return;
             }
         }
-        if (sceneWarnHero && window.WarningHero && !warnDemoPlayedThisLoop_) {
+        if (sceneWarnHero && window.WarningHero && !warnEvacPlayedThisLoop_) {
+            warnEvacPlayedThisLoop_ = true;
+            const liveEvac = getWarnHeroEvacItems_();
+            if (liveEvac.length) {
+                liveEvacPlay_ = true;
+                liveEvacShownKey_ = liveColorEntryKey_(liveEvac);
+                playWarnHeroThenContinue_(liveEvac, 2);
+                return;
+            }
+        }
+        if (sceneWarnHero && window.WarningHero && !warnDemoPlayedThisLoop_ && !isProductionLiveWarn_()) {
             const demoHero = getWarnHeroDemoItems_();
             if (demoHero.length) {
                 warnDemoPlayedThisLoop_ = true;
@@ -8886,9 +9505,14 @@
         setScene6Full_(false);
         warnHeroPlayedThisLoop_ = false;
         warnColorLivePlayedThisLoop_ = false;
+        warnEvacPlayedThisLoop_ = false;
         warnDemoPlayedThisLoop_ = false;
         liveWhitePlay_ = false;
         liveWhiteShownKey_ = '';
+        liveColorPlay_ = false;
+        liveEvacPlay_ = false;
+        liveColorShownKey_ = '';
+        liveEvacShownKey_ = '';
         [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         transitionToScene(s1, playScene1);
     }
