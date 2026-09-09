@@ -1041,6 +1041,10 @@
             box-sizing: border-box; margin: 0 auto;
             -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: none;
         }
+        html.native-640 #sceneWarnHero .mid-chip,
+        body.native-640 #sceneWarnHero .mid-chip {
+            -webkit-text-stroke: 1px #000;
+        }
         #sceneWarnHero .badge {
             flex: 0 0 auto; background: #fff; padding: 2px 6px; border-radius: 2px; line-height: 1;
         }
@@ -2175,7 +2179,7 @@
         #sceneWarn .white-foot-chip.chip-advisory { background: #f2e700; color: #1a1a1a; }
     </style>
     <link rel="stylesheet" href="./assets/white-hero.css?v=20260907-vpad">
-    <link rel="stylesheet" href="./assets/color-hero.css?v=20260908-mid40">
+    <link rel="stylesheet" href="./assets/color-hero.css?v=20260909-led1px">
 </head>
 <body class="native-640">
 <script>
@@ -4755,7 +4759,7 @@
         liveWhiteShownKey_ = '';
         const contentArea = document.querySelector('.content-area');
         if (contentArea) contentArea.classList.remove('ra-white-canvas');
-        gotoAfterRainWarnOrScene1_();
+        continueWarnAfterCurrent_();
     }
     function replayWhitePreview_() {
         if (PREVIEW_WARN !== 'white') return;
@@ -4790,7 +4794,7 @@
         liveWhiteShownKey_ = nextKey;
         playWhite(function () {
             liveWhitePlay_ = false;
-            gotoAfterRainWarnOrScene1_();
+            continueWarnAfterCurrent_();
         });
     }
     function startLiveWarnPoll_() {
@@ -5565,10 +5569,7 @@
         }
     }
     let warnHeroPlayer_ = null;
-    let warnHeroPlayedThisLoop_ = false;
-    let warnColorLivePlayedThisLoop_ = false;
-    let warnEvacPlayedThisLoop_ = false;
-    let warnDemoPlayedThisLoop_ = false;
+    let warnPhase_ = 0;
     let liveColorPlay_ = false;
     let liveEvacPlay_ = false;
     let liveColorShownKey_ = '';
@@ -5577,6 +5578,15 @@
         return (items || []).map(function (it) {
             return (it.levelKey || it.lv || '') + '|' + (it.kind || '') + '|' + (it.issuedAt || '');
         }).join(',');
+    }
+    function resetWarnPhase_() {
+        warnPhase_ = 0;
+        liveWhitePlay_ = false;
+        liveColorPlay_ = false;
+        liveEvacPlay_ = false;
+        liveWhiteShownKey_ = '';
+        liveColorShownKey_ = '';
+        liveEvacShownKey_ = '';
     }
     function replayColorPreview_() {
         if (PREVIEW_WARN !== 'color') return;
@@ -5605,7 +5615,7 @@
                 liveColorPlay_ = false;
                 liveColorShownKey_ = '';
                 stopWarnHero_();
-                gotoAfterRainWarnOrScene1_();
+                continueWarnAfterCurrent_();
                 return;
             }
             if (nextKey !== liveColorShownKey_) {
@@ -5613,7 +5623,7 @@
                 playWarnHero_(items, function () {
                     liveColorPlay_ = false;
                     stopWarnHero_();
-                    gotoAfterRainWarnOrScene1_();
+                    continueWarnAfterCurrent_();
                 }, 2);
             }
         }
@@ -5624,7 +5634,7 @@
                 liveEvacPlay_ = false;
                 liveEvacShownKey_ = '';
                 stopWarnHero_();
-                gotoAfterRainWarnOrScene1_();
+                continueWarnAfterCurrent_();
                 return;
             }
             if (nextKey !== liveEvacShownKey_) {
@@ -5632,26 +5642,13 @@
                 playWarnHero_(items, function () {
                     liveEvacPlay_ = false;
                     stopWarnHero_();
-                    gotoAfterRainWarnOrScene1_();
+                    continueWarnAfterCurrent_();
                 }, 2);
             }
         }
     }
     function finishMainLoopToS1_() {
-        warnHeroPlayedThisLoop_ = false;
-        warnColorLivePlayedThisLoop_ = false;
-        warnEvacPlayedThisLoop_ = false;
-        warnDemoPlayedThisLoop_ = false;
-        liveWhitePlay_ = false;
-        liveWhiteShownKey_ = '';
-        liveColorPlay_ = false;
-        liveEvacPlay_ = false;
-        liveColorShownKey_ = '';
-        liveEvacShownKey_ = '';
-        stopWhiteHero_();
-        stopWarnHero_();
-        if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
-        transitionToScene(s1, playScene1);
+        goToClock_();
     }
     function getWarnHeroLiveItems_() {
         if (!window.WarningHero) return [];
@@ -5660,11 +5657,16 @@
             (rainWarnLiveByLevel_[lv] || []).forEach(function (kind) {
                 const it = WarningHero.itemFromLive(lv, kind);
                 if (it && (it.kind === 'flood' || it.kind === 'rain' || it.kind === 'landslide' || it.kind === 'surge')) {
+                    let when = '';
+                    (rainWhiteQueue || []).forEach(function (e) {
+                        if (e && e.level === lv && e.kind === kind && e.issuedAt) when = e.issuedAt;
+                    });
+                    if (!when) when = rainWarnMeta.issuedAt || rainWarnMeta.updatedAt || '';
                     if (typeof WarningHero.stampPlaceTime === 'function') {
-                        WarningHero.stampPlaceTime(it, rainWarnMeta.cityName, rainWarnMeta.issuedAt || rainWarnMeta.updatedAt);
+                        WarningHero.stampPlaceTime(it, rainWarnMeta.cityName, when);
                     } else {
                         it.place = rainWarnMeta.cityName || it.place;
-                        it.issuedAt = rainWarnMeta.issuedAt || rainWarnMeta.updatedAt || it.issuedAt;
+                        it.issuedAt = when || it.issuedAt;
                     }
                     out.push(it);
                 }
@@ -5798,82 +5800,138 @@
         sceneWarnHero.style.transform = 'translateX(0px)';
         replayColorPreview_();
     }
-    function playWarnHeroThenContinue_(items, cycles) {
+    function playWarnHeroThenContinue_(items, cycles, onEnd) {
         if (!items || !items.length || !sceneWarnHero) {
-            gotoAfterRainWarnOrScene1_();
+            if (onEnd) onEnd();
             return;
         }
         transitionToScene(sceneWarnHero, function () {
             try {
                 playWarnHero_(items, function () {
-                    liveColorPlay_ = false;
-                    liveEvacPlay_ = false;
                     stopWarnHero_();
-                    gotoAfterRainWarnOrScene1_();
+                    if (onEnd) onEnd();
                 }, cycles || 1);
             } catch (err) {
                 liveColorPlay_ = false;
                 liveEvacPlay_ = false;
                 stopWarnHero_();
-                gotoAfterRainWarnOrScene1_();
+                if (onEnd) onEnd();
             }
         });
     }
-    async function gotoAfterRainWarnOrScene1_() {
-        if (s6) setScene6Full_(false);
-        if (!warnHeroPlayedThisLoop_) {
-            warnHeroPlayedThisLoop_ = true;
-            if (isProductionLiveWarn_()) {
-                try {
-                    await updateRainWarnFromJmaDirect_();
-                } catch (e) {}
-                const liveWhite = getLiveWhiteEntries_();
-                if (liveWhite.length && sceneWarn) {
-                    liveWhitePlay_ = true;
-                    rainWhiteQueue = liveWhite;
-                    liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
-                    transitionToScene(sceneWarn, function () {
-                        playWhite(function () {
-                            liveWhitePlay_ = false;
-                            gotoAfterRainWarnOrScene1_();
-                        }, liveWhite);
-                    });
-                    return;
-                }
-            }
+    function continueWarnAfterCurrent_() {
+        if (warnPhase_ === 1) {
+            liveColorPlay_ = false;
+            warnPhase_ = 2;
+            runWarnPhase_();
+            return;
         }
-        liveWhitePlay_ = false;
-        const contentArea = document.querySelector('.content-area');
-        if (contentArea) contentArea.classList.remove('ra-white-canvas');
-        if (sceneWarnHero && window.WarningHero && !warnColorLivePlayedThisLoop_) {
-            warnColorLivePlayedThisLoop_ = true;
+        if (warnPhase_ === 2) {
+            liveWhitePlay_ = false;
+            warnPhase_ = 3;
+            runWarnPhase_();
+            return;
+        }
+        if (warnPhase_ === 3) {
+            liveEvacPlay_ = false;
+            goToClock_();
+            return;
+        }
+        if (warnPhase_ === 4) {
+            warnPhase_ = 1;
+            runWarnPhase_();
+            return;
+        }
+        if (warnPhase_ <= 0) gotoAfterRainWarnOrScene1_();
+    }
+    async function runWarnPhase_() {
+        if (s6) setScene6Full_(false);
+        if (warnPhase_ === 1) {
+            if (isProductionLiveWarn_()) {
+                try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
+            }
+            if (warnPhase_ !== 1) return;
             const liveColor = getWarnHeroLiveItems_();
-            if (liveColor.length) {
+            if (liveColor.length && sceneWarnHero && window.WarningHero) {
                 liveColorPlay_ = true;
                 liveColorShownKey_ = liveColorEntryKey_(liveColor);
-                playWarnHeroThenContinue_(liveColor, 2);
+                playWarnHeroThenContinue_(liveColor, 2, function () {
+                    if (warnPhase_ !== 1) return;
+                    liveColorPlay_ = false;
+                    warnPhase_ = 2;
+                    runWarnPhase_();
+                });
                 return;
             }
+            warnPhase_ = 2;
         }
-        if (sceneWarnHero && window.WarningHero && !warnEvacPlayedThisLoop_) {
-            warnEvacPlayedThisLoop_ = true;
+        if (warnPhase_ === 2) {
+            const liveWhite = getLiveWhiteEntries_();
+            if (liveWhite.length && sceneWarn) {
+                liveWhitePlay_ = true;
+                rainWhiteQueue = liveWhite;
+                liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
+                transitionToScene(sceneWarn, function () {
+                    playWhite(function () {
+                        if (warnPhase_ !== 2) return;
+                        liveWhitePlay_ = false;
+                        warnPhase_ = 3;
+                        runWarnPhase_();
+                    }, liveWhite);
+                });
+                return;
+            }
+            warnPhase_ = 3;
+        }
+        if (warnPhase_ === 3) {
             const liveEvac = getWarnHeroEvacItems_();
-            if (liveEvac.length) {
+            if (liveEvac.length && sceneWarnHero && window.WarningHero) {
                 liveEvacPlay_ = true;
                 liveEvacShownKey_ = liveColorEntryKey_(liveEvac);
-                playWarnHeroThenContinue_(liveEvac, 2);
+                playWarnHeroThenContinue_(liveEvac, 2, function () {
+                    if (warnPhase_ !== 3) return;
+                    liveEvacPlay_ = false;
+                    goToClock_();
+                });
                 return;
             }
+            goToClock_();
+            return;
         }
-        if (sceneWarnHero && window.WarningHero && !warnDemoPlayedThisLoop_ && !isProductionLiveWarn_()) {
+        if (warnPhase_ === 4) {
             const demoHero = getWarnHeroDemoItems_();
-            if (demoHero.length) {
-                warnDemoPlayedThisLoop_ = true;
-                playWarnHeroThenContinue_(demoHero);
+            if (demoHero.length && sceneWarnHero && window.WarningHero) {
+                liveColorPlay_ = false;
+                liveEvacPlay_ = false;
+                playWarnHeroThenContinue_(demoHero, 1, function () {
+                    if (warnPhase_ !== 4) return;
+                    warnPhase_ = 1;
+                    runWarnPhase_();
+                });
                 return;
             }
+            warnPhase_ = 1;
+            runWarnPhase_();
+            return;
         }
-        finishMainLoopToS1_();
+        goToClock_();
+    }
+    function goToClock_() {
+        resetWarnPhase_();
+        stopWhiteHero_();
+        stopWarnHero_();
+        if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
+        transitionToScene(s1, playScene1);
+    }
+    function playLiveThenClock_() {
+        if (warnPhase_ > 0 && warnPhase_ < 4) return;
+        warnPhase_ = 1;
+        runWarnPhase_();
+    }
+    function gotoAfterRainWarnOrScene1_() {
+        if (warnPhase_ > 0) return;
+        warnPhase_ = 4;
+        runWarnPhase_();
     }
     function playSceneRainWarn(startIdx) {
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
@@ -6171,7 +6229,7 @@
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
     let scene5AnimId = null;
     const SCENE6_FACE_W = 128;
-    const SCENE6_LAPS = 2;
+    const SCENE6_LAPS = 1;
     const SCENE6_SLIDE_MS = 450;
     const SCENE6_STEP_MS = 3000;
     const SCENE6_COPIES = 3;
@@ -9503,18 +9561,8 @@
         clearDemoStepTimer_();
         resetLogoRotation();
         setScene6Full_(false);
-        warnHeroPlayedThisLoop_ = false;
-        warnColorLivePlayedThisLoop_ = false;
-        warnEvacPlayedThisLoop_ = false;
-        warnDemoPlayedThisLoop_ = false;
-        liveWhitePlay_ = false;
-        liveWhiteShownKey_ = '';
-        liveColorPlay_ = false;
-        liveEvacPlay_ = false;
-        liveColorShownKey_ = '';
-        liveEvacShownKey_ = '';
-        [s1, s2, s3, s4, s5, s6, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
-        transitionToScene(s1, playScene1);
+        resetWarnPhase_();
+        playLiveThenClock_();
     }
 
     window.onload = async function() {
@@ -9584,15 +9632,11 @@
                 runScheduledFetch({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] }),
                 new Promise(function (resolve) { setTimeout(resolve, 3500); })
             ]);
-            if (s1) {
-                s1.style.display = sceneDisplayMode(s1);
-                s1.classList.add('active');
-            }
             flushInitialDisplay_();
             mainLoopStarted_ = true;
             startLiveWarnPoll_();
             scheduleDataRefresh();
-            playScene1();
+            playLiveThenClock_();
         } catch (err) {
             console.error('Init:', err);
             bootDisplayHold_ = false;
@@ -9607,7 +9651,7 @@
             mainLoopStarted_ = true;
             startLiveWarnPoll_();
             scheduleDataRefresh();
-            playScene1();
+            playLiveThenClock_();
         } finally {
             bootDisplayHold_ = false;
         }

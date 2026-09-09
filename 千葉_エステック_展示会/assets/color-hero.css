@@ -244,3 +244,9 @@ html.native-640 #sceneWarnHero .band-mid::before { animation: none; }
 #sceneWarnHero .hero.is-special .top-time,
 #sceneWarnHero .hero.is-special .bot-txt,
 #sceneWarnHero .hero.is-special .mid-chip { color: #fff; }
+
+/* LED 640×128 / 512×128: 画素1対1で 3px が太く見える。WEBプレビュー（browser-preview）は 3px のまま */
+html.native-640 #sceneWarnHero .mid-chip,
+body.native-640 #sceneWarnHero .mid-chip {
+  -webkit-text-stroke: 1px #000;
+}
