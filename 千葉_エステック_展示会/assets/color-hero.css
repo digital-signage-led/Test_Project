@@ -56,18 +56,11 @@
   bottom: 0;
   left: 0;
   z-index: 0;
-  animation: warn-hero-mid-pulse 1.5s ease-in-out infinite;
 }
 #sceneWarnHero .hero.is-advisory .band-mid::before { background: #cdb800; }
 #sceneWarnHero .hero.is-warning .band-mid::before { background: #c82400; }
 #sceneWarnHero .hero.is-danger .band-mid::before { background: #7a0078; }
 #sceneWarnHero .hero.is-special .band-mid::before { background: #333333; }
-html.native-640 #sceneWarnHero .band-mid::before { animation: none; }
-
-@keyframes warn-hero-mid-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.88; }
-}
 
 #sceneWarnHero .track {
   position: relative;

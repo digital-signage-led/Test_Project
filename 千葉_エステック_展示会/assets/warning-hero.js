@@ -759,30 +759,30 @@
     }
     lockSegWidth(first, UNIT_W);
     while (track.children.length > 1) track.removeChild(track.lastChild);
-    for (var i = 1; i < 6; i++) {
-      if (first.parentNode) track.appendChild(first.cloneNode(true));
-    }
+    if (first.parentNode) track.appendChild(first.cloneNode(true));
     return UNIT_W;
   }
 
+  var fontsReady_ = false;
   function afterLayout(cb) {
     function go() {
       requestAnimationFrame(function () {
         requestAnimationFrame(cb);
       });
     }
-    if (document.fonts && document.fonts.load) {
-      var done = false;
-      function once() {
-        if (done) return;
-        done = true;
-        go();
-      }
-      document.fonts.load('900 40px "Noto Sans JP"').then(once, once);
-      setTimeout(once, 300);
-    } else {
+    if (fontsReady_ || !(document.fonts && document.fonts.load)) {
+      go();
+      return;
+    }
+    var done = false;
+    function once() {
+      if (done) return;
+      done = true;
+      fontsReady_ = true;
       go();
     }
+    document.fonts.load('900 40px "Noto Sans JP"').then(once, once);
+    setTimeout(once, 80);
   }
 
   function createPlayer(opts) {
@@ -799,31 +799,35 @@
     var cycles = Math.max(1, Number(opts.cycles) || 1);
     var cycleCount = 0;
 
+    function applyTrackX_(loopWs, scrollX) {
+      var x = Math.round(scrollX);
+      [topTrack, midTrack, botTrack].forEach(function (track, i) {
+        var w = loopWs[i];
+        if (!track || !(w > 0)) return;
+        track.style.transform = 'translate3d(' + (-(x % w)) + 'px,0,0)';
+      });
+    }
+
     function startSharedScroll(gen, loopWs) {
       if (rafId) cancelAnimationFrame(rafId);
       var scrollX = 0;
       var lastWall = Date.now();
-      var switched = false;
       var oneLoop = loopWs[1] || UNIT_W;
       var step = function () {
         if (gen !== playGen) return;
         var now = Date.now();
         var dt = (now - lastWall) / 1000;
         lastWall = now;
-        if (!(dt > 0) || dt > 0.05) dt = 1 / 60;
+        if (!(dt > 0) || dt > 0.08) dt = 1 / 60;
         scrollX += SPEED * dt;
-        [topTrack, midTrack, botTrack].forEach(function (track, i) {
-          var w = loopWs[i];
-          if (w < 1) return;
-          track.style.transform = 'translate3d(' + (-(scrollX % w)) + 'px,0,0)';
-        });
-        if (!switched && oneLoop > 0 && scrollX >= oneLoop) {
-          switched = true;
-          nextItem();
-          return;
+        while (oneLoop > 0 && scrollX >= oneLoop) {
+          scrollX -= oneLoop;
+          if (!advanceAfterLap_()) return;
         }
+        applyTrackX_(loopWs, scrollX);
         rafId = requestAnimationFrame(step);
       };
+      applyTrackX_(loopWs, 0);
       rafId = requestAnimationFrame(step);
     }
 
@@ -844,17 +848,19 @@
       });
     }
 
-    function nextItem() {
+    function advanceAfterLap_() {
       var next = itemIndex + 1;
       if (next >= items.length) {
         cycleCount += 1;
         if (onCycleEnd && cycleCount >= cycles) {
           onCycleEnd();
-          return;
+          return false;
         }
         next = 0;
       }
+      if (next === itemIndex) return true;
       renderItem(next);
+      return false;
     }
 
     return {
