@@ -34,9 +34,11 @@
 
 ## やってはいけないこと
 
+- **「WEBでは出ていません」は禁止。** サイネージに出る差は、ブラウザで見えなくても直す。あってはならない。
 - 白3段（`.hero.is-white` / `white-hero.css`）と色3段（`#sceneWarnHero`）を混ぜない。
 - 解像度を勝手に1800×360に戻さない（明示の `?out=1800` 以外）。
 - WEB用とLED用で中段の縁・フォント・字サイズを分岐しない（「LEDだけ細く」は禁止）。
+- `paint-order` に頼らない。LEDは無視して縁が前に出る。縁は背面レイヤ、字は前面レイヤ。
 - `replaceChildren`、`element.append(a,b)`、optional chainingなど古いWebViewが落ちる書き方を足さない。
 - コミットしない。依頼がなければ git しない。
 

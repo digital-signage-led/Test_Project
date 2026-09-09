@@ -178,6 +178,7 @@ html.native-640 #sceneWarnHero .band-mid::before { animation: none; }
   margin: 0 auto;
 }
 #sceneWarnHero .mid-chip {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,9 +197,37 @@ html.native-640 #sceneWarnHero .band-mid::before { animation: none; }
   padding: 0 4px;
   box-sizing: border-box;
   margin: 0 auto;
-  -webkit-text-stroke: 3px #000;
-  paint-order: stroke fill;
+  -webkit-text-stroke: 0;
+  paint-order: normal;
   text-shadow: none;
+}
+#sceneWarnHero .mid-chip-stroke,
+#sceneWarnHero .mid-chip-fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  font-family: inherit;
+}
+#sceneWarnHero .mid-chip-stroke {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  color: #fff;
+  -webkit-text-stroke: 3px #000;
+  z-index: 0;
+}
+#sceneWarnHero .mid-chip-fill {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  -webkit-text-stroke: 0;
 }
 
 #sceneWarnHero .badge {
@@ -245,8 +274,3 @@ html.native-640 #sceneWarnHero .band-mid::before { animation: none; }
 #sceneWarnHero .hero.is-special .bot-txt,
 #sceneWarnHero .hero.is-special .mid-chip { color: #fff; }
 
-/* LED 640×128 / 512×128: 画素1対1で 3px が太く見える。WEBプレビュー（browser-preview）は 3px のまま */
-html.native-640 #sceneWarnHero .mid-chip,
-body.native-640 #sceneWarnHero .mid-chip {
-  -webkit-text-stroke: 1px #000;
-}

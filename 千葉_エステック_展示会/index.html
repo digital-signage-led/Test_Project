@@ -1034,16 +1034,25 @@
             font-size: 15px; line-height: 1.12; letter-spacing: 0.01em; margin: 0 auto;
         }
         #sceneWarnHero .mid-chip {
-            display: flex; align-items: center; justify-content: center;
+            position: relative; display: flex; align-items: center; justify-content: center;
             flex: 0 0 auto; width: 100%; max-width: 100%; height: 48px; overflow: hidden;
             white-space: nowrap; text-align: center; font-size: 40px; line-height: 1;
             letter-spacing: 0.02em; transform: none; color: #fff; padding: 0 4px;
             box-sizing: border-box; margin: 0 auto;
-            -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: none;
+            -webkit-text-stroke: 0; paint-order: normal; text-shadow: none;
         }
-        html.native-640 #sceneWarnHero .mid-chip,
-        body.native-640 #sceneWarnHero .mid-chip {
-            -webkit-text-stroke: 1px #000;
+        #sceneWarnHero .mid-chip-stroke,
+        #sceneWarnHero .mid-chip-fill {
+            display: flex; align-items: center; justify-content: center;
+            white-space: nowrap; font-size: inherit; font-weight: inherit;
+            letter-spacing: inherit; line-height: inherit; font-family: inherit;
+        }
+        #sceneWarnHero .mid-chip-stroke {
+            position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+            color: #fff; -webkit-text-stroke: 3px #000; z-index: 0;
+        }
+        #sceneWarnHero .mid-chip-fill {
+            position: relative; z-index: 1; color: #fff; -webkit-text-stroke: 0;
         }
         #sceneWarnHero .badge {
             flex: 0 0 auto; background: #fff; padding: 2px 6px; border-radius: 2px; line-height: 1;
@@ -1177,15 +1186,17 @@
         #scene3 .t3-guid-bar .s2-meta-msg-scroll {
             display: inline-flex; align-items: center;
             height: var(--led-foot-bar-h); max-height: var(--led-foot-bar-h);
-            line-height: 1.12; overflow: hidden; box-sizing: border-box;
-            font-size: 15px; padding: 0 4px;
+            line-height: var(--led-foot-bar-h); overflow: visible; box-sizing: border-box;
+            font-size: 15px; padding: 0 8px;
         }
         #scene3 .t3-guid-bar .s2-meta-set-flow {
-            min-width: 0; width: auto;
+            width: max-content; min-width: 0; max-width: none;
         }
         #scene3 .t3-guid-bar .s2-meta-slot-flow {
-            min-width: 0; width: auto;
-            padding: 0 10px;
+            width: auto; min-width: 0; max-width: none;
+            flex: 0 0 auto;
+            overflow: visible;
+            padding: 0 12px;
             justify-content: flex-start;
         }
         .t3-scroll-body {
@@ -2179,7 +2190,7 @@
         #sceneWarn .white-foot-chip.chip-advisory { background: #f2e700; color: #1a1a1a; }
     </style>
     <link rel="stylesheet" href="./assets/white-hero.css?v=20260907-vpad">
-    <link rel="stylesheet" href="./assets/color-hero.css?v=20260909-led1px">
+    <link rel="stylesheet" href="./assets/color-hero.css?v=20260909-filltop">
 </head>
 <body class="native-640">
 <script>
@@ -2784,7 +2795,7 @@
 
 </script>
 <script src="./assets/jma-warning-kinds.js?v=20260907-nolev"></script>
-<script src="./assets/warning-hero.js?v=20260909-evac"></script>
+<script src="./assets/warning-hero.js?v=20260909-filltop"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード。未指定時は本番（実データ取得） */
@@ -4805,9 +4816,9 @@
         }, LIVE_WARN_POLL_MS);
     }
     function rainWarnDemoLaps_() {
-        if (liveWhitePlay_) return 2;
+        if (liveWhitePlay_) return 3;
         if (isRainWarnCatalogDemo_()) return 1;
-        if (isProductionLiveWarn_()) return 2;
+        if (isProductionLiveWarn_()) return 3;
         return RA_LAPS_BEFORE_SWITCH;
     }
     let raAnimId = null;
@@ -4997,7 +5008,7 @@
     }
     /* signage-512.html playWhite。replaceChildren / append(a,b) は使わない */
     const WHITE_SPEED = 56;
-    const WHITE_LIVE_LAPS = 2; /* 発表中の白3段は2周 */
+    const WHITE_LIVE_LAPS = 3; /* 発表中の白3段は3周 */
     let whitePlayGen_ = 0;
     let whiteRafId_ = 0;
     function stopWhiteHero_() {
@@ -5855,7 +5866,7 @@
             if (liveColor.length && sceneWarnHero && window.WarningHero) {
                 liveColorPlay_ = true;
                 liveColorShownKey_ = liveColorEntryKey_(liveColor);
-                playWarnHeroThenContinue_(liveColor, 2, function () {
+                playWarnHeroThenContinue_(liveColor, 3, function () {
                     if (warnPhase_ !== 1) return;
                     liveColorPlay_ = false;
                     warnPhase_ = 2;
@@ -5888,7 +5899,7 @@
             if (liveEvac.length && sceneWarnHero && window.WarningHero) {
                 liveEvacPlay_ = true;
                 liveEvacShownKey_ = liveColorEntryKey_(liveEvac);
-                playWarnHeroThenContinue_(liveEvac, 2, function () {
+                playWarnHeroThenContinue_(liveEvac, 3, function () {
                     if (warnPhase_ !== 3) return;
                     liveEvacPlay_ = false;
                     goToClock_();
@@ -9039,30 +9050,21 @@
         const bar = document.querySelector('#scene3 .t3-guid-bar');
         const probe = document.querySelector('#scene3 .t3-guid-bar .s2-meta-msg-scroll');
         if (!bar || !probe) return;
-        const barH = bar.clientHeight > 0 ? bar.clientHeight : 28;
-        const maxH = barH - 1;
+        const barH = bar.clientHeight > 0 ? bar.clientHeight : 32;
         const targets = document.querySelectorAll('#scene3 .t3-guid-bar .s2-meta-msg-scroll');
         let fz = 15;
-        const minFz = 11;
-        const maxFz = 17;
+        const minFz = 12;
         const applyGuide_ = function () {
             targets.forEach(function (n) {
                 n.style.fontSize = fz + 'px';
-                n.style.lineHeight = maxH + 'px';
-                n.style.fontWeight = '';
+                n.style.lineHeight = barH + 'px';
+                n.style.height = barH + 'px';
+                n.style.maxHeight = barH + 'px';
+                n.style.fontWeight = '700';
             });
         };
         applyGuide_();
-        while (fz < maxFz) {
-            fz += 1;
-            applyGuide_();
-            if (probe.scrollHeight > maxH) {
-                fz -= 1;
-                applyGuide_();
-                break;
-            }
-        }
-        while (fz > minFz && probe.scrollHeight > maxH) {
+        while (fz > minFz && probe.scrollHeight > barH) {
             fz -= 1;
             applyGuide_();
         }

@@ -433,12 +433,29 @@
     return seg;
   }
 
+  function midChipLabel_(el) {
+    if (!el) return '';
+    var fill = el.querySelector('.mid-chip-fill');
+    if (fill) return fill.textContent || '';
+    return el.getAttribute('data-mid') || el.textContent || '';
+  }
+
   function makeMidSeg(scene) {
     var seg = document.createElement('div');
     seg.className = 'seg';
     var chip = document.createElement('span');
     chip.className = 'mid-chip';
-    chip.textContent = formatColorMid_(scene);
+    var label = formatColorMid_(scene);
+    chip.setAttribute('data-mid', label);
+    var stroke = document.createElement('span');
+    stroke.className = 'mid-chip-stroke';
+    stroke.setAttribute('aria-hidden', 'true');
+    stroke.textContent = label;
+    var fill = document.createElement('span');
+    fill.className = 'mid-chip-fill';
+    fill.textContent = label;
+    chip.appendChild(stroke);
+    chip.appendChild(fill);
     seg.appendChild(chip);
     return seg;
   }
@@ -548,7 +565,7 @@
     if (!el) return;
     var isMid = el.classList.contains('mid-chip');
     var extra = isMid ? 6 : 0;
-    var n = String(el.textContent || '').length || 1;
+    var n = String(isMid ? midChipLabel_(el) : (el.textContent || '')).length || 1;
     var budget = Math.max(40, maxW - extra);
     var px = pxByChars_(budget, n, maxPx, 0);
     if (n >= 6) el.style.letterSpacing = '0';
@@ -663,7 +680,7 @@
   }
 
   function measureMidWidth(mid) {
-    var text = mid && mid.textContent ? mid.textContent : '';
+    var text = midChipLabel_(mid);
     var font = '900 36px "Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif';
     var letter = Math.ceil(0.04 * 36 * Math.max(0, text.length - 1));
     var stroke = 8;
