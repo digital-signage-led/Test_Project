@@ -95,6 +95,7 @@
 }
 
 .white-what {
+  display: none !important;
   flex: 0 0 auto;
   font-size: 16px;
   font-weight: 900;

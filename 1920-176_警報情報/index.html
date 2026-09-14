@@ -21,20 +21,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=swap">
     <script>
-/** 15面 1920×176。実寸は常に同じCSS。画面が大きいときだけ拡大プレビュー。1920×176端末はネイティブ */
+/** 15面 1920×176 固定。?previewScale=1 のときだけウィンドウに合わせて縮小表示 */
 (function () {
     var q = new URLSearchParams(location.search);
     var STAGE_W = 1920;
     var STAGE_H = 176;
     var CONTENT_W = 1792;
-    var w = window.innerWidth || STAGE_W;
-    var h = window.innerHeight || STAGE_H;
-    /* LEDは 1920×176。PC確認だけ高さ400超で拡大プレビュー */
-    var looksDesktop = h > 400 && w > 700;
-    var forceNative;
+    /* 本番・確認とも解像度は常に 1920×176。縮小プレビューは明示指定時のみ */
+    var forceNative = true;
+    if (q.get('previewScale') === '1' || q.get('native1920') === '0' || q.get('native640') === '0') forceNative = false;
     if (q.get('native1920') === '1' || q.get('native640') === '1' || q.get('embed') === '1') forceNative = true;
-    else if (q.get('native1920') === '0' || q.get('native640') === '0') forceNative = false;
-    else forceNative = !looksDesktop;
     var vp = document.querySelector('meta[name="viewport"]');
     if (vp) {
         vp.setAttribute('content', forceNative
@@ -116,7 +112,20 @@
             --hero-band-mid: 80px;
             --hero-band-bot: 48px;
         }
+        html, body {
+            margin: 0 !important; padding: 0 !important;
+            width: 1920px; height: 176px;
+            max-width: 1920px; max-height: 176px;
+            overflow: hidden !important;
+            background-color: #1a1a1a;
+            font-family: "Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+        }
         body { margin: 0; padding: 0; background-color: #1a1a1a; overflow: hidden; font-family: "Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif; }
+        html.no-clock-scene #scene1,
+        html.no-forecast-scene #scene5,
+        html.no-multilingual-scene #scene3 { display: none !important; }
+        html.no-time-display #sceneWarnHero .top-time,
+        html.no-time-display #sceneWarn .white-what { display: none !important; }
         .demo-badge {
             position: fixed; top: 0; left: 0; z-index: 9999;
             padding: 4px 10px; background: rgba(0,0,0,0.75); color: #fff;
@@ -955,6 +964,8 @@
             flex: 0 0 auto; width: auto; max-width: 100%; gap: 2px; min-width: 0;
             overflow: visible; margin: 0 auto;
         }
+        #sceneWarnHero .top-time { display: none !important; }
+        #sceneWarn .white-what { display: none !important; }
         #sceneWarnHero .top-place, #sceneWarnHero .top-label, #sceneWarnHero .top-sep, #sceneWarnHero .top-time {
             flex: 0 0 auto; white-space: nowrap; line-height: 1; font-weight: 900;
         }
@@ -962,6 +973,7 @@
         #sceneWarnHero .top-sep { opacity: 0.4; font-size: 18px; font-weight: 700; padding: 0 1px; }
         #sceneWarnHero .top-label { font-size: 24px; letter-spacing: 0.01em; overflow: visible; text-align: center; }
         #sceneWarnHero .top-time {
+            display: none !important;
             font-size: 18px; letter-spacing: 0.02em; padding: 2px 5px; border-radius: 2px;
             background: rgba(255,255,255,0.2);
         }
@@ -2712,14 +2724,23 @@
     const NO_JMA_WARN = false;
     /** 熱中症アラートシーンは出さない（環境省発表時も非表示） */
     const NO_HEAT_ALERT = true;
+    /** 時刻シーン・4日予報・多言語は出さない（気象庁観測＋環境省WBGT＋警報のみ） */
+    const NO_CLOCK_SCENE = true;
+    const NO_FORECAST_SCENE = true;
+    const NO_MULTILINGUAL_SCENE = true;
+    /** 警報・観測の時刻表示は出さない */
+    const NO_TIME_DISPLAY = true;
+    if (NO_CLOCK_SCENE) document.documentElement.classList.add('no-clock-scene');
+    if (NO_FORECAST_SCENE) document.documentElement.classList.add('no-forecast-scene');
+    if (NO_MULTILINGUAL_SCENE) document.documentElement.classList.add('no-multilingual-scene');
+    if (NO_TIME_DISPLAY) document.documentElement.classList.add('no-time-display');
     const RAIN_HERO_OFF = query.get('rainhero') === '0';
     const RAIN_WHITE_DESIGN = query.get('rainwhite') === '1';
     /* 3段デザイン案は確認ボードと同じく既定ON（?rainhero=0 で従来レイアウト） */
     const RAIN_HERO_DESIGN = !RAIN_HERO_OFF && !RAIN_WHITE_DESIGN;
     /*
-     * 流れる順の表示番号（順序は変えずラベルのみ）
-     *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
-     *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
+     * 流れる順（本番）: 警報 → 気象庁観測(s2) → 環境省WBGT(s4) → 警報へ
+     * 時刻(s1)・4日予報(s5)・多言語(s3)は非表示
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
      */
     function normalizeOnlyParam_(raw) {
@@ -4937,16 +4958,6 @@
         area.className = 'white-area';
         area.style.cssText = 'flex:0 0 auto;font-size:15px;font-weight:900;color:#0854a8;letter-spacing:0.3px;white-space:nowrap';
         area.textContent = getJmaWarnPlaceLabel_();
-        const clock = whiteFormatIssuedClock_(issuedAt);
-        const updatedClock = whiteFormatIssuedClock_(updatedAt || issuedAt);
-        const issued = document.createElement('span');
-        issued.className = 'white-what';
-        issued.style.cssText = 'flex:0 0 auto;font-size:14px;font-weight:900;color:#0854a8;letter-spacing:0.2px;white-space:nowrap';
-        issued.textContent = '発表 ' + clock;
-        const updated = document.createElement('span');
-        updated.className = 'white-what';
-        updated.style.cssText = 'flex:0 0 auto;font-size:14px;font-weight:900;color:#0854a8;letter-spacing:0.2px;white-space:nowrap';
-        updated.textContent = '更新 ' + updatedClock;
         const badge = document.createElement('span');
         badge.className = 'badge';
         badge.style.cssText = 'flex:0 0 auto;background:#fff;border:1px solid #0854a8;padding:3px 8px;border-radius:2px;line-height:1';
@@ -4955,8 +4966,20 @@
         badgeTxt.textContent = isDemo ? 'デモ' : '発表中';
         badge.appendChild(badgeTxt);
         seg.appendChild(area);
-        seg.appendChild(issued);
-        seg.appendChild(updated);
+        if (!NO_TIME_DISPLAY) {
+            const clock = whiteFormatIssuedClock_(issuedAt);
+            const updatedClock = whiteFormatIssuedClock_(updatedAt || issuedAt);
+            const issued = document.createElement('span');
+            issued.className = 'white-what';
+            issued.style.cssText = 'flex:0 0 auto;font-size:14px;font-weight:900;color:#0854a8;letter-spacing:0.2px;white-space:nowrap';
+            issued.textContent = '発表 ' + clock;
+            const updated = document.createElement('span');
+            updated.className = 'white-what';
+            updated.style.cssText = 'flex:0 0 auto;font-size:14px;font-weight:900;color:#0854a8;letter-spacing:0.2px;white-space:nowrap';
+            updated.textContent = '更新 ' + updatedClock;
+            seg.appendChild(issued);
+            seg.appendChild(updated);
+        }
         seg.appendChild(badge);
         return seg;
     }
@@ -5809,6 +5832,11 @@
         stopWhiteHero_();
         stopWarnHero_();
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
+        if (NO_CLOCK_SCENE) {
+            if (!s2) { gotoSceneAfterScene2_(); return; }
+            transitionToScene(s2, playScene2);
+            return;
+        }
         transitionToScene(s1, playScene1);
     }
     function playLiveThenClock_() {
@@ -7543,6 +7571,7 @@
     /* 本体10面と同じ順。白帯文字は1〜9のみ、10ロゴ枠は空 */
     const SCENE2_PANEL_ORDER = ['weather', 'temp', 'rain', 'wdir', 'wind', 'humi', 'pres', 'tmaxmin', 'gust'];
     function scene2FootTextForType_(type, obs) {
+        if (NO_TIME_DISPLAY) return getSiteLocationLabel_() || '';
         switch (type) {
             case 'rain': return obs.time;
             case 'tmaxmin': return obs.date;
@@ -7554,11 +7583,14 @@
         if (type === 'logo') {
             return '<div class="s2-meta-slot s2-meta-slot-panel s2-meta-slot-logo" aria-hidden="true"></div>';
         }
-        const foot = scene2FootTextForType_(type, obs);
+        const loc = getSiteLocationLabel_() || '天気';
         let txt;
-        if (type === 'weather') {
-            txt = getSiteLocationLabel_() || '天気';
+        if (NO_TIME_DISPLAY) {
+            txt = loc;
+        } else if (type === 'weather') {
+            txt = loc;
         } else {
+            const foot = scene2FootTextForType_(type, obs);
             const label = SCENE2_META_SHORT[type] || '';
             txt = label ? (label + ' ' + foot) : foot;
         }
@@ -8904,6 +8936,7 @@
         syncScene3Display_(false);
     }
     function playScene3() {
+        if (NO_MULTILINGUAL_SCENE) { gotoAfterScene3_(); return; }
         if (tickerAnimId) { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; }
         if (wbgtOffSeason) {
             if (previewOffSeasonHold_('s3', playScene3)) return;
@@ -8969,6 +9002,11 @@
         });
     }
     function playScene1() {
+        if (NO_CLOCK_SCENE) {
+            if (!s2) { gotoSceneAfterScene2_(); return; }
+            transitionToScene(s2, playScene2);
+            return;
+        }
         const advanceToken = scene1AdvanceToken + 1;
         if (pendingSignageBgRefresh_) applyPendingSignageBgAtScene_();
         clearScene1WbgtTimers();
@@ -9032,13 +9070,17 @@
         if (!s4) { gotoSceneAfterScene4_(); return; }
         transitionToScene(s4, playScene4);
     }
-    /* シーン3（WBGT表示）の次はシーン4（4日予報） */
+    /* WBGT表示の次 → 4日予報は出さない。多言語も出さないので警報ループへ */
     function gotoSceneAfterScene4_() {
+        if (NO_FORECAST_SCENE) {
+            gotoAfterScene3_();
+            return;
+        }
         transitionToScene(s5, playScene5);
     }
-    /* シーン4（4日予報）の次はシーン5（多言語WBGT） */
+    /* 4日予報の次 → 多言語は出さない */
     function gotoSceneAfterScene5_() {
-        if (!s3) { gotoAfterScene3_(); return; }
+        if (NO_MULTILINGUAL_SCENE || !s3) { gotoAfterScene3_(); return; }
         transitionToScene(s3, playScene3);
     }
     function playScene2() {
@@ -9151,6 +9193,7 @@
         });
     }
     function playScene5() {
+        if (NO_FORECAST_SCENE) { gotoSceneAfterScene5_(); return; }
         if (!s5 || !d5Conveyor) { gotoSceneAfterScene5_(); return; }
         if (scene5AnimId) cancelAnimationFrame(scene5AnimId);
         applyDisplayRefreshAtSceneEntry_();

@@ -424,7 +424,7 @@
     unit.className = 'unit';
     addTopPart_(unit, 'top-place', (scene && scene.place) || defaultPlace_());
     addTopPart_(unit, 'top-label', (scene && scene.levelLabel) || '');
-    addTopPart_(unit, 'top-time', formatIssuedClock_(scene && scene.issuedAt));
+    /* 時刻表示は出さない */
     var badge = document.createElement('span');
     badge.className = 'badge';
     badge.innerHTML = '<span>' + (scene.badge || '発表中') + '</span>';
