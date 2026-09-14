@@ -36,6 +36,7 @@
     }
     function applyRoot_() {
         var root = document.documentElement;
+        root.classList.add('is-loading');
         root.classList.add('native-1920');
         root.classList.add('player-fit');
         root.classList.add('no-logo-panel');
@@ -48,6 +49,7 @@
     applyRoot_();
     function addBody_() {
         if (!document.body) return;
+        document.body.classList.add('is-loading');
         document.body.classList.remove('layout-512');
         document.documentElement.classList.remove('layout-512');
         document.body.classList.add('native-1920');
@@ -141,6 +143,29 @@
 
     </script>
     <style>
+        /* 初期表示制御（FOUC / 未完成画面対策）— 巨大CSSより先に適用 */
+        html.is-loading,
+        html.is-loading body,
+        body.is-loading {
+            background: #000 !important;
+            background-color: #000 !important;
+        }
+        html.is-loading .stage-shell,
+        html.is-loading .canvas,
+        body.is-loading .stage-shell,
+        body.is-loading .canvas {
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        html:not(.is-loading) .stage-shell,
+        html:not(.is-loading) .canvas,
+        body:not(.is-loading) .stage-shell,
+        body:not(.is-loading) .canvas {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 150ms ease;
+        }
         :root {
             --stage-w: 1920px;
             --stage-h: 176px;
@@ -978,7 +1003,8 @@
         #scene5 { overflow: hidden; }
 
         /* 色3段（警戒レベル）— 外部CSSが落ちても横一列で見えるようここに正を置く */
-        #sceneWarnHero { width: var(--content-w); height: 176px !important; min-height: 176px !important; max-height: 176px !important; overflow: hidden; background: #f2e700; }
+        /* コンテナ初期色は黒（空のまま active になると黄色い帯だけ見えるのを防ぐ）。実色は .hero.is-* */
+        #sceneWarnHero { width: var(--content-w); height: 176px !important; min-height: 176px !important; max-height: 176px !important; overflow: hidden; background: #000; }
         #sceneWarnHero.active { display: block !important; z-index: 3; }
         #sceneWarnHero .hero {
             width: var(--content-w); height: 176px !important; min-height: 176px !important; max-height: 176px !important;
@@ -2212,7 +2238,7 @@
     <link rel="stylesheet" href="./assets/white-hero.css?v=20260914-nologo">
     <link rel="stylesheet" href="./assets/color-hero.css?v=20260914-nologo">
 </head>
-<body class="native-1920">
+<body class="native-1920 is-loading">
 <!-- 位置情報だけ差し替え: assets/site-config.js（雛形は site-config.template.js） -->
 <script src="./assets/site-config.js?v=20260914-nagoya"></script>
 <div class="demo-badge" id="demo-badge" hidden>デモ</div>
@@ -2777,7 +2803,7 @@
 
 </script>
 <script src="./assets/jma-warning-kinds.js?v=20260907-nolev"></script>
-<script src="./assets/warning-hero.js?v=20260914-nologo"></script>
+<script src="./assets/warning-hero.js?v=20260914-bootreveal"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード。未指定時は本番（実データ取得） */
@@ -3077,6 +3103,36 @@
     let mainLoopStarted_ = false;
     /** 起動直後: 初回取得完了まで表示組み替えを一括保留 */
     let bootDisplayHold_ = false;
+    /** 初回シーンの完成描画まで .canvas を隠す（固定秒待ち禁止） */
+    const appBootT0_ = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    let appRevealDone_ = false;
+    let revealWhenFirstScenePainted_ = false;
+    function waitForNextPaint_() {
+        return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () { resolve(); });
+            });
+        });
+    }
+    async function revealSignageApp_(reason) {
+        if (appRevealDone_) return;
+        appRevealDone_ = true;
+        revealWhenFirstScenePainted_ = false;
+        bootDisplayHold_ = false;
+        try {
+            if (typeof window.fitToPlayer_ === 'function') window.fitToPlayer_();
+        } catch (e) {}
+        await waitForNextPaint_();
+        document.documentElement.classList.remove('is-loading');
+        if (document.body) document.body.classList.remove('is-loading');
+        const ms = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - appBootT0_);
+        console.log('[boot] reveal', reason || 'ready', ms + 'ms');
+        window.__SIGNAGE_BOOT_REVEAL_MS__ = ms;
+    }
+    function notifyFirstScenePainted_(reason) {
+        if (!revealWhenFirstScenePainted_ || appRevealDone_) return;
+        revealSignageApp_(reason || 'first-scene');
+    }
     let lastS1FootMsg_ = '';
     let lastFcLvText_ = '';
     let lastT3GuideText_ = '';
@@ -5206,6 +5262,7 @@
                     prepareWhiteMidChips_(whiteMidTrack),
                     prepareWhiteMidChips_(whiteBotTrack)
                 ];
+                notifyFirstScenePainted_('white-hero');
                 let scrollX = 0;
                 let lastTs = 0;
                 const oneLoop = loopWs[1] || 256;
@@ -5711,7 +5768,8 @@
             botTrack: document.getElementById('wh-botTrack'),
             items: items,
             cycles: cycles || 1,
-            onCycleEnd: onEnd || null
+            onCycleEnd: onEnd || null,
+            onReady: function () { notifyFirstScenePainted_('color-hero'); }
         });
         warnHeroPlayer_.play(0);
     }
@@ -5879,6 +5937,7 @@
             return;
         }
         if (warnPhase_ === 4) {
+            /* デモ警報カタログ（注意報〜特別警報）を流す */
             const demoHero = getWarnHeroDemoItems_();
             if (demoHero.length && sceneWarnHero && window.WarningHero) {
                 liveColorPlay_ = false;
@@ -5915,6 +5974,7 @@
     }
     function gotoAfterRainWarnOrScene1_() {
         if (warnPhase_ > 0) return;
+        /* 気象観測のあと → デモ警報カタログ → 実警報 → 観測… */
         warnPhase_ = 4;
         runWarnPhase_();
     }
@@ -7008,7 +7068,7 @@
         buildFcLvTrack(false);
         setS1FootBarVisible_(hasS1WbgtFootMessage_());
     }
-    /** 起動直後: キャッシュ／初期色をすぐ描画（画面を隠さない＝青画面にしない） */
+    /** 起動直後: キャッシュ／初期色を裏側で準備（is-loading 中は canvas 非表示） */
     function paintBootSplash_() {
         if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
@@ -9076,6 +9136,7 @@
             transitionToScene(s2, playScene2);
             return;
         }
+        notifyFirstScenePainted_('scene1');
         const advanceToken = scene1AdvanceToken + 1;
         if (pendingSignageBgRefresh_) applyPendingSignageBgAtScene_();
         clearScene1WbgtTimers();
@@ -9158,6 +9219,7 @@
         compactScene2Panels();
         buildScene2MetaTrack(lastAmedasObsTime);
         fitScene2BodyText();
+        notifyFirstScenePainted_('scene2');
         if (scene2AnimId) cancelAnimationFrame(scene2AnimId);
         stepLogo90(420, true);
         if (isFullDemoStep_()) {
@@ -9476,8 +9538,13 @@
         playLiveThenClock_();
     }
 
-    window.onload = async function() {
+    async function bootSignageApp_() {
+        if (bootSignageApp_.started_) return;
+        bootSignageApp_.started_ = true;
+        document.documentElement.classList.add('is-loading');
+        if (document.body) document.body.classList.add('is-loading');
         bootDisplayHold_ = true;
+        revealWhenFirstScenePainted_ = false;
         restoreSignageStateCache_();
         if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         applySiteLocationLabels_();
@@ -9488,24 +9555,68 @@
             if (logoEl.getAttribute('src') !== logoCfg.logoSrc) logoEl.src = logoCfg.logoSrc;
             logoEl.alt = logoCfg.logoAlt || '';
         }
+
+        function armFirstSceneReveal_() {
+            revealWhenFirstScenePainted_ = true;
+        }
+        function firstSceneContentReady_() {
+            if (sceneWarnHero && sceneWarnHero.classList.contains('active')) {
+                const mid = document.getElementById('wh-midTrack');
+                return !!(mid && mid.children.length);
+            }
+            if (sceneWarn && sceneWarn.classList.contains('active')) {
+                return !!(whiteMidTrack && whiteMidTrack.children.length);
+            }
+            if (s2 && s2.classList.contains('active')) return true;
+            if (s1 && s1.classList.contains('active')) return true;
+            if (sceneRainWarn && sceneRainWarn.classList.contains('active')) return true;
+            if (sceneAlert && sceneAlert.classList.contains('active')) return true;
+            return false;
+        }
+        /** 初回シーンDOMが揃うまで待つ（固定ms待ち禁止。無限ローディング防止のフレーム上限のみ） */
+        async function waitForBootReveal_(reason) {
+            if (appRevealDone_) return;
+            let frames = 0;
+            while (!appRevealDone_ && frames < 180) {
+                if (firstSceneContentReady_()) {
+                    await revealSignageApp_(reason || 'content-ready');
+                    return;
+                }
+                await waitForNextPaint_();
+                frames += 1;
+            }
+            if (!appRevealDone_) await revealSignageApp_(reason ? (reason + '-safety') : 'safety');
+        }
+        async function ensureRevealed_(reason) {
+            await waitForBootReveal_(reason || 'fallback');
+        }
+
         if (false && DEMO_ALERT_ONLY && !NO_HEAT_ALERT) {
             bootDisplayHold_ = false;
-            setTimeout(startAlertOnlyDemo_, 300);
+            armFirstSceneReveal_();
+            startAlertOnlyDemo_();
+            await ensureRevealed_('demo-alert');
             return;
         }
         if (PREVIEW_WARN === 'white') {
             bootDisplayHold_ = false;
-            setTimeout(startWhiteWarnPreview_, 300);
+            armFirstSceneReveal_();
+            await startWhiteWarnPreview_();
+            await ensureRevealed_('preview-white');
             return;
         }
         if (PREVIEW_WARN === 'color') {
             bootDisplayHold_ = false;
-            setTimeout(startColorWarnPreview_, 300);
+            armFirstSceneReveal_();
+            await startColorWarnPreview_();
+            await ensureRevealed_('preview-color');
             return;
         }
         if (PREVIEW_WARN === 'demo' || DEMO_RAINWARN_ONLY) {
             bootDisplayHold_ = false;
-            setTimeout(startRainWarnOnlyDemo_, 300);
+            armFirstSceneReveal_();
+            startRainWarnOnlyDemo_();
+            await ensureRevealed_('preview-rainwarn');
             return;
         }
         if (DEMO_SIGNAGE_ACTIVE) {
@@ -9518,19 +9629,24 @@
                 syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
             }, CLOCK_SYNC_INTERVAL_MS);
             applyDemoWeatherStatic();
+            armFirstSceneReveal_();
             if (DEMO_PREVIEW === 's1' || DEMO_PREVIEW === 's3') {
                 startPreviewDemo_(DEMO_PREVIEW);
+                await ensureRevealed_('demo-preview');
                 return;
             }
             if (DEMO_ONLY && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rainwarn') {
-                setTimeout(startSingleSceneDemo_, 200);
+                startSingleSceneDemo_();
+                await ensureRevealed_('demo-only');
                 return;
             }
             applyDemoLevel(DEMO_LEVEL_FIXED != null ? DEMO_LEVEL_FIXED : DEMO_LEVEL_ORDER[0]);
-            setTimeout(startSequence, 500);
+            startSequence();
+            await ensureRevealed_('demo-sequence');
             return;
         }
-        /* 時計はデータ取得より先に開始（取得完了待ちでずれない／止まらない） */
+
+        /* 時計はデータ取得と並行（表示は is-loading 解除後） */
         applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
         startClockTicker();
@@ -9538,17 +9654,29 @@
             syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
         }, CLOCK_SYNC_INTERVAL_MS);
         syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
+
         try {
-            await Promise.race([
-                runScheduledFetch({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] }),
-                new Promise(function (resolve) { setTimeout(resolve, 3500); })
+            /* 初回表示に必要な気象庁データ。WBGT/予報はシーン無効時は待たない */
+            const needMoe = !NO_WBGT_SCENE;
+            const needForecast = !NO_FORECAST_SCENE;
+            const needNowc = !NO_HEAT_ALERT;
+            await Promise.all([
+                runScheduledFetch({
+                    jma: true,
+                    moe: needMoe,
+                    nowc: needNowc,
+                    forecast: needForecast,
+                    labels: ['起動']
+                }).catch(function (e) { console.warn('[boot] fetch', e); }),
+                updateRainWarnFromJmaDirect_().catch(function (e) { console.warn('[boot] warn', e); })
             ]);
-            try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
             flushInitialDisplay_();
             mainLoopStarted_ = true;
             startLiveWarnPoll_();
             scheduleDataRefresh();
+            armFirstSceneReveal_();
             playLiveThenClock_();
+            await waitForBootReveal_('init-complete');
         } catch (err) {
             console.error('Init:', err);
             bootDisplayHold_ = false;
@@ -9564,9 +9692,12 @@
             startLiveWarnPoll_();
             scheduleDataRefresh();
             try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
+            armFirstSceneReveal_();
             playLiveThenClock_();
+            await waitForBootReveal_('error-fallback');
         } finally {
             bootDisplayHold_ = false;
+            if (!appRevealDone_) await waitForBootReveal_('finally');
         }
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
@@ -9574,7 +9705,14 @@
                 startBackgroundFetch_({ jma: true, moe: true, nowc: true, forecast: true, labels: ['復帰'] });
             }
         });
-    };
+    }
+    bootSignageApp_.started_ = false;
+    /* window.onload 待ち（フォント・画像）で未完成画面を晒さない。DOM+スクリプト直後に起動 */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { bootSignageApp_(); });
+    } else {
+        bootSignageApp_();
+    }
 
 
 </script>

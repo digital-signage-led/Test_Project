@@ -798,6 +798,8 @@
     var botTrack = opts.botTrack;
     var onItem = opts.onItem || function () {};
     var onCycleEnd = opts.onCycleEnd || null;
+    var onReady = opts.onReady || null;
+    var readyFired = false;
     var items = (opts.items || []).slice();
     var itemIndex = 0;
     var playGen = 0;
@@ -808,6 +810,11 @@
     var holdStartMs = opts.holdStartMs != null ? Number(opts.holdStartMs) : 1000;
     var holdEndMs = opts.holdEndMs != null ? Number(opts.holdEndMs) : 1000;
     var needStartHold = true;
+    function fireReady_() {
+      if (readyFired || !onReady) return;
+      readyFired = true;
+      try { onReady(); } catch (e) {}
+    }
 
     function clearHold_() {
       if (holdId) {
@@ -847,6 +854,7 @@
         rafId = requestAnimationFrame(step);
       };
       applyTrackX_(loopWs, 0);
+      fireReady_();
       function begin() {
         holdId = 0;
         if (gen !== playGen) return;
