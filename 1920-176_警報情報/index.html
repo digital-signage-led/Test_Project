@@ -1,48 +1,46 @@
 <!DOCTYPE html>
-<!-- wbgt-cube-hiroshima-estec-aki-15face / 位置情報＝安芸区（呉観測） -->
-<!-- 1920サイズ: 本番 1920×176（15面・右端ロゴ128×176） -->
-<!-- 左14面(1792×176): 情報を横スクロール / 右端1面: 固定ロゴ -->
-<!-- 流れる途中のロゴは除外。ロゴ・位置は assets/site-config.js -->
-<!-- 同階層: assets/estec_foot_lockup.png / assets/estec_logo.png -->
-<!-- 会場・WBGT・警報の地点は assets/site-config.js（安芸区 / 呉 67511 / 警報 3410300） -->
-<!-- build 20260914-aki-1920x176 -->
+<!-- wbgt-cube-15face-1920x176 / 位置情報＝名古屋市 -->
+<!-- 1920サイズ: 本番 1920×176（15面・ロゴなし） -->
+<!-- 15面(1920×176): 情報を横スクロール（右端ロゴなし） -->
+<!-- 位置は assets/site-config.js -->
+<!-- 同階層: assets/（ロゴは非表示） -->
+<!-- 会場・警報の地点は assets/site-config.js（名古屋市 / AMeDAS 51106 / 警報 2310000） -->
+<!-- build 20260914-nagoya-1920x176-nologo -->
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1920, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=1920, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v2 / 表示・同期は常に Asia/Tokyo（端末TZ非依存） -->
-    <title>WBGT Signage 15面 1920×176 - 安芸区（呉観測）</title>
+    <title>WBGT Signage 15面 1920×176 - 名古屋市</title>
     <link rel="preload" as="image" href="./assets/estec_foot_lockup.png?v=2">
     <link rel="preload" as="image" href="./assets/estec_logo.png?v=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=swap">
     <script>
-/** 15面 1920×176 固定。?previewScale=1 のときだけウィンドウに合わせて縮小表示 */
+/** デザイン 1920×176。原点(0,0)。全体が欠けず見えるようシェル内で fit */
 (function () {
     var q = new URLSearchParams(location.search);
     var STAGE_W = 1920;
     var STAGE_H = 176;
-    var CONTENT_W = 1792;
-    /* 本番・確認とも解像度は常に 1920×176。縮小プレビューは明示指定時のみ */
+    var CONTENT_W = 1920;
     var forceNative = true;
-    if (q.get('previewScale') === '1' || q.get('native1920') === '0' || q.get('native640') === '0') forceNative = false;
+    if (q.get('native1920') === '0' || q.get('native640') === '0') forceNative = false;
     if (q.get('native1920') === '1' || q.get('native640') === '1' || q.get('embed') === '1') forceNative = true;
     var vp = document.querySelector('meta[name="viewport"]');
     if (vp) {
-        vp.setAttribute('content', forceNative
-            ? 'width=1920, initial-scale=1, maximum-scale=1, user-scalable=no'
-            : 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+        vp.setAttribute('content', 'width=1920, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
     }
     function applyRoot_() {
         var root = document.documentElement;
-        if (forceNative) {
-            root.classList.add('native-1920');
-            root.classList.remove('browser-preview');
-        } else {
+        root.classList.add('native-1920');
+        root.classList.add('player-fit');
+        root.classList.add('no-logo-panel');
+        root.classList.remove('browser-preview');
+        if (!forceNative) {
             root.classList.add('browser-preview');
             root.classList.remove('native-1920');
         }
@@ -52,44 +50,93 @@
         if (!document.body) return;
         document.body.classList.remove('layout-512');
         document.documentElement.classList.remove('layout-512');
-        if (forceNative) {
-            document.body.classList.add('native-1920');
-            document.body.classList.remove('browser-preview');
-        } else {
+        document.body.classList.add('native-1920');
+        document.body.classList.add('player-fit');
+        document.body.classList.add('no-logo-panel');
+        document.body.classList.remove('browser-preview');
+        if (!forceNative) {
             document.body.classList.add('browser-preview');
             document.body.classList.remove('native-1920');
         }
-        fitPreview_();
+        fitToPlayer_();
     }
-    function fitPreview_() {
+    function viewSize_() {
+        var vv = window.visualViewport;
+        var vw = Math.max(1, (vv && vv.width) || window.innerWidth || STAGE_W);
+        var vh = Math.max(1, (vv && vv.height) || window.innerHeight || STAGE_H);
+        return { vw: vw, vh: vh };
+    }
+    /** 原点(0,0)。拡大はしない。縮小時はシェルサイズも合わせて下帯欠けを防ぐ */
+    function fitToPlayer_() {
+        var shell = document.querySelector('.stage-shell');
         var canvas = document.querySelector('.canvas');
         if (!canvas) return;
-        var preview = document.documentElement.classList.contains('browser-preview')
-            || (document.body && document.body.classList.contains('browser-preview'));
-        var native = document.documentElement.classList.contains('native-1920')
-            || (document.body && document.body.classList.contains('native-1920'));
-        canvas.style.transformOrigin = 'top left';
-        if (native) {
-            canvas.style.transform = '';
-            return;
+        if (!shell) {
+            shell = document.createElement('div');
+            shell.className = 'stage-shell';
+            canvas.parentNode.insertBefore(shell, canvas);
+            shell.appendChild(canvas);
         }
-        if (!preview) return;
-        var s = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+        var sz = viewSize_();
+        var vw = sz.vw;
+        var vh = sz.vh;
+        var s = Math.min(vw / STAGE_W, vh / STAGE_H, 1);
         if (!(s > 0) || !isFinite(s)) s = 1;
-        canvas.style.transform = 'scale(' + s + ')';
-        canvas.style.transformOrigin = 'top left';
+        var outW = Math.round(STAGE_W * s);
+        var outH = Math.round(STAGE_H * s);
+        shell.style.cssText = [
+            'position:absolute',
+            'left:0',
+            'top:0',
+            'width:' + outW + 'px',
+            'height:' + outH + 'px',
+            'margin:0',
+            'padding:0',
+            'overflow:hidden',
+            'transform-origin:0 0',
+            'z-index:1'
+        ].join(';');
+        canvas.style.transformOrigin = '0 0';
+        canvas.style.position = 'absolute';
+        canvas.style.left = '0';
+        canvas.style.top = '0';
+        canvas.style.right = 'auto';
+        canvas.style.bottom = 'auto';
+        canvas.style.width = STAGE_W + 'px';
+        canvas.style.height = STAGE_H + 'px';
+        canvas.style.margin = '0';
+        canvas.style.padding = '0';
+        canvas.style.zoom = '1';
+        canvas.style.transform = (s === 1) ? 'none' : ('scale(' + s + ')');
+        document.documentElement.style.width = vw + 'px';
+        document.documentElement.style.height = vh + 'px';
+        if (document.body) {
+            document.body.style.width = vw + 'px';
+            document.body.style.height = vh + 'px';
+            document.body.style.margin = '0';
+            document.body.style.padding = '0';
+            document.body.style.overflow = 'hidden';
+        }
     }
-    window.fitSignagePreview_ = fitPreview_;
-    window.SIGNAGE_STAGE = { w: STAGE_W, h: STAGE_H, contentW: CONTENT_W, faceW: 128, faceH: 176, faces: 15, contentFaces: 14 };
-    window.addEventListener('resize', fitPreview_);
+    window.fitSignagePreview_ = fitToPlayer_;
+    window.fitToPlayer_ = fitToPlayer_;
+    window.SIGNAGE_STAGE = { w: STAGE_W, h: STAGE_H, contentW: CONTENT_W, faceW: 128, faceH: 176, faces: 15, contentFaces: 15 };
+    window.addEventListener('resize', fitToPlayer_);
+    window.addEventListener('orientationchange', function () { setTimeout(fitToPlayer_, 50); });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', fitToPlayer_);
+        window.visualViewport.addEventListener('scroll', fitToPlayer_);
+    }
     if (document.body) addBody_();
     else document.addEventListener('DOMContentLoaded', addBody_);
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', fitPreview_);
+        document.addEventListener('DOMContentLoaded', fitToPlayer_);
     } else {
-        fitPreview_();
+        fitToPlayer_();
     }
-    setTimeout(fitPreview_, 0);
+    setTimeout(fitToPlayer_, 0);
+    setTimeout(fitToPlayer_, 100);
+    setTimeout(fitToPlayer_, 500);
 })();
 
     </script>
@@ -99,8 +146,8 @@
             --stage-h: 176px;
             --face-w: 128px;
             --face-h: 176px;
-            --content-w: 1792px; /* 14面 */
-            --logo-w: 128px;
+            --content-w: 1920px; /* 15面（ロゴなし） */
+            --logo-w: 0px;
             --led-top-bar-h: 40px;
             --led-foot-bar-bg: #fff9f0;
             --led-foot-bar-h: 40px;
@@ -112,16 +159,21 @@
             --hero-band-mid: 80px;
             --hero-band-bot: 48px;
         }
+        *, *::before, *::after { box-sizing: border-box; }
         html, body {
             margin: 0 !important; padding: 0 !important;
-            width: 1920px; height: 176px;
-            max-width: 1920px; max-height: 176px;
+            width: 100% !important; height: 100% !important;
             overflow: hidden !important;
-            background-color: #1a1a1a;
+            overscroll-behavior: none;
+            background-color: #000;
             font-family: "Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
-        body { margin: 0; padding: 0; background-color: #1a1a1a; overflow: hidden; font-family: "Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif; }
+        html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: "Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif; }
         html.no-clock-scene #scene1,
+        html.no-wbgt-scene #scene4,
         html.no-forecast-scene #scene5,
         html.no-multilingual-scene #scene3 { display: none !important; }
         html.no-time-display #sceneWarnHero .top-time,
@@ -134,39 +186,46 @@
         }
         html.native-1920 .demo-badge,
         body.native-1920 .demo-badge { display: none !important; }
-        /* html の background はビューポート全体に塗られる。余白は黒、本体下地は .canvas */
-        html.native-1920 {
-            width: var(--stage-w) !important; height: var(--stage-h) !important;
-            min-width: 1920px; min-height: 176px;
-            max-width: 1920px; max-height: 176px;
-            margin: 0 !important; padding: 0 !important;
-            overflow: hidden !important;
-            background: #1a1a1a;
-            position: relative;
-        }
+        /* プレイヤー実画面いっぱいに黒下地。本体は .canvas を fit */
+        html.native-1920,
         body.native-1920 {
-            width: var(--stage-w) !important; height: var(--stage-h) !important;
-            min-width: 1920px; min-height: 176px;
-            max-width: 1920px; max-height: 176px;
+            width: 100% !important; height: 100% !important;
+            min-width: 0; min-height: 0;
+            max-width: none; max-height: none;
             margin: 0 !important; padding: 0 !important;
             overflow: hidden !important;
-            background: #308DD8;
+            background: #000;
             position: relative;
         }
-        /* out-1800 removed */
-        /* layout-512 removed */
-        /* ?native1920=1 / ?embed=1 — 1920×176 ネイティブ */
         body.native-1920 {
             display: block;
+            background: #000;
         }
-        html.native-1920 .canvas, body.native-1920 .canvas {
-            transform: none !important;
-            transform-origin: top left !important;
-            position: absolute; top: 0; left: 0;
+        /* デザイン実寸は常に 1920×176。fit は .stage-shell がクリップ枠 */
+        .stage-shell {
+            position: absolute;
+            left: 0; top: 0;
+            width: 1920px; height: 176px;
             margin: 0; padding: 0;
-            zoom: 1;
+            overflow: hidden;
+            transform-origin: 0 0;
+            z-index: 1;
+            background: #000;
         }
-        /* out-1800 canvas removed */
+        html.native-1920 .canvas, body.native-1920 .canvas,
+        html.player-fit .canvas, body.player-fit .canvas {
+            transform-origin: 0 0 !important;
+            position: absolute;
+            top: 0 !important; left: 0 !important;
+            right: auto !important; bottom: auto !important;
+            margin: 0 !important; padding: 0 !important;
+            zoom: 1;
+            width: var(--stage-w) !important;
+            height: var(--stage-h) !important;
+            min-width: 1920px; min-height: 176px;
+            max-width: 1920px; max-height: 176px;
+            overflow: hidden !important;
+        }
         html.native-1920 .logo-img,
         html.native-1920 .logo-corp-img,
         html.native-1920 .s1-foot-mark,
@@ -179,28 +238,37 @@
         body.native-1920 .content-area > .scene {
             will-change: auto;
         }
-        .canvas { width: var(--stage-w); height: var(--stage-h); position: relative; overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0; transform-origin: top left; background: #308DD8; }
-        @media screen and (min-width: 1921px) {
-            html:not(.native-1920) .canvas { transform: scale(calc(100vw / 1920)); }
+        .canvas {
+            width: var(--stage-w); height: var(--stage-h);
+            position: absolute; top: 0; left: 0;
+            overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 0;
+            transform-origin: 0 0; background: #308DD8;
         }
-        /* localhost / 127.0.0.1 確認用: ビューポートに合わせて拡大（native1920 無効時） */
+        /* 旧プレビュー用（通常は player-fit が優先） */
         body.browser-preview {
             min-height: 100vh;
             display: flex;
             align-items: flex-start;
             justify-content: flex-start;
-            background: #1a1a1a;
+            background: #000;
         }
         body.browser-preview .canvas {
-            transform: scale(min(calc(100vw / 1920), calc(100vh / 176))) !important;
             transform-origin: top left;
         }
         /* layout-512 廃止: 本ビルドは常に 1920×176 / 15面 */
         /* 右端 128×176: メールロゴ同様（上に大きくマーク、下に社名） */
         .logo-panel {
-            width: var(--logo-w); height: var(--face-h); display: flex; align-items: center; justify-content: center;
-            flex: 0 0 var(--logo-w); flex-shrink: 0; overflow: hidden; position: relative;
-            background: #ffffff;
+            display: none !important;
+            width: 0 !important; height: 0 !important;
+            flex: 0 0 0 !important; overflow: hidden !important;
+            visibility: hidden; pointer-events: none;
+        }
+        html.no-logo-panel .logo-panel,
+        body.no-logo-panel .logo-panel { display: none !important; }
+        .content-area {
+            width: var(--content-w); height: var(--face-h);
+            position: relative; overflow: hidden;
+            flex: 0 0 1920px; flex-shrink: 0; background: #308DD8;
         }
         .logo-rotator {
             width: var(--logo-w); height: var(--face-h); flex-shrink: 0; position: relative; z-index: 1;
@@ -227,7 +295,7 @@
         }
         .logo-corp-img:not([src]),
         .logo-corp-img[src=""] { display: none !important; }
-        .content-area { width: var(--content-w); height: var(--face-h); position: relative; overflow: hidden; flex: 0 0 1792px; flex-shrink: 0; background: #308DD8; }
+        .content-area { width: var(--content-w); height: var(--face-h); position: relative; overflow: hidden; flex: 0 0 1920px; flex-shrink: 0; background: #308DD8; }
         html.native-1920 .content-area, body.native-1920 .content-area { background: #308DD8; }
         .content-area > .scene-strip-bg { z-index: 0; }
         .content-area > .scene { z-index: 1; will-change: transform; }
@@ -268,7 +336,7 @@
         }
         .col-bg-wbgt-foot { height: 26px; flex-shrink: 0; background: var(--led-foot-bar-bg); }
         .scene-strip-bg {
-            position: absolute; left: 0; top: 0; width: 1792px; height: 176px;
+            position: absolute; left: 0; top: 0; width: 1920px; height: 176px;
             z-index: 0; pointer-events: none; display: flex; flex-direction: column;
             border: none; outline: none;
         }
@@ -413,7 +481,7 @@
             position: absolute; top: 0; left: 0; will-change: transform;
         }
         .s1-wbgt-set, .fc-lv-set, .s2-meta-set {
-            width: 1792px; height: var(--led-foot-bar-h); flex-shrink: 0;
+            width: 1920px; height: var(--led-foot-bar-h); flex-shrink: 0;
             display: flex; flex-direction: row; align-items: stretch;
             box-sizing: border-box;
         }
@@ -460,17 +528,17 @@
         }
         .s2-meta-group { display: inline-block; white-space: nowrap; flex-shrink: 0; }
         .s2-meta-slot-flow {
-            width: auto; min-width: 1792px; flex-shrink: 0;
+            width: auto; min-width: 1920px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
             box-sizing: border-box;
         }
         .s2-meta-set.s2-meta-set-flow {
-            width: auto; min-width: 1792px; height: var(--led-foot-bar-h); flex-shrink: 0;
+            width: auto; min-width: 1920px; height: var(--led-foot-bar-h); flex-shrink: 0;
             display: flex; flex-direction: row; align-items: stretch;
             box-sizing: border-box;
         }
         .s1-wbgt-slot-wide, .fc-lv-slot-wide, .s2-meta-slot-wide {
-            width: 1792px; max-width: 1792px; flex-shrink: 0;
+            width: 1920px; max-width: 1920px; flex-shrink: 0;
         }
         .s1-wbgt-ch, .fc-lv-ch {
             display: inline-flex; align-items: center; justify-content: center;
@@ -910,14 +978,19 @@
         #scene5 { overflow: hidden; }
 
         /* 色3段（警戒レベル）— 外部CSSが落ちても横一列で見えるようここに正を置く */
-        #sceneWarnHero { width: var(--content-w); height: var(--face-h); overflow: hidden; background: #f2e700; }
+        #sceneWarnHero { width: var(--content-w); height: 176px !important; min-height: 176px !important; max-height: 176px !important; overflow: hidden; background: #f2e700; }
         #sceneWarnHero.active { display: block !important; z-index: 3; }
         #sceneWarnHero .hero {
-            width: var(--content-w); height: var(--face-h); min-height: var(--face-h); position: relative; overflow: hidden;
+            width: var(--content-w); height: 176px !important; min-height: 176px !important; max-height: 176px !important;
+            position: relative; overflow: hidden;
             display: flex; flex-direction: column; flex-wrap: nowrap; gap: 0;
+            box-sizing: border-box; margin: 0; padding: 0;
             background: #fa2900;
             font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, "Hiragino Sans", sans-serif;
         }
+        #sceneWarnHero .band-top { height: 48px !important; max-height: 48px !important; min-height: 48px !important; flex: 0 0 48px !important; }
+        #sceneWarnHero .band-mid { height: 80px !important; max-height: 80px !important; min-height: 80px !important; flex: 0 0 80px !important; }
+        #sceneWarnHero .band-bot { height: 48px !important; max-height: 48px !important; min-height: 48px !important; flex: 0 0 48px !important; }
         #sceneWarnHero .hero.is-advisory { background: #f2e700; }
         #sceneWarnHero .hero.is-warning { background: #fa2900; }
         #sceneWarnHero .hero.is-danger { background: #ab00aa; }
@@ -928,9 +1001,6 @@
             align-items: center; align-self: stretch; flex-shrink: 0;
             margin: 0; padding: 0; gap: 0;
         }
-        #sceneWarnHero .band-top { height: var(--hero-band-top); max-height: var(--hero-band-top); flex: 0 0 var(--hero-band-top); }
-        #sceneWarnHero .band-mid { height: var(--hero-band-mid); max-height: var(--hero-band-mid); flex: 0 0 var(--hero-band-mid); }
-        #sceneWarnHero .band-bot { height: var(--hero-band-bot); max-height: var(--hero-band-bot); flex: 0 0 var(--hero-band-bot); }
         #sceneWarnHero .hero.is-advisory .band-mid { background: #cdb800; }
         #sceneWarnHero .hero.is-warning .band-mid { background: #c82400; }
         #sceneWarnHero .hero.is-danger .band-mid { background: #7a0078; }
@@ -977,6 +1047,7 @@
             font-size: 18px; letter-spacing: 0.02em; padding: 2px 5px; border-radius: 2px;
             background: rgba(255,255,255,0.2);
         }
+        #sceneWarnHero .band-bot .bot-txt { max-height: 44px; }
         #sceneWarnHero .bot-txt {
             display: block; width: 100%; max-width: 100%; max-height: 38px; overflow: hidden;
             white-space: pre-line; word-break: keep-all; text-align: center;
@@ -1174,7 +1245,7 @@
         }
         /* --- 熱中症アラート（256×128モジュール×2。各256内で同じ文言が追随して流れる） --- */
         #sceneAlert.active { display: block; }
-        .ha-pair { width: 1792px; height: 176px; display: flex; flex-direction: row; font-family: "Noto Sans JP", sans-serif; }
+        .ha-pair { width: 1920px; height: 176px; display: flex; flex-direction: row; font-family: "Noto Sans JP", sans-serif; }
         .ha-unit {
             width: 256px; height: 176px; box-sizing: border-box; flex-shrink: 0;
             display: flex; flex-direction: column; padding: 7px 0; overflow: hidden;
@@ -1333,17 +1404,17 @@
         .ra-pair.ra-hero-mode::before,
         .ra-pair.ra-hero-mode::after {
             content: '';
-            position: absolute; left: 0; width: 1792px; height: 40px;
+            position: absolute; left: 0; width: 1920px; height: var(--hero-band-top);
             z-index: 0; pointer-events: none;
         }
-        .ra-pair.ra-hero-mode::before { top: 0; }
-        .ra-pair.ra-hero-mode::after { bottom: 0; }
+        .ra-pair.ra-hero-mode::before { top: 0; height: var(--hero-band-top); }
+        .ra-pair.ra-hero-mode::after { bottom: 0; height: var(--hero-band-bot); }
         .ra-mid-band-wrap { display: none; pointer-events: none; }
         .ra-pair.ra-hero-mode .ra-mid-band-wrap {
             display: flex;
             flex-direction: row;
             position: absolute; left: 0; top: var(--hero-band-top);
-            width: 1792px; height: var(--hero-band-mid);
+            width: 1920px; height: var(--hero-band-mid);
             z-index: 3;
             box-sizing: border-box;
             pointer-events: none;
@@ -1379,7 +1450,7 @@
         }
         .ra-pair.ra-hero-mode .ra-slot { padding: 0; gap: 0; justify-content: stretch; }
         .ra-zone-top {
-            position: absolute; top: 0; left: 0; right: 0; height: 40px;
+            position: absolute; top: 0; left: 0; right: 0; height: var(--hero-band-top);
             display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
             padding: 3px 8px; box-sizing: border-box; gap: 0; z-index: 2;
         }
@@ -1423,7 +1494,7 @@
             display: block;
             position: absolute;
             top: 0; left: 0;
-            width: 1792px; height: 40px;
+            width: 1920px; height: var(--hero-band-top);
             z-index: 6;
             padding: 0;
             box-sizing: border-box;
@@ -1454,9 +1525,9 @@
             flex-direction: row;
             align-items: center;
             justify-content: flex-start;
-            flex: 0 0 1792px;
-            width: 1792px;
-            height: 40px;
+            flex: 0 0 1920px;
+            width: 1920px;
+            height: var(--hero-band-top);
             padding: 3px 8px;
             box-sizing: border-box;
             gap: 0;
@@ -1465,9 +1536,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            flex: 0 0 1792px;
-            width: 1792px;
-            height: 40px;
+            flex: 0 0 1920px;
+            width: 1920px;
+            height: var(--hero-band-bot);
             padding: 0 8px 2px;
             box-sizing: border-box;
         }
@@ -1513,7 +1584,7 @@
         .ra-pair.ra-special.ra-hero-mode .ra-hero-chrome-level,
         .ra-pair.ra-special.ra-hero-mode .ra-hero-chrome-bot-txt { color: #FFFFFF; }
         .ra-zone-bot {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 40px;
+            position: absolute; bottom: 0; left: 0; right: 0; height: var(--hero-band-bot);
             display: flex; align-items: center; justify-content: center;
             padding: 0 6px 2px; box-sizing: border-box; z-index: 2;
         }
@@ -1586,7 +1657,7 @@
             display: block;
             position: absolute;
             left: 0; top: var(--hero-band-top);
-            width: 1792px; height: var(--hero-band-mid);
+            width: 1920px; height: var(--hero-band-mid);
             transform: none;
             overflow: hidden;
             z-index: 4;
@@ -1599,7 +1670,7 @@
             content: '';
             position: absolute;
             left: 0; top: 0;
-            width: 1792px; height: var(--hero-band-mid);
+            width: 1920px; height: var(--hero-band-mid);
             z-index: 0;
             animation: raMidBandPulse 1.5s ease-in-out infinite;
         }
@@ -1666,7 +1737,7 @@
         .content-area.ra-white-canvas { background: #fff9f0 !important; }
         .ra-white-layout { display: none; }
         .ra-pair.ra-white-mode {
-            width: 1792px;
+            width: 1920px;
             height: 176px;
             overflow: hidden;
             background: #fff9f0;
@@ -1676,7 +1747,7 @@
         .ra-pair.ra-white-mode::before,
         .ra-pair.ra-white-mode::after {
             content: '';
-            position: absolute; left: 0; width: 1792px; height: 40px;
+            position: absolute; left: 0; width: 1920px; height: 40px;
             z-index: 0; pointer-events: none;
             background: #fff9f0;
         }
@@ -1695,7 +1766,7 @@
         .ra-pair.ra-white-mode .ra-mid-band-wrap {
             display: block;
             position: absolute; left: 0; top: var(--hero-band-top);
-            width: 1792px; height: var(--hero-band-mid);
+            width: 1920px; height: var(--hero-band-mid);
             transform: none;
             z-index: 1;
             border: none;
@@ -1704,7 +1775,7 @@
             overflow: hidden;
         }
         .ra-pair.ra-white-mode .ra-mid-band-unit {
-            width: 1792px;
+            width: 1920px;
             height: var(--hero-band-mid);
             animation: none;
             background: #d5d1c9;
@@ -1765,7 +1836,7 @@
             position: absolute;
             top: var(--hero-band-top);
             left: 0;
-            width: 1792px;
+            width: 1920px;
             height: var(--hero-band-mid);
             transform: none;
             overflow: hidden;
@@ -1826,7 +1897,7 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 1792px;
+            width: 1920px;
             height: 40px;
             overflow: hidden;
             z-index: 4;
@@ -1902,7 +1973,7 @@
             position: absolute;
             top: 128px;
             left: 0;
-            width: 1792px;
+            width: 1920px;
             height: 40px;
             overflow: hidden;
             z-index: 6;
@@ -2100,9 +2171,9 @@
             flex-wrap: nowrap;
             align-items: center;
             height: 48px;
-            width: 1792px;
-            min-width: 1792px;
-            flex: 0 0 1792px;
+            width: 1920px;
+            min-width: 1920px;
+            flex: 0 0 1920px;
             padding: 0;
             gap: 0;
             box-sizing: border-box;
@@ -2138,12 +2209,12 @@
         #sceneWarn .white-foot-chip.chip-warning { background: #fa2900; color: #fff; }
         #sceneWarn .white-foot-chip.chip-advisory { background: #f2e700; color: #1a1a1a; }
     </style>
-    <link rel="stylesheet" href="./assets/white-hero.css?v=20260914-1920">
-    <link rel="stylesheet" href="./assets/color-hero.css?v=20260914-1920">
+    <link rel="stylesheet" href="./assets/white-hero.css?v=20260914-nologo">
+    <link rel="stylesheet" href="./assets/color-hero.css?v=20260914-nologo">
 </head>
 <body class="native-1920">
 <!-- 位置情報だけ差し替え: assets/site-config.js（雛形は site-config.template.js） -->
-<script src="./assets/site-config.js?v=20260914-aki"></script>
+<script src="./assets/site-config.js?v=20260914-nagoya"></script>
 <div class="demo-badge" id="demo-badge" hidden>デモ</div>
 <svg style="display: none;">
     <symbol id="icon-sunny" viewBox="0 0 120 120"><circle cx="60" cy="60" r="24" fill="#ff4d00"/><g stroke="#ff4d00" stroke-width="8" stroke-linecap="round"><line x1="60" y1="15" x2="60" y2="30"/><line x1="60" y1="90" x2="60" y2="105"/><line x1="15" y1="60" x2="30" y2="60"/><line x1="90" y1="60" x2="105" y2="60"/><line x1="28" y1="28" x2="39" y2="39"/><line x1="81" y1="81" x2="92" y2="92"/><line x1="28" y1="92" x2="39" y2="81"/><line x1="81" y1="39" x2="92" y2="28"/></g></symbol>
@@ -2157,7 +2228,7 @@
         <div class="ra-pair ra-advisory" id="ra-pair">
             <div class="ra-mid-band-wrap" aria-hidden="true"><div class="ra-mid-band-unit"></div><div class="ra-mid-band-unit"></div></div>
             <div class="ra-white-header" aria-hidden="true">
-                <span class="ra-white-area">安芸区</span>
+                <span class="ra-white-area">名古屋市</span>
                 <span class="ra-white-what">注意報</span>
                 <span class="ra-white-badge"><span>発表中</span></span>
             </div>
@@ -2244,7 +2315,7 @@
             <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
             <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
         </div>
-        <div class="s1-wbgt-bar"><div class="s1-wbgt-track" id="s1-wbgt-track"><div class="s1-wbgt-set s1-wbgt-set-scroll"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/estec_foot_lockup.png?v=2" alt="株式会社エステック" decoding="async"></div><div class="s1-wbgt-slot s1-wbgt-site-slot"><span class="s1-foot-co-txt">令和8年度 安芸南部山系深山の滝川上流支川砂防堰堤他工事</span></div><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/estec_foot_lockup.png?v=2" alt="株式会社エステック" decoding="async"></div><div class="s1-wbgt-slot s1-wbgt-site-slot"><span class="s1-foot-co-txt">令和8年度 安芸南部山系深山の滝川上流支川砂防堰堤他工事</span></div></div></div></div>
+        <div class="s1-wbgt-bar"><div class="s1-wbgt-track" id="s1-wbgt-track"><div class="s1-wbgt-set s1-wbgt-set-scroll"><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/estec_foot_lockup.png?v=2" alt="株式会社エステック" decoding="async"></div><div class="s1-wbgt-slot s1-wbgt-site-slot"><span class="s1-foot-co-txt">名古屋市</span></div><div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="./assets/estec_foot_lockup.png?v=2" alt="株式会社エステック" decoding="async"></div><div class="s1-wbgt-slot s1-wbgt-site-slot"><span class="s1-foot-co-txt">名古屋市</span></div></div></div></div>
     </div>
 
     <div class="scene" id="scene2">
@@ -2291,14 +2362,14 @@
 
     <div class="scene forecast-scene daily-scene" id="scene5">
         <div class="d5-track" id="d5-conveyor">
-            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">安芸区</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
-            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">安芸区</div></div></div>
-            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">安芸区</div></div></div>
-            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">安芸区</div></div></div>
-            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">安芸区</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
-            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">安芸区</div></div></div>
-            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">安芸区</div></div></div>
-            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">安芸区</div></div></div>
+            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
+            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
+            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
+            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
+            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
+            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
+            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
+            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
         </div>
     </div>
 
@@ -2387,7 +2458,7 @@
     </div>
 
     </div>
-    <div class="logo-panel">
+    <div class="logo-panel" hidden aria-hidden="true">
         <div class="logo-rotator" id="logo-rotator">
             <div class="logo-stack">
                 <img class="logo-img" id="signage-logo" src="./assets/estec_logo.png?v=1" alt="株式会社エステック" decoding="sync" fetchpriority="high">
@@ -2706,7 +2777,7 @@
 
 </script>
 <script src="./assets/jma-warning-kinds.js?v=20260907-nolev"></script>
-<script src="./assets/warning-hero.js?v=20260909-w256"></script>
+<script src="./assets/warning-hero.js?v=20260914-nologo"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード。未指定時は本番（実データ取得） */
@@ -2724,13 +2795,15 @@
     const NO_JMA_WARN = false;
     /** 熱中症アラートシーンは出さない（環境省発表時も非表示） */
     const NO_HEAT_ALERT = true;
-    /** 時刻シーン・4日予報・多言語は出さない（気象庁観測＋環境省WBGT＋警報のみ） */
+    /** 時刻・WBGT・4日予報・多言語は出さない（警報＋気象庁観測のみ） */
     const NO_CLOCK_SCENE = true;
+    const NO_WBGT_SCENE = true;
     const NO_FORECAST_SCENE = true;
     const NO_MULTILINGUAL_SCENE = true;
     /** 警報・観測の時刻表示は出さない */
     const NO_TIME_DISPLAY = true;
     if (NO_CLOCK_SCENE) document.documentElement.classList.add('no-clock-scene');
+    if (NO_WBGT_SCENE) document.documentElement.classList.add('no-wbgt-scene');
     if (NO_FORECAST_SCENE) document.documentElement.classList.add('no-forecast-scene');
     if (NO_MULTILINGUAL_SCENE) document.documentElement.classList.add('no-multilingual-scene');
     if (NO_TIME_DISPLAY) document.documentElement.classList.add('no-time-display');
@@ -2739,8 +2812,8 @@
     /* 3段デザイン案は確認ボードと同じく既定ON（?rainhero=0 で従来レイアウト） */
     const RAIN_HERO_DESIGN = !RAIN_HERO_OFF && !RAIN_WHITE_DESIGN;
     /*
-     * 流れる順（本番）: 警報 → 気象庁観測(s2) → 環境省WBGT(s4) → 警報へ
-     * 時刻(s1)・4日予報(s5)・多言語(s3)は非表示
+     * 流れる順（本番）: 警報 → 気象庁観測(s2) → 警報へ
+     * 時刻(s1)・WBGT(s4)・4日予報(s5)・多言語(s3)は非表示
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
      */
     function normalizeOnlyParam_(raw) {
@@ -2898,12 +2971,12 @@
     const DEMO_LEVEL_ORDER = [0, 1, 2, 3, 4];
     const DEMO_WBGT_BY_LEVEL = [19.0, 22.0, 26.0, 29.0, 32.0];
     let demoLevelPointer = 0;
-    const MOE_WBGT_POINT = query.get('moePoint') || (SITE_CFG.moe && SITE_CFG.moe.point) || '67511';
-    const MOE_ALERT_AREA = query.get('alertArea') || (SITE_CFG.moe && SITE_CFG.moe.alertArea) || '広島県';
+    const MOE_WBGT_POINT = query.get('moePoint') || (SITE_CFG.moe && SITE_CFG.moe.point) || '51106';
+    const MOE_ALERT_AREA = query.get('alertArea') || (SITE_CFG.moe && SITE_CFG.moe.alertArea) || '愛知県';
     function getSiteLocationLabel_() {
         return (SITE_CFG.site && SITE_CFG.site.locationLabel)
             || (SITE_CFG.jma && SITE_CFG.jma.forecastLabel)
-            || '安芸区';
+            || '名古屋市';
     }
     function applySiteLocationLabels_() {
         const label = getSiteLocationLabel_();
@@ -2974,11 +3047,11 @@
         return base + sep + 'type=bundle';
     }
     const JMA_AMEDAS_POINT =
-        query.get('jmaPoint') || (SITE_CFG.jma && SITE_CFG.jma.amedasPoint) || '67511';
+        query.get('jmaPoint') || (SITE_CFG.jma && SITE_CFG.jma.amedasPoint) || '51106';
     const JMA_AMEDAS_SUPPLEMENT_POINT =
         query.get('jmaSupplementPoint') || (SITE_CFG.jma && SITE_CFG.jma.amedasSupplementPoint) || '67437';
     const JMA_FORECAST_AREA_CODE =
-        query.get('jmaArea') || (SITE_CFG.jma && SITE_CFG.jma.forecastArea) || '340000';
+        query.get('jmaArea') || (SITE_CFG.jma && SITE_CFG.jma.forecastArea) || '230000';
     const JMA_FETCH_HEADERS = { cache: 'no-store' };
     /* 気象庁 高解像度降水ナウキャスト（雨雲レーダー）— https://www.jma.go.jp/bosai/nowc/ */
     const JMA_NOWC_TARGET_TIMES_URL = 'https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N2.json';
@@ -3684,21 +3757,18 @@
             line2: def ? def.line2 : ''
         };
     }
-    const JMA_WARN_AREA = query.get('warnArea') || (SITE_CFG.jma && SITE_CFG.jma.warnArea) || '340000';   /* 広島県 */
-    const JMA_WARN_CITY = query.get('warnCity') || (SITE_CFG.jma && SITE_CFG.jma.warnCity) || '3410300';  /* 広島市安芸区 */
+    const JMA_WARN_AREA = query.get('warnArea') || (SITE_CFG.jma && SITE_CFG.jma.warnArea) || '230000';   /* 愛知県 */
+    const JMA_WARN_CITY = query.get('warnCity') || (SITE_CFG.jma && SITE_CFG.jma.warnCity) || '2310000';  /* 名古屋市 */
     const JMA_WARN_CITY_LABELS = {
-        '3410300': '安芸区',
-        '3410100': '広島市',
-        '340000': '広島県',
-        '3430700': '熊野町'
+        '2310000': '名古屋市',
+        '230000': '愛知県'
     };
     function municipalityLabel_(name, code) {
         const n = String(name || '').trim();
         const c = String(code || '');
-        if (c === '3410300') return '安芸区';
+        if (c === '2310000') return '名古屋市';
         const city = n.match(/^(.*?市)/);
         if (city && (/区/.test(n) || /市.+区/.test(n))) {
-            /* 広島市安芸区 → 安芸区表示 */
             const ku = n.match(/([^市]+区)$/);
             if (ku) return ku[1];
             return city[1];
@@ -3706,7 +3776,7 @@
         if (/[市町村]$/.test(n) && n.indexOf('県') < 0) return n;
         return JMA_WARN_CITY_LABELS[c]
             || (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel)
-            || '安芸区';
+            || '名古屋市';
     }
     function getJmaWarnPlaceLabel_() {
         return municipalityLabel_(rainWarnMeta.cityName, JMA_WARN_CITY);
@@ -3715,8 +3785,7 @@
         const city = String(JMA_WARN_CITY || '');
         const area = String(JMA_WARN_AREA || '');
         const extra = {
-            '3410300': ['3410100', '340000'],
-            '3430700': ['340000']
+            '2310000': ['230000']
         };
         const out = [];
         function add(c) {
@@ -3798,7 +3867,7 @@
             areaTypes: [{ areas: areas }]
         };
     }
-    /** 最も狭い対象（安芸区など）だけを使う。親地域と混ぜない＝解除後に残らない */
+    /** 最も狭い対象（名古屋市など）だけを使う。親地域と混ぜない＝解除後に残らない */
     function jmaWarnAreasForPreferredCode_(warnJson) {
         if (!warnJson || !warnJson.areaTypes) return [];
         const codes = jmaWarnMatchCodes_();
@@ -3815,7 +3884,7 @@
         return [];
     }
     let rainWarnMeta = {
-        cityName: (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel) || '安芸区',
+        cityName: (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel) || '名古屋市',
         issuedAt: '',
         updatedAt: ''
     };
@@ -3826,10 +3895,10 @@
         danger:   { cls: 'ra-foot-danger',   label: '危険警報' },
         special:  { cls: 'ra-foot-special',  label: '特別警報' }
     };
-    /** 白ベース上帯・中央・下帯：1792px ビュー内を右→左シームレス */
-    const RA_WHITE_BAND_W = 1792;
+    /** 白ベース上帯・中央・下帯：1920px ビュー内を右→左シームレス */
+    const RA_WHITE_BAND_W = 1920;
     const RA_HERO_MOD_W = 256;
-    const RA_HERO_BAND_W = 1792;
+    const RA_HERO_BAND_W = 1920;
     const RA_HERO_TOP_H = 48;
     const RA_HERO_BOT_H = 48;
     const RA_HERO_MID_H = 80;
@@ -4368,7 +4437,7 @@
     function applyRainWarnMeta_(payload, warnJson) {
         const cityFromJma = warnJson
             ? (jmaAreaNameFromWarnJson_(warnJson, JMA_WARN_CITY)
-                || jmaAreaNameFromWarnJson_(warnJson, '3410300')
+                || jmaAreaNameFromWarnJson_(warnJson, '2310000')
                 || jmaAreaNameFromWarnJson_(warnJson, '3410100'))
             : '';
         rainWarnMeta.cityName = municipalityLabel_(
@@ -6160,7 +6229,7 @@
     let t3GuidLapPx = SCENE2_META_LAP_PX;
     let t3Messages_ = [];
     let t3Flow_ = null;
-    const SCENE_W = 1792;
+    const SCENE_W = 1920;
     /** LEDは 1920×176 固定。ネイティブは切替を瞬間に */
     const SCENE_SLIDE_MS = NATIVE_1920 ? 0 : 450;
     const SCENE_SCROLL_HOLD_MS = 1000;
@@ -6198,13 +6267,13 @@
         applyScrollX_(el, wrapScrollX_(globalScrollX_, lapPx));
     }
     /** 左14面ビュー幅（右端ロゴ以外） */
-    const CONTENT_VIEW_W = 1792;
+    const CONTENT_VIEW_W = 1920;
     /** 末尾ロゴなし: 左端をコンテンツ先頭に揃える */
     function snapGlobalScrollToLapStart_(lapPx) {
         if (!lapPx || lapPx <= 0) return;
         globalScrollX_ = Math.round(globalScrollX_ / lapPx) * lapPx;
     }
-    /** 1792ビューを埋めつつ継ぎ目が見えない複製数（最低2） */
+    /** 1920ビューを埋めつつ継ぎ目が見えない複製数（最低2） */
     function seamlessCopies_(setWidthPx, viewW) {
         const vw = viewW != null ? viewW : CONTENT_VIEW_W;
         const sw = Math.max(1, setWidthPx | 0);
@@ -9065,12 +9134,12 @@
             }, SCENE1_CLOCK_HOLD_MS);
         }
     }
-    /* シーン2の次はシーン3（WBGT表示） */
+    /* 気象観測の次 → WBGTは出さないので警報ループへ */
     function gotoSceneAfterScene2_() {
-        if (!s4) { gotoSceneAfterScene4_(); return; }
+        if (NO_WBGT_SCENE || !s4) { gotoSceneAfterScene4_(); return; }
         transitionToScene(s4, playScene4);
     }
-    /* WBGT表示の次 → 4日予報は出さない。多言語も出さないので警報ループへ */
+    /* WBGTの次 → 4日予報・多言語は出さないので警報ループへ */
     function gotoSceneAfterScene4_() {
         if (NO_FORECAST_SCENE) {
             gotoAfterScene3_();
@@ -9136,6 +9205,7 @@
         gotoSceneAfterScene4_();
     }
     function playScene4() {
+        if (NO_WBGT_SCENE) { gotoSceneAfterScene4_(); return; }
         applyDisplayRefreshAtSceneEntry_();
         clearScene4Timers();
         if (wbgtOffSeason) {

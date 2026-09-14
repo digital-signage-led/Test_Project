@@ -1,4 +1,4 @@
-/* 白3段（散乱）1792×176 / .hero.is-white
+/* 白3段（散乱）1920×176 / .hero.is-white
    上48 地域 + 発表 HH:MM + 更新 HH:MM + 発表中
    中80 チップ（レベルあり256 / なし128。特別=黒 / 危険=紫 / 警報=赤 / 注意報=黄）
    下48 凡例 特別警報 | 危険警報 | 警報 | 注意報
@@ -6,8 +6,10 @@
 
 #sceneWarn .hero.is-white,
 .hero.is-white {
-  width: 1792px;
+  width: 1920px;
   height: 176px;
+  min-height: 176px;
+  max-height: 176px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -15,12 +17,16 @@
   background: #fff9f0;
   --white-gap: 8px;
   font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  gap: 0;
 }
 
 #sceneWarn .hero.is-white .band,
 .hero.is-white .band {
   position: relative;
-  width: 1792px;
+  width: 1920px;
   overflow: hidden;
   display: flex;
   align-items: center;

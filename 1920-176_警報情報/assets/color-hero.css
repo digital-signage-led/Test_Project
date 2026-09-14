@@ -1,10 +1,12 @@
-/* 色3段（警戒レベル）1792×176
+/* 色3段（警戒レベル）1920×176
    上48 / 中80（白字黒縁） / 下48
    1セット=256px（2面）。白3段 (.hero.is-white) には触れない */
 
 #sceneWarnHero {
-  width: 1792px;
+  width: 1920px;
   height: 176px;
+  min-height: 176px;
+  max-height: 176px;
   overflow: hidden;
   background: #f2e700;
 }
@@ -13,15 +15,19 @@
   z-index: 3;
 }
 #sceneWarnHero .hero {
-  width: 1792px;
+  width: 1920px;
   height: 176px;
   min-height: 176px;
+  max-height: 176px;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   gap: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
   background: #fa2900;
   font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, "Hiragino Sans", sans-serif;
 }
@@ -32,7 +38,7 @@
 
 #sceneWarnHero .band {
   position: relative;
-  width: 1792px;
+  width: 1920px;
   overflow: hidden;
   display: flex;
   align-items: center;

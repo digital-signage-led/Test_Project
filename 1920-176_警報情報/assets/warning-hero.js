@@ -1,6 +1,6 @@
 /**
- * 1792×176 3段ヒーロー（注意報・警報・危険警報・特別警報・避難情報）
- * 256px（2面）を1セットとして流し、1周で次へ。表示枠は左14面。
+ * 1920×176 3段ヒーロー（注意報・警報・危険警報・特別警報・避難情報）
+ * 256px（2面）を1セットとして流し、1周で次へ。表示枠は15面（ロゴなし）。
  */
 (function (global) {
   'use strict';
@@ -706,6 +706,7 @@
   function prepareTrack(track) {
     var first = track.children[0];
     if (!first) return 0;
+    var viewW = (global.SIGNAGE_STAGE && global.SIGNAGE_STAGE.contentW) || 1920;
     var innerW = UNIT_W - 8;
     var mid = first.querySelector('.mid-chip');
     var bot = first.querySelector('.bot-txt');
@@ -713,9 +714,10 @@
     var unit = first.querySelector('.unit');
     var badge = first.querySelector('.badge');
     if (bot) {
-      fitBot(bot, 38, innerW);
+      fitBot(bot, 44, innerW);
       bot.style.width = innerW + 'px';
       bot.style.maxWidth = innerW + 'px';
+      bot.style.maxHeight = '44px';
       bot.style.textAlign = 'center';
       bot.style.marginLeft = 'auto';
       bot.style.marginRight = 'auto';
@@ -759,7 +761,9 @@
     }
     lockSegWidth(first, UNIT_W);
     while (track.children.length > 1) track.removeChild(track.lastChild);
-    for (var i = 1; i < 4; i++) {
+    /* 1920ビューを埋め、継ぎ目が見えないよう十分な複製（旧4枚=1024pxでは右半分が空白） */
+    var copies = Math.max(4, Math.ceil((viewW + UNIT_W) / UNIT_W));
+    for (var i = 1; i < copies; i++) {
       if (first.parentNode) track.appendChild(first.cloneNode(true));
     }
     return UNIT_W;
