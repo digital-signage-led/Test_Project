@@ -1,6 +1,6 @@
 /* 色3段（警戒レベル）正: 320_警報情報/signage-512.html #heroLevel
-   上40 黄 / 中48 金（白字黒縁 36px） / 下40 黄・2行
-   白3段 (.hero.is-white) には触れない */
+   上40 黄 / 中48 金（白字黒縁 42px） / 下40 黄・2行
+   1セット=256px（2面）。白3段 (.hero.is-white) には触れない */
 
 #sceneWarnHero {
   width: 512px;
@@ -87,7 +87,7 @@
   min-width: 256px;
   max-width: 256px;
   height: 100%;
-  padding: 0 8px;
+  padding: 0 4px;
   gap: 0;
   box-sizing: border-box;
   overflow: hidden;
@@ -100,7 +100,7 @@
   min-width: 256px;
   max-width: 256px;
   flex: 0 0 256px;
-  padding: 0 8px;
+  padding: 0 4px;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -120,7 +120,7 @@
   flex: 0 0 auto;
   width: auto;
   max-width: 100%;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   overflow: visible;
   margin: 0 auto;
@@ -135,27 +135,27 @@
   font-weight: 900;
 }
 #sceneWarnHero .top-place {
-  font-size: 18px;
-  letter-spacing: 0.04em;
+  font-size: 22px;
+  letter-spacing: 0.02em;
 }
 #sceneWarnHero .top-sep {
   opacity: 0.4;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   padding: 0 1px;
 }
 #sceneWarnHero .top-label {
-  font-size: 20px;
-  letter-spacing: 0.02em;
+  font-size: 24px;
+  letter-spacing: 0.01em;
   overflow: visible;
   text-align: center;
   max-height: none;
   max-width: none;
 }
 #sceneWarnHero .top-time {
-  font-size: 16px;
-  letter-spacing: 0.03em;
-  padding: 3px 6px;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  padding: 2px 5px;
   border-radius: 2px;
   background: rgba(255,255,255,0.2);
 }
@@ -169,9 +169,9 @@
   word-break: keep-all;
   overflow-wrap: normal;
   text-align: center;
-  font-size: 15px;
-  line-height: 1.12;
-  letter-spacing: 0.01em;
+  font-size: 17px;
+  line-height: 1.05;
+  letter-spacing: 0;
   margin: 0 auto;
 }
 #sceneWarnHero .mid-chip {
@@ -186,12 +186,12 @@
   overflow: hidden;
   white-space: nowrap;
   text-align: center;
-  font-size: 40px;
+  font-size: 42px;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   transform: none;
   color: #fff;
-  padding: 0 4px;
+  padding: 0 2px;
   box-sizing: border-box;
   margin: 0 auto;
   -webkit-text-stroke: 0;
@@ -230,7 +230,7 @@
 #sceneWarnHero .badge {
   flex: 0 0 auto;
   background: #fff;
-  padding: 2px 6px;
+  padding: 2px 5px;
   border-radius: 2px;
   line-height: 1;
 }
@@ -238,8 +238,8 @@
   display: block;
   color: #1a1a1a;
   font-weight: 900;
-  font-size: 14px;
-  letter-spacing: 0.04em;
+  font-size: 16px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 #sceneWarnHero .hero.is-demo .badge { background: #111; }

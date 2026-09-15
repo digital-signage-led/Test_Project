@@ -119,20 +119,31 @@
   function municipalityLabel_(name, code) {
     var n = String(name || '').trim();
     var c = String(code || '');
+    var cfg = global.SignageConfig;
+    var configured = (cfg && cfg.jma && cfg.jma.warnCityLabel) || 'ビックサイト';
+    var warnCity = (cfg && cfg.jma && cfg.jma.warnCity) || '1310800';
+    if (c && String(c) === String(warnCity)) return configured;
+    if (c === '1310800' || n.indexOf('江東') >= 0) return configured;
     var city = n.match(/^(.*?市)/);
-    if (city && /区/.test(n)) return city[1];
+    if (city && /区/.test(n)) {
+      var ku = n.match(/([^市]+区)$/);
+      if (ku && ku[1] === '江東区') return configured;
+      return city[1];
+    }
+    if (/区$/.test(n) && n.indexOf('県') < 0) {
+      if (n === '江東区') return configured;
+      return n;
+    }
     if (/[市町村]$/.test(n) && n.indexOf('県') < 0) return n;
     if (c === '1210000' || String(c).indexOf('1220') === 0) return '千葉市';
-    var cfg = global.SignageConfig;
-    if (cfg && cfg.jma && cfg.jma.warnCityLabel) return cfg.jma.warnCityLabel;
-    return '千葉市';
+    return configured;
   }
 
   function defaultPlace_() {
     var cfg = global.SignageConfig;
     if (cfg && cfg.jma && cfg.jma.warnCityLabel) return municipalityLabel_(cfg.jma.warnCityLabel, cfg.jma.warnCity);
     var city = cfg && cfg.jma && cfg.jma.warnCity;
-    return municipalityLabel_('', city || '1210000');
+    return municipalityLabel_('', city || '1310800');
   }
 
   function jstParts_(ms) {
@@ -258,7 +269,9 @@
     var extra = {
       '1220410': ['1220400', '1210000', '120010'],
       '1220400': ['1220410', '1210000', '120010'],
-      '1210000': ['1220400', '1220410', '120010']
+      '1210000': ['1220400', '1220410', '120010'],
+      '1310800': ['130000'],
+      '3410300': ['3410100', '340000']
     };
     var codes = [city];
     (extra[city] || []).forEach(function (c) {
@@ -564,11 +577,11 @@
   function fitToWidth(el, maxW, maxPx) {
     if (!el) return;
     var isMid = el.classList.contains('mid-chip');
-    var extra = isMid ? 6 : 0;
+    var extra = isMid ? 2 : 0;
     var n = String(isMid ? midChipLabel_(el) : (el.textContent || '')).length || 1;
     var budget = Math.max(40, maxW - extra);
     var px = pxByChars_(budget, n, maxPx, 0);
-    if (n >= 6) el.style.letterSpacing = '0';
+    if (n >= 4) el.style.letterSpacing = '0';
     else el.style.letterSpacing = '0.02em';
     el.style.fontSize = px + 'px';
     el.style.lineHeight = '1';
@@ -593,12 +606,12 @@
     el.style.maxWidth = 'none';
     el.style.flex = '0 0 auto';
     el.style.overflow = 'visible';
-    el.style.letterSpacing = '0.01em';
+    el.style.letterSpacing = '0';
     var n = longestLineLen_(el.textContent || '');
-    var size = pxByChars_(maxW || 240, n, 16, 4);
+    var size = pxByChars_(maxW || 248, n, 18, 0);
     el.style.fontSize = size + 'px';
-    el.style.lineHeight = '1.12';
-    shrinkUntilFits_(el, maxW || 240, maxH || 38, 10);
+    el.style.lineHeight = '1.05';
+    shrinkUntilFits_(el, maxW || 248, maxH || 38, 11);
   }
 
   function fitTopUnit_(unit, maxW) {
@@ -611,33 +624,33 @@
     unit.style.overflow = 'visible';
     unit.style.maxWidth = 'none';
     unit.style.width = 'auto';
-    unit.style.gap = '4px';
+    unit.style.gap = '2px';
     var n = String((place && place.textContent) || '').length
       + String((label && label.textContent) || '').length
       + String((time && time.textContent) || '').length
       + String((badgeTxt && badgeTxt.textContent) || '').length;
-    var size = pxByChars_(maxW - 48, Math.max(8, n), 18, 0);
+    var size = pxByChars_(maxW - 12, Math.max(8, n), 22, 0);
     if (place) {
-      place.style.fontSize = Math.max(11, size - 1) + 'px';
-      place.style.letterSpacing = '0.02em';
+      place.style.fontSize = Math.max(14, size - 1) + 'px';
+      place.style.letterSpacing = '0.01em';
     }
     if (label) {
       label.style.fontSize = size + 'px';
-      label.style.letterSpacing = '0.02em';
+      label.style.letterSpacing = '0.01em';
       label.style.overflow = 'visible';
       label.style.maxWidth = 'none';
     }
-    if (time) time.style.fontSize = Math.max(11, size - 3) + 'px';
-    if (badgeTxt) badgeTxt.style.fontSize = Math.max(10, size - 5) + 'px';
+    if (time) time.style.fontSize = Math.max(13, size - 2) + 'px';
+    if (badgeTxt) badgeTxt.style.fontSize = Math.max(13, size - 3) + 'px';
     var guard = 24;
-    while (unitWidth_(unit) > maxW && size > 10 && guard-- > 0) {
+    while (unitWidth_(unit) > maxW && size > 12 && guard-- > 0) {
       size -= 1;
-      unit.style.gap = size < 14 ? '2px' : '4px';
-      if (place) place.style.fontSize = Math.max(10, size - 1) + 'px';
+      unit.style.gap = '2px';
+      if (place) place.style.fontSize = Math.max(12, size - 1) + 'px';
       if (label) label.style.fontSize = size + 'px';
-      if (time) time.style.fontSize = Math.max(10, size - 2) + 'px';
-      if (badgeTxt) badgeTxt.style.fontSize = Math.max(9, size - 4) + 'px';
-      if (size <= 13) {
+      if (time) time.style.fontSize = Math.max(12, size - 2) + 'px';
+      if (badgeTxt) badgeTxt.style.fontSize = Math.max(12, size - 3) + 'px';
+      if (size <= 16) {
         if (place) place.style.letterSpacing = '0';
         if (label) label.style.letterSpacing = '0';
       }
@@ -681,9 +694,9 @@
 
   function measureMidWidth(mid) {
     var text = midChipLabel_(mid);
-    var font = '900 36px "Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif';
-    var letter = Math.ceil(0.04 * 36 * Math.max(0, text.length - 1));
-    var stroke = 8;
+    var font = '900 42px "Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif';
+    var letter = 0;
+    var stroke = 6;
     var cw = canvasTextWidth(text, font) + letter + stroke;
     var dw = measureProbe(mid) + stroke;
     return Math.max(cw, dw, 1);
@@ -696,8 +709,8 @@
     el.style.maxWidth = w + 'px';
     el.style.flex = '0 0 ' + w + 'px';
     el.style.overflow = 'hidden';
-    el.style.paddingLeft = '8px';
-    el.style.paddingRight = '8px';
+    el.style.paddingLeft = '4px';
+    el.style.paddingRight = '4px';
     el.style.justifyContent = 'center';
     el.style.alignItems = 'center';
     el.style.textAlign = 'center';
@@ -706,7 +719,7 @@
   function prepareTrack(track) {
     var first = track.children[0];
     if (!first) return 0;
-    var innerW = UNIT_W - 16;
+    var innerW = UNIT_W - 8;
     var mid = first.querySelector('.mid-chip');
     var bot = first.querySelector('.bot-txt');
     var top = first.querySelector('.top-label');
@@ -752,7 +765,7 @@
       mid.style.marginRight = 'auto';
       mid.style.textAlign = 'center';
       mid.style.lineHeight = '1';
-      fitToWidth(mid, innerW, 40);
+      fitToWidth(mid, innerW, 42);
       mid.style.width = innerW + 'px';
       mid.style.maxWidth = innerW + 'px';
       mid.style.overflow = 'hidden';
