@@ -5213,7 +5213,11 @@
         set.style.maxWidth = w + 'px';
         set.style.flex = '0 0 ' + w + 'px';
         while (track.children.length > 1) track.removeChild(track.lastChild);
-        for (let i = 1; i < 8; i++) track.appendChild(set.cloneNode(true));
+        /* 旧512幅向けの固定8コピーだと、128pxチップ×8=1024で1920の半分が空く */
+        const viewW = (window.SIGNAGE_STAGE && window.SIGNAGE_STAGE.contentW) || 1920;
+        const unit = Math.max(1, w);
+        const copies = Math.max(4, Math.ceil((viewW + unit) / unit) + 2);
+        for (let i = 1; i < copies; i++) track.appendChild(set.cloneNode(true));
         return w;
     }
     function whitePlayItems_(override) {
