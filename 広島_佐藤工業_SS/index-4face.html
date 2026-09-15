@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- wbgt-cube-hiroshima-sato-kogyo-4face / 佐藤工業 WBGT サイネージ（本番 4面 512×128・ロゴ列なし） -->
 <!-- 同階層: assets/sato_kogyo_logo_foot.png（時刻下の下帯） -->
 <!-- 会場: 広島県福山市 -->
@@ -160,6 +160,12 @@
         .content-area.news-canvas > .scene-strip-bg {
             display: none !important;
         }
+        .content-area.kotei-canvas {
+            background: #071428 !important;
+        }
+        .content-area.kotei-canvas > .scene-strip-bg {
+            display: none !important;
+        }
         .scene {
             position: absolute; top: 0; left: 0; width: 512px; height: 128px;
             display: none; overflow: hidden; box-sizing: border-box;
@@ -171,6 +177,7 @@
         #scene5.active { display: block; }
         #sceneLogo.active { display: block; }
         #sceneNews.active { display: block; z-index: 2; }
+        #sceneKotei.active { display: block; z-index: 2; }
         #sceneNews {
             width: 512px; height: 128px; overflow: hidden;
             background: #0B4F9C;
@@ -235,6 +242,117 @@
             white-space: nowrap;
             overflow: visible; text-overflow: clip;
         }
+        #sceneKotei {
+            width: 512px; height: 128px; overflow: hidden;
+            background: #071428;
+        }
+        .kotei-scroll-wrap {
+            width: 512px; height: 128px; overflow: hidden; position: relative; z-index: 1;
+            background: #071428;
+        }
+        .kotei-track {
+            display: flex; flex-direction: row; height: 128px;
+            transition: none; gap: 0; will-change: transform; align-items: stretch;
+        }
+        .kotei-card {
+            width: 256px; height: 128px; flex: 0 0 256px;
+            box-sizing: border-box; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 6px 10px 8px; overflow: hidden;
+            font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+        }
+        .kotei-card-dark { background: #071428; color: #fff; }
+        .kotei-card-light { background: #ffffff; color: #111; }
+        .kotei-term-period {
+            display: flex; align-items: baseline; justify-content: center;
+            gap: 4px; line-height: 1; white-space: nowrap;
+            max-width: 100%;
+        }
+        .kotei-reiwa { font-size: 18px; font-weight: 800; letter-spacing: 0; }
+        .kotei-card-dark .kotei-reiwa { color: #fff; }
+        .kotei-card-light .kotei-reiwa { color: #111; }
+        .kotei-term-hl {
+            position: relative; display: inline-block;
+            font-size: 22px; font-weight: 900; color: #E8C21A;
+            letter-spacing: 0; line-height: 1.15;
+        }
+        .kotei-term-title {
+            font-size: 26px; font-weight: 900; letter-spacing: 0;
+            line-height: 1.05; white-space: nowrap; margin-top: 4px;
+            max-width: 100%;
+        }
+        .kotei-term-sub {
+            font-size: 18px; font-weight: 800; letter-spacing: 0.04em;
+            line-height: 1; margin-top: 2px; white-space: nowrap;
+        }
+        .kotei-set {
+            display: flex; flex-direction: row; height: 128px; flex-shrink: 0;
+            width: 512px;
+        }
+        .kotei-col {
+            width: 128px; height: 128px; flex: 0 0 128px;
+            box-sizing: border-box; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #071428; color: #fff; overflow: hidden; padding: 4px 2px;
+            font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+        }
+        .kotei-col-wide {
+            width: 256px; flex: 0 0 256px;
+        }
+        .kotei-col-logo {
+            background: #ffffff; padding: 2px 4px 4px;
+        }
+        .kotei-warn-label {
+            font-size: 18px; font-weight: 900; letter-spacing: 0.04em;
+            line-height: 1.05; margin-bottom: 4px; white-space: nowrap;
+            text-align: center; max-width: 120px;
+        }
+        .kotei-warn-label-2 {
+            display: flex; flex-direction: column; align-items: center;
+            font-size: 18px; font-weight: 900; letter-spacing: 0.04em;
+            line-height: 1.05; margin-bottom: 4px; gap: 2px;
+            text-align: center; max-width: 120px;
+        }
+        .kotei-triangle {
+            width: 72px; height: 64px; display: block;
+        }
+        .kotei-date-reiwa {
+            font-size: 22px; font-weight: 900; letter-spacing: 0.04em;
+            color: #fff; -webkit-text-stroke: 1.6px #E31B23;
+            paint-order: stroke fill; line-height: 1; white-space: nowrap;
+        }
+        .kotei-date-md {
+            font-size: 30px; font-weight: 900; letter-spacing: 0.02em;
+            color: #fff; -webkit-text-stroke: 2px #E31B23;
+            paint-order: stroke fill; line-height: 1.05; margin: 2px 0; white-space: nowrap;
+        }
+        .kotei-date-youbi {
+            font-size: 20px; font-weight: 800; color: #fff; line-height: 1; white-space: nowrap;
+        }
+        .kotei-work-small {
+            font-size: 13px; font-weight: 800; color: #d8e0ea;
+            letter-spacing: 0.02em; line-height: 1; margin-bottom: 4px; white-space: nowrap;
+        }
+        .kotei-work-line {
+            font-size: 26px; font-weight: 900; letter-spacing: 0.04em;
+            color: #fff; -webkit-text-stroke: 1.8px #E31B23;
+            paint-order: stroke fill; line-height: 1.08; white-space: nowrap; text-align: center;
+        }
+        .kotei-safety-line {
+            font-size: 26px; font-weight: 900; letter-spacing: 0.06em;
+            color: #fff; line-height: 1.1; white-space: nowrap; text-align: center;
+        }
+        .kotei-logo-img {
+            display: block; width: 78px; height: 78px; object-fit: contain;
+        }
+        .kotei-logo-name {
+            font-size: 13px; font-weight: 900; color: #111; letter-spacing: 0.12em;
+            line-height: 1; margin-top: 1px; white-space: nowrap;
+        }
+        .kotei-logo-en {
+            font-size: 7px; font-weight: 800; color: #333; letter-spacing: 0.04em;
+            line-height: 1; margin-top: 1px; white-space: nowrap;
+        }
         /* もう一つのコンテンツ: 横長ロゴ（紋章+佐藤工業）を256px単位で右→左に流す */
         .logo-face-scroll-wrap {
             width: 512px; height: 128px; overflow: hidden; position: relative; z-index: 1;
@@ -260,11 +378,12 @@
             width: 128px; max-width: 128px; height: 128px; max-height: 128px;
             flex: 0 0 128px; object-fit: contain; transform: none;
         }
-        /* 横長ロゴ: 面いっぱいに大きく */
+        /* 横長ロゴ: 256×128 に1つ（紋章と交互） */
         .logo-face-img.logo-face-wide {
-            width: auto; max-width: none; height: 128px; max-height: 128px;
-            transform: scale(1.22);
-            transform-origin: center center;
+            width: 256px; max-width: 256px; height: 128px; max-height: 128px;
+            flex: 0 0 256px;
+            object-fit: contain; object-position: center center;
+            transform: none;
         }
 
         /* 1つ目コンテンツ: CSPI風ブランド面（128×4） */
@@ -739,7 +858,9 @@
         #scene4 .col-bg-host { flex-shrink: 0; }
         #scene4 .fc-panel .col-bg-layer { width: calc(100% + 1px); }
         #scene3 .t3-col.col-bg-host { flex-shrink: 0; }
-        #scene3 .t3-col .col-bg-layer { width: calc(100% + 1px); }
+        /* 両列とも +1px だと中央に濃い線が出る → 左列のみ 1px 伸ばして隙間だけ埋める */
+        #scene3 .t3-col .col-bg-layer { width: 100%; }
+        #scene3 .t3-col:first-child .col-bg-layer { width: calc(100% + 1px); }
 
         .forecast-scene { display: none; overflow: hidden; }
         .fc-panel {
@@ -845,7 +966,10 @@
             background: #ffffff;
         }
         #scene5 .col-bg-host { flex-shrink: 0; }
-        #scene5 .col-bg-layer { width: calc(100% + 1px); }
+        #scene5 .col-bg-layer { width: 100%; }
+        #scene5 .d5-panel:not(.d5-logo-panel) + .d5-panel:not(.d5-logo-panel) .col-bg-layer {
+            margin-left: -1px; width: calc(100% + 1px);
+        }
         #scene5 .d5-body {
             flex-direction: row;
             align-items: center;
@@ -869,11 +993,11 @@
             flex-shrink: 0;
         }
         #scene5 .d5-body .weather-svg {
-            width: 58px; height: 58px;
+            width: 42px; height: 42px;
             flex-shrink: 0;
         }
         #scene5 .d5-sep {
-            font-size: 38px;
+            font-size: 28px;
             font-weight: 700;
             line-height: 1;
             flex-shrink: 0;
@@ -895,8 +1019,8 @@
             color: #000000 !important;
         }
         #scene5 .d5-body .s2-val { flex-shrink: 0; }
-        #scene5 .d5-body .s2-num { font-size: 52px; line-height: 1; }
-        #scene5 .d5-body .s2-unit { font-size: 24px; line-height: 1; }
+        #scene5 .d5-body .s2-num { font-size: 40px; line-height: 1; }
+        #scene5 .d5-body .s2-unit { font-size: 18px; line-height: 1; }
         /* 今日のみ 128×128 枠で強調 — 実DOM（LEDサイネージで ::after が欠ける対策） */
         #scene5 .d5-panel.d5-today-focus {
             position: relative;
@@ -1872,6 +1996,7 @@
       apiUrl: '/api/news',
       url: './data/news.json',
       remoteUrl: 'https://digital-signage-led.github.io/wbgt-cube/%E5%BA%83%E5%B3%B6_%E4%BD%90%E8%97%A4%E5%B7%A5%E6%A5%AD_SS/data/news.json',
+      newsListUrl: 'https://www.satokogyo.co.jp/news/',
       refreshMs: 600000,
       maxItems: 3
     }
@@ -2100,6 +2225,11 @@
             <div class="news-track" id="news-track"></div>
         </div>
     </div>
+    <div class="scene" id="sceneKotei">
+        <div class="kotei-scroll-wrap">
+            <div class="kotei-track" id="kotei-track"></div>
+        </div>
+    </div>
     <div class="scene" id="sceneLogo">
         <div class="logo-face-scroll-wrap" id="logo-face-scroll-wrap">
             <div class="logo-face-track" id="logo-face-track"></div>
@@ -2115,6 +2245,7 @@
         </div>
     </div>
 
+<script src="./assets/weather-theme.js"></script>
 <script>
 /**
  * 512×128 サイネージ列背景
@@ -2145,9 +2276,19 @@
         return row ? { bgColor: row.bgColor, barColor: row.barColor } : UNKNOWN;
     }
 
-    /** displayMode: 'normal' | 'unavailable' | 'offseason' — 濃い灰は unavailable / offseason のみ */
+    /** displayMode: 'normal' | 'unavailable' | 'offseason'
+     *  WBGT ON (normal) = 危険度色。WBGT OFF (offseason) = 気温テーマ。失敗時のみ既存 UNKNOWN */
+    function weatherThemeColorsOrUnknown_() {
+        if (global.WeatherTheme && typeof global.WeatherTheme.paintColors === 'function') {
+            const painted = global.WeatherTheme.paintColors({ wbgtOn: false });
+            if (painted && painted.bgColor) {
+                return { bgColor: painted.bgColor, barColor: painted.barColor };
+            }
+        }
+        return UNKNOWN;
+    }
     function colorsForDisplay(levelIdx, displayMode) {
-        if (displayMode === 'offseason') return OFF_SEASON;
+        if (displayMode === 'offseason') return weatherThemeColorsOrUnknown_();
         if (displayMode === 'unavailable') return UNKNOWN;
         if (levelIdx == null || levelIdx < 0) return colorsForLevel(0);
         return colorsForLevel(levelIdx);
@@ -2447,10 +2588,9 @@
     /*
      * 流れる順
      *  1 時刻＋WBGT下帯 (s1) → 2 気象観測＋末尾紋章 (s2)
-     *  → ブランド面
-     *  → 3 WBGT表示 (s4) → 4 4日予報 (s5)
-     *  → 横長ロゴ → 5 多言語WBGT (s3) → シーン1へ
-     * ?only= は 1〜5 または s1〜s5（旧キー）両対応
+     *  → 3 WBGT表示 (s4) → 4 福山市4日予報 (s5)
+     *  → NEWS → 工程・安全ミッション → 5 多言語WBGT (s3) → シーン1へ
+     * ?only= は 1〜5 または s1〜s5（旧キー）両対応。工程は ?only=kotei
      */
     function normalizeOnlyParam_(raw) {
         if (raw == null || raw === '') return null;
@@ -2459,11 +2599,12 @@
         if (v === 'rainwarn') return 'rainwarn';
         if (v === 'logo') return 'logo';
         if (v === 'brand') return 'brand';
-        const map = { '1': 's1', '2': 's2', '3': 's4', '4': 's5', '5': 's3', s1: 's1', s2: 's2', s3: 's3', s4: 's4', s5: 's5', logo: 'logo', brand: 'brand' };
+        if (v === 'kotei' || v === 'schedule') return 'kotei';
+        const map = { '1': 's1', '2': 's2', '3': 's4', '4': 's5', '5': 's3', s1: 's1', s2: 's2', s3: 's3', s4: 's4', s5: 's5', logo: 'logo', brand: 'brand', kotei: 'kotei' };
         return map[v] || null;
     }
     const SCENE_LABEL_BY_KEY = {
-        brand: 'ブランド', s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', logo: '横長ロゴ', alert: '熱中症アラート', rainwarn: '大雨警報'
+        brand: 'ブランド', s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', logo: '社章', kotei: '工程・安全', alert: '熱中症アラート', rainwarn: '大雨警報'
     };
     const DEMO_ONLY = (function () {
         const fromQ = normalizeOnlyParam_(query.get('only'));
@@ -3115,6 +3256,8 @@
     const sceneLogo = document.getElementById('sceneLogo');
     const sceneNews = document.getElementById('sceneNews');
     const newsTrack = document.getElementById('news-track');
+    const sceneKotei = document.getElementById('sceneKotei');
+    const koteiTrack = document.getElementById('kotei-track');
     const logoFaceTrack = document.getElementById('logo-face-track');
     const logoFaceScrollWrap = document.getElementById('logo-face-scroll-wrap');
     const logoRotator = document.getElementById('logo-rotator');
@@ -4685,18 +4828,18 @@
             });
         });
     }
-    /** 各コンテンツのあと: ロゴ面を流してから次へ（kinds省略時は横長のみ） */
+    /** 横長ロゴ面は通常再生から外す（?only=logo のみ） */
     let afterLogoNext_ = null;
     let logoFaceActiveKinds_ = null;
     function playSceneLogoThen_(nextFn, kinds) {
         afterLogoNext_ = typeof nextFn === 'function' ? nextFn : null;
-        if (DEMO_ONLY || !sceneLogo) {
-            gotoAfterSceneLogo_();
+        if (DEMO_ONLY === 'logo' && sceneLogo) {
+            logoFaceActiveKinds_ = (kinds && kinds.length) ? kinds : LOGO_FACE_KINDS;
+            logoFaceKindIdx_ = 0;
+            showSceneInstant_(sceneLogo, playSceneLogo);
             return;
         }
-        logoFaceActiveKinds_ = (kinds && kinds.length) ? kinds : LOGO_FACE_KINDS;
-        logoFaceKindIdx_ = 0;
-        showSceneInstant_(sceneLogo, playSceneLogo);
+        gotoAfterSceneLogo_();
     }
     function gotoAfterSceneLogo_() {
         applyLogoFaceKindToRightPanel_('sato');
@@ -4935,7 +5078,7 @@
     }
     async function startRainWarnOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneKotei, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
         if (sceneRainWarn) {
             sceneRainWarn.style.display = 'block';
             sceneRainWarn.classList.add('active');
@@ -5034,7 +5177,7 @@
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
     let scene5AnimId = null;
     const SCENE_LOGO_PANEL_W = 256;
-    const SCENE_LOGO_PANEL_COUNT = 2; /* 0–256 / 257–512 に同じ横長ロゴ */
+    const SCENE_LOGO_PANEL_COUNT = 2; /* 横長256 + 紋章256 を交互 */
     const SCENE_LOGO_LAPS = 2;
     const LOGO_ACTION_HOLD_MS = 1000; /* 各動作の前後で1秒静止 */
     let sceneLogoSetWidth = SCENE_LOGO_PANEL_COUNT * SCENE_LOGO_PANEL_W;
@@ -5064,8 +5207,9 @@
     const SCENE_SCROLL_HOLD_MS = 1000;
     /** スクロール終了後〜次コンテンツ／次シーンまでの静止 */
     const SCENE_END_HOLD_MS = 1000;
-    const GLOBAL_SCROLL_SPEED_PX = 0.75;
-    const DEMO_SCROLL_SPEED_PX = 0.5;
+    /* コンテンツ横スクロール速度（px/frame）。0.75は遅すぎるため約1.8倍 */
+    const GLOBAL_SCROLL_SPEED_PX = 1.35;
+    const DEMO_SCROLL_SPEED_PX = 0.9;
     function getScrollSpeedPx_() {
         return (DEMO_SIGNAGE && !DEMO_ONLY) ? DEMO_SCROLL_SPEED_PX : GLOBAL_SCROLL_SPEED_PX;
     }
@@ -5100,7 +5244,25 @@
     /** 末尾ロゴ付きセット: 左端をコンテンツ先頭に揃える */
     function snapGlobalScrollToLapStart_(lapPx) {
         if (!lapPx || lapPx <= 0) return;
-        globalScrollX_ = Math.ceil(globalScrollX_ / lapPx) * lapPx;
+        globalScrollX_ = Math.round(globalScrollX_ / lapPx) * lapPx;
+    }
+    /** 末尾ロゴが右端に来るまでの移動量（1周・左端がロゴにならない） */
+    function trailingLogoPassPx_(setWidth) {
+        const viewW = 512;
+        if (!setWidth || setWidth <= viewW) return Math.max(128, setWidth || viewW);
+        return setWidth - viewW;
+    }
+    /** N周して末尾ロゴが右端に来る総移動量 */
+    function trailingLogoScrollTotal_(setWidth, laps) {
+        const viewW = 512;
+        const n = Math.max(1, laps || 1);
+        if (!setWidth || setWidth <= viewW) return Math.max(128, setWidth || viewW) * n;
+        return n * setWidth - viewW;
+    }
+    /** トラックを先頭（オフセット0）に固定。表示は local スクロールで独立させる */
+    function snapTrackToContentStart_(el, lapPx) {
+        snapGlobalScrollToLapStart_(lapPx);
+        applyScrollX_(el, 0);
     }
     function getS1FootLapPx_() {
         if (!s1WbgtTrack) return SCENE1_WBGT_LAP_PX;
@@ -5170,6 +5332,12 @@
         if (sceneNewsAnimId) { cancelAnimationFrame(sceneNewsAnimId); sceneNewsAnimId = null; }
         if (typeof newsCanvasTimerId_ !== 'undefined' && newsCanvasTimerId_) {
             clearTimeout(newsCanvasTimerId_); newsCanvasTimerId_ = null;
+        }
+        if (typeof sceneKoteiAnimId !== 'undefined' && sceneKoteiAnimId) {
+            cancelAnimationFrame(sceneKoteiAnimId); sceneKoteiAnimId = null;
+        }
+        if (typeof koteiCanvasTimerId_ !== 'undefined' && koteiCanvasTimerId_) {
+            clearTimeout(koteiCanvasTimerId_); koteiCanvasTimerId_ = null;
         }
         if (sceneBrandAnimId) { cancelAnimationFrame(sceneBrandAnimId); sceneBrandAnimId = null; }
         if (sceneBrandHoldTimerId) { clearTimeout(sceneBrandHoldTimerId); sceneBrandHoldTimerId = null; }
@@ -6317,7 +6485,7 @@
         d5Conveyor.style.width = `${scene5SetWidth * 2}px`;
     }
     function fitD5PanelText_() {
-        const maxW = 120;
+        const maxW = 118;
         const maxH = 68;
         document.querySelectorAll('#scene5 .s2-bar-label').forEach(function (el) {
             let size = 22;
@@ -6333,13 +6501,22 @@
             const wrap = row.querySelector('.s2-val');
             const num = wrap && wrap.querySelector('.d5-temp');
             if (!num) return;
-            let iconSz = 58;
-            let sepSz = 38;
-            let numSz = 52;
-            let unitSz = 24;
+            /* アイコン+／+気温が128内に収まる初期値（大きすぎると左のアイコンが欠ける） */
+            let iconSz = 42;
+            let sepSz = 28;
+            let numSz = 40;
+            let unitSz = 18;
             const apply = function () {
-                if (icon) { icon.style.width = iconSz + 'px'; icon.style.height = iconSz + 'px'; }
-                if (sep) sep.style.fontSize = sepSz + 'px';
+                if (icon) {
+                    icon.style.width = iconSz + 'px';
+                    icon.style.height = iconSz + 'px';
+                    icon.style.flexShrink = '0';
+                    icon.style.display = 'block';
+                }
+                if (sep) {
+                    sep.style.fontSize = sepSz + 'px';
+                    sep.style.display = '';
+                }
                 num.style.fontSize = numSz + 'px';
                 const unit = wrap.querySelector('.s2-unit');
                 if (unit) unit.style.fontSize = unitSz + 'px';
@@ -6348,27 +6525,12 @@
                 return row.scrollWidth > maxW || row.scrollHeight > maxH;
             };
             apply();
-            let growGuard = 24;
-            while (growGuard-- > 0) {
-                const prev = { iconSz: iconSz, sepSz: sepSz, numSz: numSz, unitSz: unitSz };
-                if (numSz < 56) numSz += 1;
-                else if (iconSz < 62) iconSz += 1;
-                else if (sepSz < 42) sepSz += 1;
-                else if (unitSz < 26) unitSz += 1;
-                else break;
-                apply();
-                if (overflows()) {
-                    iconSz = prev.iconSz; sepSz = prev.sepSz; numSz = prev.numSz; unitSz = prev.unitSz;
-                    apply();
-                    break;
-                }
-            }
-            let guard = 60;
+            let guard = 80;
             while (guard-- > 0 && overflows()) {
-                if (numSz > 30) { numSz -= 1; apply(); continue; }
-                if (iconSz > 38) { iconSz -= 2; apply(); continue; }
-                if (sepSz > 26) { sepSz -= 1; apply(); continue; }
-                if (unitSz > 16) { unitSz -= 1; apply(); continue; }
+                if (numSz > 28) { numSz -= 1; apply(); continue; }
+                if (unitSz > 14) { unitSz -= 1; apply(); continue; }
+                if (sepSz > 20) { sepSz -= 1; apply(); continue; }
+                if (iconSz > 30) { iconSz -= 2; apply(); continue; }
                 break;
             }
         });
@@ -6497,7 +6659,13 @@
         }
         fitScene2BodyText();
         captureAmedasSnapshot_(obs, latest);
+        if (typeof WeatherTheme !== 'undefined' && WeatherTheme.setObservedTemperature) {
+            WeatherTheme.setObservedTemperature(temp, lastAmedasObsTime || Date.now());
+        }
         persistSignageStateCache_();
+        if (typeof getSignageDisplayMode_ === 'function' && getSignageDisplayMode_() === 'offseason') {
+            refreshSignageBgIfChanged_(true);
+        }
         return {
             todayMaxTemp: maxT != null ? Number(maxT) : (temp != null ? Number(temp) : null),
             todayLiveIcon: icon
@@ -6998,7 +7166,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneLogo' || el.id === 'sceneNews' || el.id === 'sceneBrand' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneLogo' || el.id === 'sceneNews' || el.id === 'sceneKotei' || el.id === 'sceneBrand' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         return 'flex';
     }
@@ -7248,7 +7416,7 @@
     }
     function startAlertOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneKotei, sceneBrand].forEach(hideSceneEl);
         if (sceneAlert) {
             sceneAlert.style.display = 'block';
             sceneAlert.classList.add('active');
@@ -7912,12 +8080,8 @@
             }, SCENE1_CLOCK_HOLD_MS);
         }
     }
-    /* シーン2の次 → ブランド面 → WBGT表示（紋章はシーン2末尾） */
+    /* シーン2の次 → WBGT表示（ブランド面は削除） */
     function gotoSceneAfterScene2_() {
-        if (sceneBrand) {
-            transitionToScene(sceneBrand, playSceneBrand);
-            return;
-        }
         gotoAfterBrandBlock_();
     }
     /* シーン3（WBGT表示）の次 → シーン4（4日予報） */
@@ -7930,6 +8094,10 @@
             transitionToScene(sceneNews, playSceneNews);
             return;
         }
+        if (sceneKotei) {
+            transitionToScene(sceneKotei, playSceneKotei);
+            return;
+        }
         playSceneLogoThen_(function () {
             if (!s3) { gotoAfterScene3_(); return; }
             transitionToScene(s3, playScene3);
@@ -7937,7 +8105,8 @@
     }
     const SCENE_NEWS_LAPS = 1;
     /* NEWSは文字が大きく読み取りやすいので、他シーンより少し速く流す */
-    const SCENE_NEWS_SPEED_MULT = 1.05;
+    const SCENE_NEWS_SPEED_MULT = 1.75;
+    const SCENE_NEWS_REFRESH_WAIT_MS = 2000;
     let sceneNewsSetWidth = 512;
     let sceneNewsAnimId = null;
     let newsCanvasTimerId_ = null;
@@ -7967,14 +8136,16 @@
                 + '</div>';
         }
         function setHtml_() {
-            let html = badgeHtml_();
+            let html = '';
             for (let i = 0; i < items.length; i++) {
-                html += sepHtml_() + itemHtml_(items[i]);
+                /* 1件ごとの先頭にロゴ+新着情報 */
+                html += badgeHtml_() + itemHtml_(items[i]);
+                if (i < items.length - 1) html += sepHtml_();
             }
             html += sepHtml_();
             return '<div class="news-unit">' + html + '</div>';
         }
-        /* [ロゴ+新着情報] ● [日付 タイトル] ● … を2セットつなげて流す */
+        /* [ロゴ+新着情報][日付 タイトル] ● … を2セットつなげて流す */
         newsTrack.innerHTML = setHtml_() + setHtml_();
         const first = newsTrack.querySelector('.news-unit');
         sceneNewsSetWidth = Math.max(512, first ? first.offsetWidth : 512);
@@ -8000,6 +8171,10 @@
     }
     function gotoAfterSceneNews_() {
         setNewsCanvasMode_(false, SCENE_SLIDE_MS);
+        if (sceneKotei) {
+            transitionToScene(sceneKotei, playSceneKotei);
+            return;
+        }
         playSceneLogoThen_(function () {
             if (!s3) { gotoAfterScene3_(); return; }
             transitionToScene(s3, playScene3);
@@ -8036,17 +8211,178 @@
                 sceneNewsAnimId = requestAnimationFrame(tick);
             });
         };
-        if (typeof SignageNews.refresh === 'function') {
-            SignageNews.refresh().finally(start);
-        } else {
-            start();
-        }
+        /* 取得がハングしてもキャッシュ／タイムアウトで必ず再生へ進む */
+        const refreshP = (typeof SignageNews.refresh === 'function')
+            ? SignageNews.refresh()
+            : Promise.resolve();
+        Promise.race([
+            refreshP,
+            new Promise(function (resolve) { setTimeout(resolve, SCENE_NEWS_REFRESH_WAIT_MS); })
+        ]).finally(start);
     }
-    /* ブランド直後: 紋章単体 / 多言語直前: 横長のみ / only=logo用 */
-    const LOGO_AFTER_BRAND_KINDS = ['crest'];
-    const LOGO_BEFORE_MULTI_KINDS = ['wide'];
-    const LOGO_INTRO_KINDS = ['crest', 'wide'];
-    const LOGO_FACE_KINDS = ['wide'];
+    const SCENE_KOTEI_LAPS = 1;
+    const SCENE_KOTEI_SPEED_MULT = 0.95;
+    const KOTEI_TERM = {
+        reiwa: '令和8年',
+        highlight: '9月から12月',
+        title: 'ポンプ棟躯体構築',
+        sub: '（地下部）'
+    };
+    const KOTEI_WEEK = {
+        label: '重要工程',
+        reiwa: '令和8年',
+        md: '10月3日',
+        youbi: '（土）',
+        smallDate: '令和8年10月3日',
+        work1: 'コンクリート',
+        work2: '打設'
+    };
+    const KOTEI_SAFETY = {
+        label1: '安全',
+        label2: 'ミッション',
+        line1: '保護具の',
+        line2: '着用！！'
+    };
+    const KOTEI_TRI_SVG = '<svg class="kotei-triangle" viewBox="0 0 100 90" aria-hidden="true">'
+        + '<polygon points="50,6 96,86 4,86" fill="#E31B23"/>'
+        + '<text x="50" y="72" text-anchor="middle" fill="#fff" font-size="46" font-weight="800" font-family="Noto Sans JP,sans-serif">!</text>'
+        + '</svg>';
+    let sceneKoteiSetWidth = 512;
+    let sceneKoteiAnimId = null;
+    let koteiCanvasTimerId_ = null;
+    let koteiPhaseIdx_ = 0;
+    function koteiLogoColHtml_() {
+        const cfg = window.SIGNAGE_CONFIG || {};
+        const src = cfg.logoSrc || './assets/sato_kogyo_logo_stack.png?v=6';
+        return '<div class="kotei-col kotei-col-logo">'
+            + '<img class="kotei-logo-img" src="' + src + '" alt="佐藤工業" decoding="sync">'
+            + '<div class="kotei-logo-name">佐藤工業</div>'
+            + '<div class="kotei-logo-en">SATO KOGYO CO.,LTD.</div>'
+            + '</div>';
+    }
+    function koteiTermCardHtml_(theme) {
+        return '<div class="kotei-card kotei-card-' + theme + '">'
+            + '<div class="kotei-term-period"><span class="kotei-reiwa">' + escapeS1Html(KOTEI_TERM.reiwa)
+            + '</span><span class="kotei-term-hl">' + escapeS1Html(KOTEI_TERM.highlight) + '</span></div>'
+            + '<div class="kotei-term-title">' + escapeS1Html(KOTEI_TERM.title) + '</div>'
+            + '<div class="kotei-term-sub">' + escapeS1Html(KOTEI_TERM.sub) + '</div>'
+            + '</div>';
+    }
+    function koteiWeekSetHtml_() {
+        return '<div class="kotei-set">'
+            + '<div class="kotei-col"><div class="kotei-warn-label">' + escapeS1Html(KOTEI_WEEK.label) + '</div>' + KOTEI_TRI_SVG + '</div>'
+            + '<div class="kotei-col">'
+            + '<div class="kotei-date-reiwa">' + escapeS1Html(KOTEI_WEEK.reiwa) + '</div>'
+            + '<div class="kotei-date-md">' + escapeS1Html(KOTEI_WEEK.md) + '</div>'
+            + '<div class="kotei-date-youbi">' + escapeS1Html(KOTEI_WEEK.youbi) + '</div>'
+            + '</div>'
+            + '<div class="kotei-col">'
+            + '<div class="kotei-work-small">' + escapeS1Html(KOTEI_WEEK.smallDate) + '</div>'
+            + '<div class="kotei-work-line">' + escapeS1Html(KOTEI_WEEK.work1) + '</div>'
+            + '<div class="kotei-work-line">' + escapeS1Html(KOTEI_WEEK.work2) + '</div>'
+            + '</div>'
+            + koteiLogoColHtml_()
+            + '</div>';
+    }
+    function koteiSafetySetHtml_() {
+        return '<div class="kotei-set">'
+            + '<div class="kotei-col"><div class="kotei-warn-label-2">'
+            + '<span>' + escapeS1Html(KOTEI_SAFETY.label1) + '</span>'
+            + '<span>' + escapeS1Html(KOTEI_SAFETY.label2) + '</span></div>' + KOTEI_TRI_SVG + '</div>'
+            + '<div class="kotei-col kotei-col-wide">'
+            + '<div class="kotei-safety-line">' + escapeS1Html(KOTEI_SAFETY.line1) + '</div>'
+            + '<div class="kotei-safety-line">' + escapeS1Html(KOTEI_SAFETY.line2) + '</div>'
+            + '</div>'
+            + koteiLogoColHtml_()
+            + '</div>';
+    }
+    function buildSceneKoteiTrack_(phase) {
+        if (!koteiTrack) return false;
+        let inner = '';
+        if (phase === 'term') {
+            inner = koteiTermCardHtml_('dark') + koteiTermCardHtml_('light');
+            sceneKoteiSetWidth = 512;
+        } else if (phase === 'week') {
+            inner = koteiWeekSetHtml_();
+            sceneKoteiSetWidth = 512;
+        } else {
+            inner = koteiSafetySetHtml_();
+            sceneKoteiSetWidth = 512;
+        }
+        koteiTrack.innerHTML = inner + inner;
+        koteiTrack.style.width = (sceneKoteiSetWidth * 2) + 'px';
+        applyScrollX_(koteiTrack, 0);
+        return sceneKoteiSetWidth > 0;
+    }
+    function setKoteiCanvasMode_(on, delayMs) {
+        const contentArea = document.querySelector('.content-area');
+        if (koteiCanvasTimerId_) { clearTimeout(koteiCanvasTimerId_); koteiCanvasTimerId_ = null; }
+        const apply = function () {
+            koteiCanvasTimerId_ = null;
+            if (contentArea) contentArea.classList.toggle('kotei-canvas', !!on);
+        };
+        const wait = Math.max(0, Number(delayMs) || 0);
+        if (wait > 0) koteiCanvasTimerId_ = setTimeout(apply, wait);
+        else apply();
+    }
+    const KOTEI_PHASES = ['term', 'week', 'safety'];
+    function gotoAfterSceneKotei_() {
+        if (demoOnlyLoop_('kotei', playSceneKotei)) return;
+        setKoteiCanvasMode_(false, SCENE_SLIDE_MS);
+        playSceneLogoThen_(function () {
+            if (!s3) { gotoAfterScene3_(); return; }
+            transitionToScene(s3, playScene3);
+        }, LOGO_BEFORE_MULTI_KINDS);
+    }
+    function gotoNextKoteiPhase_() {
+        koteiPhaseIdx_ += 1;
+        if (koteiPhaseIdx_ >= KOTEI_PHASES.length) {
+            koteiPhaseIdx_ = 0;
+            gotoAfterSceneKotei_();
+            return;
+        }
+        playKoteiPhase_(koteiPhaseIdx_);
+    }
+    function playKoteiPhase_(idx) {
+        const phase = KOTEI_PHASES[idx] || 'term';
+        if (sceneKoteiAnimId) { cancelAnimationFrame(sceneKoteiAnimId); sceneKoteiAnimId = null; }
+        if (!buildSceneKoteiTrack_(phase)) {
+            gotoAfterSceneKotei_();
+            return;
+        }
+        runSceneScrollAfterHold_(function () {
+            let totalScrolled = 0;
+            const scrollTotal = sceneKoteiSetWidth * SCENE_KOTEI_LAPS;
+            const speed = getScrollSpeedPx_() * SCENE_KOTEI_SPEED_MULT;
+            function tick() {
+                totalScrolled += speed;
+                applyScrollX_(koteiTrack, wrapScrollX_(-totalScrolled, sceneKoteiSetWidth));
+                if (totalScrolled >= scrollTotal) {
+                    sceneKoteiAnimId = null;
+                    applyScrollX_(koteiTrack, wrapScrollX_(-scrollTotal, sceneKoteiSetWidth));
+                    runAfterSceneEndHold_(gotoNextKoteiPhase_);
+                    return;
+                }
+                sceneKoteiAnimId = requestAnimationFrame(tick);
+            }
+            sceneKoteiAnimId = requestAnimationFrame(tick);
+        });
+    }
+    function playSceneKotei() {
+        if (sceneKoteiAnimId) { cancelAnimationFrame(sceneKoteiAnimId); sceneKoteiAnimId = null; }
+        if (!sceneKotei || !koteiTrack) {
+            gotoAfterSceneKotei_();
+            return;
+        }
+        setKoteiCanvasMode_(true, DEMO_ONLY === 'kotei' ? 0 : SCENE_SLIDE_MS);
+        koteiPhaseIdx_ = 0;
+        playKoteiPhase_(0);
+    }
+    /* ロゴ面: 横長ロゴと紋章を256pxごとに交互に流す */
+    const LOGO_AFTER_BRAND_KINDS = ['alternate'];
+    const LOGO_BEFORE_MULTI_KINDS = ['alternate'];
+    const LOGO_INTRO_KINDS = ['alternate'];
+    const LOGO_FACE_KINDS = ['alternate'];
     let logoFaceKindIdx_ = 0;
     function getLogoFaceKindDef_(kind) {
         const cfg = window.SIGNAGE_CONFIG || {};
@@ -8065,10 +8401,25 @@
         };
     }
     function getLogoFacePanelDefs_(kind) {
-        const one = getLogoFaceKindDef_(kind);
+        const k = kind || 'alternate';
+        /* 横長（紋章+社名）と紋章単体を交互 */
+        if (k === 'alternate' || k === 'mix') {
+            const wide = getLogoFaceKindDef_('wide');
+            const crest = getLogoFaceKindDef_('crest');
+            const pair = [
+                { src: wide.src, alt: wide.alt, cls: wide.cls, dual: false },
+                { src: crest.src, alt: '', cls: crest.cls, dual: false }
+            ];
+            const defs = [];
+            for (let i = 0; i < SCENE_LOGO_PANEL_COUNT; i++) {
+                defs.push(pair[i % 2]);
+            }
+            return defs;
+        }
+        const one = getLogoFaceKindDef_(k);
         const defs = [];
         for (let i = 0; i < SCENE_LOGO_PANEL_COUNT; i++) {
-            defs.push({ src: one.src, alt: i === 0 ? one.alt : '', cls: one.cls, dual: kind === 'crest' });
+            defs.push({ src: one.src, alt: i === 0 ? one.alt : '', cls: one.cls, dual: false });
         }
         return defs;
     }
@@ -8082,7 +8433,7 @@
         logoEl.alt = alt;
     }
     function logoFacePanelHtml_(d) {
-        const panelCls = 'logo-face-panel' + (d.dual ? ' logo-face-panel-crest' : '');
+        const panelCls = 'logo-face-panel' + (d.cls === 'logo-face-crest' ? ' logo-face-panel-crest' : '');
         if (d.dual) {
             return '<div class="' + panelCls + '">'
                 + '<img class="logo-face-img ' + d.cls + '" src="' + d.src + '" alt="' + d.alt + '" decoding="sync">'
@@ -8094,35 +8445,16 @@
     }
     function ensureLogoFacePanels_(kind) {
         if (!logoFaceTrack) return false;
-        const k = kind || 'wide';
+        const k = kind || 'alternate';
         const defs = getLogoFacePanelDefs_(k);
-        const n = SCENE_LOGO_PANEL_COUNT * 2;
-        const expectCls = (k === 'crest') ? 'logo-face-crest' : 'logo-face-wide';
-        const firstImg = logoFaceTrack.querySelector('.logo-face-img');
-        const expectDual = k === 'crest';
-        const hasDual = !!logoFaceTrack.querySelector('.logo-face-panel-crest');
-        const needRebuild = logoFaceTrack.children.length !== n
-            || logoFaceTrack.querySelector('.logo-face-rotator')
-            || !firstImg
-            || !firstImg.classList.contains(expectCls)
-            || hasDual !== expectDual;
-        if (needRebuild) {
-            let html = '';
-            for (let i = 0; i < n; i++) {
-                html += logoFacePanelHtml_(defs[i % defs.length]);
-            }
-            logoFaceTrack.innerHTML = html;
-        } else {
-            logoFaceTrack.querySelectorAll('.logo-face-panel').forEach(function (panel, i) {
-                const d = defs[i % defs.length];
-                panel.querySelectorAll('.logo-face-img').forEach(function (img, j) {
-                    img.className = 'logo-face-img ' + d.cls;
-                    if (img.getAttribute('src') !== d.src) img.src = d.src;
-                    img.alt = j === 0 ? d.alt : '';
-                });
-            });
+        if (!defs.length) return false;
+        const n = Math.max(SCENE_LOGO_PANEL_COUNT * 2, 4);
+        let html = '';
+        for (let i = 0; i < n; i++) {
+            html += logoFacePanelHtml_(defs[i % defs.length]);
         }
-        applyLogoFaceKindToRightPanel_(k);
+        logoFaceTrack.innerHTML = html;
+        applyLogoFaceKindToRightPanel_(k === 'alternate' ? 'crest' : k);
         sceneLogoSetWidth = SCENE_LOGO_PANEL_COUNT * SCENE_LOGO_PANEL_W;
         logoFaceTrack.style.width = (sceneLogoSetWidth * 2) + 'px';
         return true;
@@ -8213,23 +8545,25 @@
             scheduleDemoStep_(gotoSceneAfterScene2_);
             return;
         }
-        const scene2ScrollTotal = scene2SetWidth * SCENE2_LAPS;
+        const scene2ScrollTotal = trailingLogoScrollTotal_(scene2SetWidth, SCENE2_LAPS);
         if (!scene2SetWidth || scene2SetWidth <= 0) {
             gotoSceneAfterScene2_();
             return;
         }
-        snapGlobalScrollToLapStart_(scene2SetWidth);
+        snapTrackToContentStart_(conveyor, scene2SetWidth);
         let totalScrolled = 0;
-        applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
-        applyGlobalScroll_(conveyor, scene2SetWidth);
+        applyScrollX_(s2MetaTrack, wrapScrollX_(globalScrollX_, scene2MetaLapPx));
+        applyScrollX_(conveyor, 0);
         conveyor.style.transition = 'none';
         function animateScene2() {
-            advanceGlobalScroll_(getScrollSpeedPx_());
-            totalScrolled += getScrollSpeedPx_();
-            applyGlobalScroll_(conveyor, scene2SetWidth);
-            applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
+            const speed = getScrollSpeedPx_();
+            advanceGlobalScroll_(speed);
+            totalScrolled += speed;
+            applyScrollX_(conveyor, wrapScrollX_(-totalScrolled, scene2SetWidth));
+            applyScrollX_(s2MetaTrack, wrapScrollX_(globalScrollX_, scene2MetaLapPx));
             if (totalScrolled >= scene2ScrollTotal) {
                 scene2AnimId = null;
+                applyScrollX_(conveyor, wrapScrollX_(-scene2ScrollTotal, scene2SetWidth));
                 stopLogoSpinInterval();
                 if (demoOnlyLoop_('s2', playScene2)) return;
                 runAfterSceneEndHold_(gotoSceneAfterScene2_);
@@ -8238,6 +8572,9 @@
             scene2AnimId = requestAnimationFrame(animateScene2);
         }
         runSceneScrollAfterHold_(function () {
+            snapTrackToContentStart_(conveyor, scene2SetWidth);
+            totalScrolled = 0;
+            applyScrollX_(conveyor, 0);
             scene2AnimId = requestAnimationFrame(animateScene2);
         });
     }
@@ -8269,23 +8606,25 @@
             scheduleDemoStep_(finishScene4);
             return;
         }
-        const scene4ScrollTotal = scene4SetWidth * SCENE4_LAPS;
+        const scene4ScrollTotal = trailingLogoScrollTotal_(scene4SetWidth, SCENE4_LAPS);
         if (!fcConveyor || !scene4SetWidth || scene4SetWidth <= 0) {
             setTimeout(finishScene4, 500);
             return;
         }
-        snapGlobalScrollToLapStart_(scene4SetWidth);
+        snapTrackToContentStart_(fcConveyor, scene4SetWidth);
         let totalScrolled = 0;
-        applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
-        applyGlobalScroll_(fcConveyor, scene4SetWidth);
+        applyScrollX_(fcLvTrack, wrapScrollX_(globalScrollX_, scene4FcLvLapPx));
+        applyScrollX_(fcConveyor, 0);
         fcConveyor.style.transition = 'none';
         function animateScene4() {
-            advanceGlobalScroll_(getScrollSpeedPx_());
-            totalScrolled += getScrollSpeedPx_();
-            applyGlobalScroll_(fcConveyor, scene4SetWidth);
-            applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
+            const speed = getScrollSpeedPx_();
+            advanceGlobalScroll_(speed);
+            totalScrolled += speed;
+            applyScrollX_(fcConveyor, wrapScrollX_(-totalScrolled, scene4SetWidth));
+            applyScrollX_(fcLvTrack, wrapScrollX_(globalScrollX_, scene4FcLvLapPx));
             if (totalScrolled >= scene4ScrollTotal) {
                 scene4AnimId = null;
+                applyScrollX_(fcConveyor, wrapScrollX_(-scene4ScrollTotal, scene4SetWidth));
                 stopLogoSpinInterval();
                 runAfterSceneEndHold_(finishScene4);
                 return;
@@ -8293,6 +8632,9 @@
             scene4AnimId = requestAnimationFrame(animateScene4);
         }
         runSceneScrollAfterHold_(function () {
+            snapTrackToContentStart_(fcConveyor, scene4SetWidth);
+            totalScrolled = 0;
+            applyScrollX_(fcConveyor, 0);
             scene4AnimId = requestAnimationFrame(animateScene4);
         });
     }
@@ -8310,21 +8652,24 @@
             scheduleDemoStep_(gotoSceneAfterScene5_);
             return;
         }
-        const scene5ScrollTotal = scene5SetWidth * SCENE5_LAPS;
+        const scene5ScrollTotal = trailingLogoScrollTotal_(scene5SetWidth, SCENE5_LAPS);
         if (!scene5SetWidth || scene5SetWidth <= 0) {
             gotoSceneAfterScene5_();
             return;
         }
-        snapGlobalScrollToLapStart_(scene5SetWidth);
+        /* 開始は常に「今日」を左端。末尾ロゴは右端に来るまで流して止める */
+        snapTrackToContentStart_(d5Conveyor, scene5SetWidth);
         let totalScrolled = 0;
-        applyGlobalScroll_(d5Conveyor, scene5SetWidth);
+        applyScrollX_(d5Conveyor, 0);
         d5Conveyor.style.transition = 'none';
         function animateScene5() {
-            advanceGlobalScroll_(getScrollSpeedPx_());
-            totalScrolled += getScrollSpeedPx_();
-            applyGlobalScroll_(d5Conveyor, scene5SetWidth);
+            const speed = getScrollSpeedPx_();
+            advanceGlobalScroll_(speed);
+            totalScrolled += speed;
+            applyScrollX_(d5Conveyor, wrapScrollX_(-totalScrolled, scene5SetWidth));
             if (totalScrolled >= scene5ScrollTotal) {
                 scene5AnimId = null;
+                applyScrollX_(d5Conveyor, wrapScrollX_(-scene5ScrollTotal, scene5SetWidth));
                 stopLogoSpinInterval();
                 if (demoOnlyLoop_('s5', playScene5)) return;
                 runAfterSceneEndHold_(gotoSceneAfterScene5_);
@@ -8333,6 +8678,10 @@
             scene5AnimId = requestAnimationFrame(animateScene5);
         }
         runSceneScrollAfterHold_(function () {
+            snapTrackToContentStart_(d5Conveyor, scene5SetWidth);
+            totalScrolled = 0;
+            applyScrollX_(d5Conveyor, 0);
+            fitD5PanelText_();
             scene5AnimId = requestAnimationFrame(animateScene5);
         });
     }
@@ -8438,7 +8787,7 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneKotei, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
         if (!el) return;
         el.style.display = sceneDisplayMode(el);
         el.classList.add('active');
@@ -8470,6 +8819,9 @@
                     logoFaceActiveKinds_ = LOGO_INTRO_KINDS;
                     showOnlyScene_(sceneLogo, playSceneLogo);
                     break;
+                case 'kotei':
+                    showOnlyScene_(sceneKotei, playSceneKotei);
+                    break;
                 default: break;
             }
         }
@@ -8478,7 +8830,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneKotei, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -8504,7 +8856,7 @@
     function startSequence() {
         clearDemoStepTimer_();
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneLogo, sceneNews, sceneKotei, sceneBrand, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
         activeSceneEl_ = null;
         transitionToScene(s1, playScene1);
     }
@@ -8604,4 +8956,5 @@
 
 </script>
 </body>
+</html>
 </html>
