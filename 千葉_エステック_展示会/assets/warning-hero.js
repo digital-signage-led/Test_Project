@@ -120,7 +120,7 @@
     var n = String(name || '').trim();
     var c = String(code || '');
     var cfg = global.SignageConfig;
-    var configured = (cfg && cfg.jma && cfg.jma.warnCityLabel) || 'ビックサイト';
+    var configured = (cfg && cfg.jma && cfg.jma.warnCityLabel) || 'ビッグサイト';
     var warnCity = (cfg && cfg.jma && cfg.jma.warnCity) || '1310800';
     if (c && String(c) === String(warnCity)) return configured;
     if (c === '1310800' || n.indexOf('江東') >= 0) return configured;
