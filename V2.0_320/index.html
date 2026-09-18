@@ -3235,6 +3235,9 @@
     let lastAmedasRainNow = false;
     let lastAmedasObsTime = null;
     let pendingDisplayRefresh = false;
+    let pendingScene2Compact_ = false;
+    let lastS2MetaKey_ = '';
+    let scenePlayScrollX_ = 0;
     /** シーン切替直後のみ表示組み替えを許可（取得中は現在シーンを維持） */
     let sceneEntryRefreshAllowed_ = false;
     let mainLoopStarted_ = false;
@@ -5114,14 +5117,16 @@
             rainWarnKindActive = first ? rainWarnLiveByLevel_[first].slice() : ['rain'];
             syncLiveWhiteTickerFromQueue_();
             syncLiveColorTickerFromQueue_();
-            const nextKey = liveWarnContentKey_();
+            const nextKey = normalizeWarnContentKey_(liveWarnContentKey_());
             const appeared = nextKey && nextKey !== lastLiveWarnContentKey_;
             const disappeared = lastLiveWarnContentKey_ && !nextKey;
             lastLiveWarnContentKey_ = nextKey;
             if (window.AlertCubeRuntime) {
                 window.AlertCubeRuntime.mergeDisaster(true, nextKey ? [{ key: nextKey }] : []);
             }
-            if (appeared && mainLoopStarted_ && !(warnPhase_ > 0 && warnPhase_ < 5)) {
+            const inDisaster = (warnPhase_ > 0 && warnPhase_ < 5)
+                || (window.AlertCubeRuntime && window.AlertCubeRuntime.isDisasterInterrupt());
+            if (appeared && mainLoopStarted_ && !inDisaster) {
                 interruptWithDisaster_();
             } else if (disappeared && window.AlertCubeRuntime && window.AlertCubeRuntime.isDisasterInterrupt()) {
                 restoreAfterDisaster_();
@@ -6086,7 +6091,7 @@
             if (onEnd) onEnd();
             return;
         }
-        transitionToScene(sceneWarnHero, function () {
+        function startHero_() {
             try {
                 playWarnHero_(items, function () {
                     stopWarnHero_();
@@ -6098,7 +6103,12 @@
                 stopWarnHero_();
                 if (onEnd) onEnd();
             }
-        });
+        }
+        if (getActiveScene() === sceneWarnHero) {
+            startHero_();
+            return;
+        }
+        transitionToScene(sceneWarnHero, startHero_);
     }
     function continueWarnAfterCurrent_() {
         if (warnPhase_ === 1) {
@@ -6220,6 +6230,16 @@
         warnPhase_ = 4;
         runWarnPhase_();
     }
+    function normalizeWarnContentKey_(key) {
+        const seen = {};
+        return String(key || '').split('|').filter(function (part) {
+            if (!part) return false;
+            const n = part.replace(/^w:/, '');
+            if (seen[n]) return false;
+            seen[n] = true;
+            return true;
+        }).sort().join('|');
+    }
     function liveWarnContentKey_() {
         const parts = [];
         ['special', 'danger', 'warning', 'advisory'].forEach(function (lv) {
@@ -6256,11 +6276,12 @@
         if (!window.AlertCubeRuntime) return;
         const el = getActiveScene();
         if (!el || window.AlertCubeCore.isDisasterSceneId(el.id)) return;
+        const useSceneScroll = el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneSchedule';
         window.AlertCubeRuntime.capturePlayback({
             sceneId: el.id,
             capturedAt: Date.now(),
             langIdx: typeof t3LangIdx_ === 'number' ? t3LangIdx_ : 0,
-            scrollX: typeof globalScrollX_ === 'number' ? globalScrollX_ : 0
+            scrollX: useSceneScroll ? scenePlayScrollX_ : (typeof globalScrollX_ === 'number' ? globalScrollX_ : 0)
         });
     }
     function resumeSavedPlayback_(saved) {
@@ -6278,7 +6299,9 @@
             return;
         }
         if (saved.sceneId === 'scene3' && typeof t3LangIdx_ === 'number') t3LangIdx_ = saved.langIdx || 0;
-        transitionToScene(pair[0], pair[1]);
+        const current = getActiveScene();
+        if (current === pair[0]) return;
+        transitionToScene(pair[0], function () { pair[1](saved); });
     }
     function reevaluateAmbientBackground_() {
         refreshSignageBgIfChanged_(true);
@@ -7436,11 +7459,10 @@
     }
     function queueDisplayRefresh_() {
         pendingDisplayRefresh = true;
+        if (mainLoopStarted_ && shouldDeferDisplayRefresh_()) return;
         if (s3 && s3.classList.contains('active')) {
             syncScene3Display_(true);
-            return;
         }
-        if (mainLoopStarted_ && shouldDeferDisplayRefresh_()) return;
     }
     function queueOrRefreshS1FootBar_() {
         if (shouldDeferDisplayRefresh_()) {
@@ -7450,10 +7472,11 @@
         refreshS1WbgtFootBar_(false);
     }
     function flushDisplayRefresh_(force) {
-        if (!pendingDisplayRefresh && !force) return;
+        if (!pendingDisplayRefresh && !force && !pendingScene2Compact_) return;
         if (!force && shouldDeferDisplayRefresh_()) return;
         pendingDisplayRefresh = false;
         flushPendingForecastSlots_();
+        if (pendingScene2Compact_) compactScene2Panels();
         refreshS1WbgtFootBar_(false);
         if (lastAmedasObsTime) buildScene2MetaTrack(lastAmedasObsTime);
         buildTicker();
@@ -8257,6 +8280,12 @@
         if (!s2MetaTrack) return;
         const when = latest || lastAmedasObsTime || (getSyncedUtcMs() != null ? new Date(getSyncedUtcMs()) : new Date());
         const obs = formatScene2ObsClock_(when);
+        const key = String(obs.stamp || '') + '\t' + scene2VisibleTypes_().join(',');
+        if (key === lastS2MetaKey_ && s2MetaTrack.querySelector('.s2-meta-set-panels')) {
+            applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
+            return;
+        }
+        lastS2MetaKey_ = key;
         s2MetaTrack.innerHTML = buildScene2MetaSetHtml(obs) + buildScene2MetaSetHtml(obs);
         const set = s2MetaTrack.querySelector('.s2-meta-set-panels');
         const n = scene2VisibleTypes_().length;
@@ -8393,6 +8422,12 @@
         return !!(p && (p.classList.contains('s2-logo-panel') || p.getAttribute('data-s2') === 'logo'));
     }
     function compactScene2Panels() {
+        if (shouldDeferDisplayRefresh_()) {
+            pendingScene2Compact_ = true;
+            queueDisplayRefresh_();
+            return;
+        }
+        pendingScene2Compact_ = false;
         if (!conveyor) return;
         const weather = Array.from(conveyor.children).filter(function (p) {
             return !isScene2LogoPanel_(p);
@@ -8893,21 +8928,23 @@
         return all.length ? all[all.length - 1] : null;
     }
     function transitionToScene(nextEl, onComplete) {
-        clearSceneEndHoldTimer_();
-        clearSceneSlideAnim_();
-        clearOutgoingSceneAnims_();
         if (!nextEl) { if (onComplete) onComplete(); return; }
         const current = (playingSceneEl_ && playingSceneEl_ !== nextEl && playingSceneEl_.classList.contains('active'))
             ? playingSceneEl_
             : getActiveScene();
+        if (current === nextEl) {
+            playingSceneEl_ = nextEl;
+            if (window.AlertCubeCore && window.AlertCubeCore.isDisasterSceneId(nextEl.id) && onComplete) {
+                onComplete();
+            }
+            return;
+        }
+        clearSceneEndHoldTimer_();
+        clearSceneSlideAnim_();
+        clearOutgoingSceneAnims_();
         document.querySelectorAll('.content-area .scene.active').forEach(function (el) {
             if (el !== nextEl && el !== current) hideSceneEl(el);
         });
-        if (current === nextEl) {
-            playingSceneEl_ = nextEl;
-            if (onComplete) onComplete();
-            return;
-        }
         playingSceneEl_ = nextEl;
         nextEl.style.display = sceneDisplayMode(nextEl);
         nextEl.classList.add('active');
@@ -9624,7 +9661,7 @@
         }
         t3Flow_ = {
             x: wrapScrollX_(globalScrollX_, T3_UNIT_W),
-            langIdx: 0,
+            langIdx: (typeof t3LangIdx_ === 'number' ? t3LangIdx_ : 0),
             laps: 0
         };
         applyT3TrackX_(tracks, t3Flow_.x);
@@ -9732,7 +9769,7 @@
         if (!s3) { gotoAfterScene3_(); return; }
         transitionToScene(s3, playScene3);
     }
-    function playScene2() {
+    function playScene2(saved) {
         applyDisplayRefreshAtSceneEntry_();
         applyPendingSignageBgAtScene_();
         compactScene2Panels();
@@ -9749,15 +9786,19 @@
             gotoSceneAfterScene2_();
             return;
         }
+        const resumeX = (saved && typeof saved.scrollX === 'number' && saved.scrollX > 0 && saved.scrollX < scene2ScrollTotal)
+            ? saved.scrollX : 0;
         snapTrackToContentStart_(conveyor, scene2SetWidth);
-        let totalScrolled = 0;
-        applyScrollX_(s2MetaTrack, 0);
-        applyScrollX_(conveyor, 0);
+        let totalScrolled = resumeX;
+        scenePlayScrollX_ = totalScrolled;
+        applyScrollX_(s2MetaTrack, wrapScrollX_(-totalScrolled, scene2MetaLapPx));
+        applyScrollX_(conveyor, wrapScrollX_(-totalScrolled, scene2SetWidth));
         conveyor.style.transition = 'none';
         function animateScene2() {
             const speed = getScrollSpeedPx_();
             advanceGlobalScroll_(speed);
             totalScrolled += speed;
+            scenePlayScrollX_ = totalScrolled;
             applyScrollX_(conveyor, wrapScrollX_(-totalScrolled, scene2SetWidth));
             applyScrollX_(s2MetaTrack, wrapScrollX_(-totalScrolled, scene2MetaLapPx));
             if (totalScrolled >= scene2ScrollTotal) {
@@ -9772,10 +9813,13 @@
             scene2AnimId = requestAnimationFrame(animateScene2);
         }
         runSceneScrollAfterHold_(function () {
-            snapTrackToContentStart_(conveyor, scene2SetWidth);
-            totalScrolled = 0;
-            applyScrollX_(conveyor, 0);
-            applyScrollX_(s2MetaTrack, 0);
+            if (!resumeX) {
+                snapTrackToContentStart_(conveyor, scene2SetWidth);
+                totalScrolled = 0;
+                scenePlayScrollX_ = 0;
+                applyScrollX_(conveyor, 0);
+                applyScrollX_(s2MetaTrack, 0);
+            }
             scene2AnimId = requestAnimationFrame(animateScene2);
         });
     }
@@ -9784,7 +9828,7 @@
         if (demoOnlyLoop_('s4', playScene4)) return;
         gotoSceneAfterScene4_();
     }
-    function playScene4() {
+    function playScene4(saved) {
         applyDisplayRefreshAtSceneEntry_();
         clearScene4Timers();
         if (wbgtOffSeason) {
@@ -9812,15 +9856,19 @@
             setTimeout(finishScene4, 500);
             return;
         }
+        const resumeX = (saved && typeof saved.scrollX === 'number' && saved.scrollX > 0 && saved.scrollX < scene4ScrollTotal)
+            ? saved.scrollX : 0;
         snapTrackToContentStart_(fcConveyor, scene4SetWidth);
-        let totalScrolled = 0;
-        applyScrollX_(fcLvTrack, 0);
-        applyScrollX_(fcConveyor, 0);
+        let totalScrolled = resumeX;
+        scenePlayScrollX_ = totalScrolled;
+        applyScrollX_(fcLvTrack, wrapScrollX_(-totalScrolled, scene4FcLvLapPx));
+        applyScrollX_(fcConveyor, wrapScrollX_(-totalScrolled, scene4SetWidth));
         fcConveyor.style.transition = 'none';
         function animateScene4() {
             const speed = getScrollSpeedPx_();
             advanceGlobalScroll_(speed);
             totalScrolled += speed;
+            scenePlayScrollX_ = totalScrolled;
             applyScrollX_(fcConveyor, wrapScrollX_(-totalScrolled, scene4SetWidth));
             applyScrollX_(fcLvTrack, wrapScrollX_(-totalScrolled, scene4FcLvLapPx));
             if (totalScrolled >= scene4ScrollTotal) {
@@ -9834,14 +9882,17 @@
             scene4AnimId = requestAnimationFrame(animateScene4);
         }
         runSceneScrollAfterHold_(function () {
-            snapTrackToContentStart_(fcConveyor, scene4SetWidth);
-            totalScrolled = 0;
-            applyScrollX_(fcConveyor, 0);
-            applyScrollX_(fcLvTrack, 0);
+            if (!resumeX) {
+                snapTrackToContentStart_(fcConveyor, scene4SetWidth);
+                totalScrolled = 0;
+                scenePlayScrollX_ = 0;
+                applyScrollX_(fcConveyor, 0);
+                applyScrollX_(fcLvTrack, 0);
+            }
             scene4AnimId = requestAnimationFrame(animateScene4);
         });
     }
-    function playScene5() {
+    function playScene5(saved) {
         if (!s5 || !d5Conveyor) { gotoSceneAfterScene5_(); return; }
         if (scene5AnimId) cancelAnimationFrame(scene5AnimId);
         applyDisplayRefreshAtSceneEntry_();
@@ -9860,14 +9911,18 @@
             gotoSceneAfterScene5_();
             return;
         }
+        const resumeX = (saved && typeof saved.scrollX === 'number' && saved.scrollX > 0 && saved.scrollX < scene5ScrollTotal)
+            ? saved.scrollX : 0;
         snapTrackToContentStart_(d5Conveyor, scene5SetWidth);
-        let totalScrolled = 0;
-        applyScrollX_(d5Conveyor, 0);
+        let totalScrolled = resumeX;
+        scenePlayScrollX_ = totalScrolled;
+        applyScrollX_(d5Conveyor, wrapScrollX_(-totalScrolled, scene5SetWidth));
         d5Conveyor.style.transition = 'none';
         function animateScene5() {
             const speed = getScrollSpeedPx_();
             advanceGlobalScroll_(speed);
             totalScrolled += speed;
+            scenePlayScrollX_ = totalScrolled;
             applyScrollX_(d5Conveyor, wrapScrollX_(-totalScrolled, scene5SetWidth));
             if (totalScrolled >= scene5ScrollTotal) {
                 scene5AnimId = null;
@@ -9880,9 +9935,12 @@
             scene5AnimId = requestAnimationFrame(animateScene5);
         }
         runSceneScrollAfterHold_(function () {
-            snapTrackToContentStart_(d5Conveyor, scene5SetWidth);
-            totalScrolled = 0;
-            applyScrollX_(d5Conveyor, 0);
+            if (!resumeX) {
+                snapTrackToContentStart_(d5Conveyor, scene5SetWidth);
+                totalScrolled = 0;
+                scenePlayScrollX_ = 0;
+                applyScrollX_(d5Conveyor, 0);
+            }
             fitD5PanelText_();
             scene5AnimId = requestAnimationFrame(animateScene5);
         });
