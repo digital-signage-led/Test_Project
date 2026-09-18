@@ -847,12 +847,12 @@
             color: #ffffff;
             font-size: 24px;
             font-weight: 900;
-            letter-spacing: -1.2px;
+            letter-spacing: 0;
             line-height: 1;
             font-family: "Noto Sans JP", sans-serif;
             white-space: nowrap;
             overflow: hidden;
-            padding: 0;
+            padding: 0 6px;
             box-sizing: border-box;
         }
         .sch-date-txt {
@@ -8905,10 +8905,11 @@
             }
             if (date) {
                 const txt = date.querySelector('.sch-date-txt') || date;
-                const maxW = 128;
-                const size = Math.min(24, Math.max(20, date.clientHeight - 8));
+                const padX = 6;
+                const maxW = Math.max(96, 128 - padX * 2);
+                const size = Math.min(22, Math.max(16, date.clientHeight - 8));
                 date.style.fontSize = size + 'px';
-                date.style.letterSpacing = '-1.2px';
+                date.style.letterSpacing = '0';
                 date.style.lineHeight = '1';
                 txt.style.transform = 'none';
                 const tw = txt.scrollWidth || date.scrollWidth;
