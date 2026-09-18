@@ -6139,53 +6139,208 @@
             alertJson.today ? alertJson.today.label : '', alertJson.tomorrow ? alertJson.tomorrow.label : '');
     }
     async function fetchWbgtFromMoeApi() {
-        if (!MOE_WBGT_API_URL) {
-            console.error('[WBGT] moe.gasUrl 未設定 — HTML 内の SignageConfig を確認してください');
-            return null;
-        }
-        const bases = [MOE_WBGT_API_URL, MOE_WBGT_BACKUP_URL].filter((u, i, a) => u && a.indexOf(u) === i);
         const pointCodes = moePointCodesToTry_();
         let alertApplied = false;
         let sawOffSeason = false;
+        /* GAS不通時でも表示できるよう、環境省API直接取得を先に試行（getSurveyData は CORS許可） */
         for (let pi = 0; pi < pointCodes.length; pi++) {
-            const pointCode = pointCodes[pi];
-            const urls = [];
-            bases.forEach(function (base) {
-                const wbgtUrl = appendMoePointToUrl(base, pointCode);
-                const bundleUrl = appendMoeBundleToUrl(base, pointCode);
-                if (wbgtUrl && urls.indexOf(wbgtUrl) < 0) urls.push(wbgtUrl);
-                if (bundleUrl && urls.indexOf(bundleUrl) < 0) urls.push(bundleUrl);
-            });
-            for (const url of urls) {
-                try {
-                    const raw = await fetchMoeJsonFromGasUrl_(url);
-                    const unpacked = unpackMoeGasResponse_(raw);
-                    if (!unpacked || !unpacked.wbgt) continue;
-                    if (unpacked.alert) {
-                        applyMoeAlertFromJson_(unpacked.alert);
-                        alertApplied = true;
-                    }
-                    const wbgt = unpacked.wbgt;
-                    if (!isUsableMoeWbgtPayload_(wbgt)) {
-                        console.warn('[WBGT] 地点不一致/代替地点データを破棄', wbgt.point, wbgt.dataVia || '');
-                        continue;
-                    }
-                    if (wbgt.source === 'off-season' || wbgt.inService === false) {
-                        sawOffSeason = true;
-                        console.log('[WBGT] 指定地点にデータなし');
-                        continue;
-                    }
-                    return parseMoeJson_(wbgt);
-                } catch (e) { console.warn('[環境省] GAS取得失敗:', e.message || e); }
+            try {
+                const direct = await fetchWbgtFromMoeDirect_(pointCodes[pi]);
+                if (!direct) continue;
+                if (direct.source === 'off-season' || direct.inService === false) {
+                    sawOffSeason = true;
+                    continue;
+                }
+                if (!isUsableMoeWbgtPayload_(direct)) continue;
+                return parseMoeJson_(direct);
+            } catch (eDir) {
+                console.warn('[WBGT] 直接取得失敗:', eDir.message || eDir);
             }
+        }
+        if (MOE_WBGT_API_URL) {
+            const bases = [MOE_WBGT_API_URL, MOE_WBGT_BACKUP_URL].filter((u, i, a) => u && a.indexOf(u) === i);
+            for (let pi = 0; pi < pointCodes.length; pi++) {
+                const pointCode = pointCodes[pi];
+                const urls = [];
+                bases.forEach(function (base) {
+                    const wbgtUrl = appendMoePointToUrl(base, pointCode);
+                    const bundleUrl = appendMoeBundleToUrl(base, pointCode);
+                    if (wbgtUrl && urls.indexOf(wbgtUrl) < 0) urls.push(wbgtUrl);
+                    if (bundleUrl && urls.indexOf(bundleUrl) < 0) urls.push(bundleUrl);
+                });
+                for (const url of urls) {
+                    try {
+                        const raw = await fetchMoeJsonFromGasUrl_(url);
+                        const unpacked = unpackMoeGasResponse_(raw);
+                        if (!unpacked || !unpacked.wbgt) continue;
+                        if (unpacked.alert) {
+                            applyMoeAlertFromJson_(unpacked.alert);
+                            alertApplied = true;
+                        }
+                        const wbgt = unpacked.wbgt;
+                        if (!isUsableMoeWbgtPayload_(wbgt)) {
+                            console.warn('[WBGT] 地点不一致/代替地点データを破棄', wbgt.point, wbgt.dataVia || '');
+                            continue;
+                        }
+                        if (wbgt.source === 'off-season' || wbgt.inService === false) {
+                            sawOffSeason = true;
+                            console.log('[WBGT] 指定地点にデータなし');
+                            continue;
+                        }
+                        return parseMoeJson_(wbgt);
+                    } catch (e) { console.warn('[環境省] GAS取得失敗:', e.message || e); }
+                }
+            }
+        } else {
+            console.warn('[WBGT] moe.gasUrl 未設定 — 環境省API直接取得のみ試行済み');
         }
         if (!alertApplied) await updateHeatAlertFromGas_();
         if (sawOffSeason) {
             console.log('[WBGT] 全地点でデータなし（WBGT非表示）');
             return 'offseason';
         }
-        console.warn('[WBGT] 取得失敗: GAS URL と SignageConfig の moe.gasUrl を確認してください');
+        console.warn('[WBGT] 取得失敗: 環境省API直接取得と GAS の両方で失敗');
         return null;
+    }
+    function moeJstCompactFromMs_(ms) {
+        const p = jstPartsFromMs(ms != null ? ms : getNowMs());
+        return String(p.year)
+            + pad2Clock_(p.month) + pad2Clock_(p.day)
+            + pad2Clock_(p.hour) + pad2Clock_(p.minute) + pad2Clock_(p.second);
+    }
+    function moeToWbgtNumber_(raw) {
+        if (raw == null) return null;
+        let n = Number(String(raw).trim());
+        if (!Number.isFinite(n)) return null;
+        if (n > 45 && n <= 450) n = n / 10;
+        if (n < 5 || n > 45) return null;
+        return Math.round(n * 10) / 10;
+    }
+    function parseYohouCsvText_(text, point) {
+        const lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        let dataLine = '';
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            if (line.indexOf(String(point)) === 0 || /^\d{5},/.test(line)) {
+                dataLine = line;
+                break;
+            }
+        }
+        if (!dataLine) return null;
+        const cols = dataLine.split(',');
+        const rowPoint = String(cols[0] || '').trim();
+        const updatedAt = String(cols[1] || '').trim();
+        const hours = ['現在', '+3h', '+6h', '+9h'];
+        const slots = [];
+        for (let s = 0; s < 4; s++) {
+            const wbgt = moeToWbgtNumber_(cols[s + 2]);
+            if (wbgt == null) return null;
+            slots.push({ wbgt: wbgt, hour: hours[s] });
+        }
+        return {
+            ok: true,
+            source: 'moe-env.go.jp',
+            inService: true,
+            point: rowPoint || String(point),
+            pointName: (SITE_CFG.moe && SITE_CFG.moe.pointName) || '',
+            updatedAt: updatedAt || '',
+            data: slots,
+            slots: slots,
+            dataVia: 'yohou-direct'
+        };
+    }
+    function wbgtFromSurveyRow_(row) {
+        if (!row) return null;
+        const direct = moeToWbgtNumber_(row.wbgt_WBGT || row.wbgt || row.WBGT);
+        if (direct != null) return direct;
+        const tw = parseFloat(row.wbgt_Tw);
+        const tg = parseFloat(row.wbgt_Tg);
+        const ta = parseFloat(row.wbgt_WO || row.wbgt_Ta);
+        if (Number.isFinite(tw) && Number.isFinite(tg) && Number.isFinite(ta)) {
+            return Math.round((0.7 * tw + 0.2 * tg + 0.1 * ta) * 10) / 10;
+        }
+        return null;
+    }
+    async function fetchWbgtYohouCsvDirect_(pointCode) {
+        const point = String(pointCode || MOE_WBGT_POINT);
+        const url = 'https://www.wbgt.env.go.jp/prev15WG/dl/yohou_' + encodeURIComponent(point) + '.csv';
+        const res = await fetch(url, { cache: 'no-store', mode: 'cors' });
+        if (res.status === 404) {
+            return {
+                source: 'off-season',
+                inService: false,
+                point: point,
+                pointName: (SITE_CFG.moe && SITE_CFG.moe.pointName) || '',
+                updatedAt: ''
+            };
+        }
+        if (!res.ok) throw new Error('yohou HTTP ' + res.status);
+        const parsed = parseYohouCsvText_(await res.text(), point);
+        if (!parsed) throw new Error('yohou parse empty');
+        return parsed;
+    }
+    async function fetchWbgtSurveyDirect_(pointCode) {
+        const point = String(pointCode || MOE_WBGT_POINT);
+        const now = getNowMs();
+        const from = moeJstCompactFromMs_(now - 24 * 3600000);
+        const to = moeJstCompactFromMs_(now);
+        let lastErr = null;
+        for (let ti = 0; ti < 2; ti++) {
+            const dataType = ti === 0 ? 1 : 0;
+            try {
+                const url = 'https://www.wbgt.env.go.jp/api/v1/getSurveyData'
+                    + '?data_type=' + dataType
+                    + '&location_type=1'
+                    + '&wbgt_nos=' + encodeURIComponent(point)
+                    + '&date_from=' + encodeURIComponent(from)
+                    + '&date_to=' + encodeURIComponent(to);
+                const res = await fetch(url, { cache: 'no-store', mode: 'cors' });
+                if (!res.ok) throw new Error('survey HTTP ' + res.status);
+                const raw = await res.json();
+                if (!raw || raw.status !== 'success') {
+                    throw new Error('survey ' + ((raw && raw.errMsg && raw.errMsg.join(' ')) || 'error'));
+                }
+                const rows = raw.data || [];
+                let best = null;
+                let bestTs = -1;
+                for (let i = 0; i < rows.length; i++) {
+                    const w = wbgtFromSurveyRow_(rows[i]);
+                    if (w == null) continue;
+                    const ts = Date.parse(String(rows[i].wbgt_date || '').replace(/-/g, '/')) || 0;
+                    if (ts >= bestTs) {
+                        bestTs = ts;
+                        best = { wbgt: w, at: rows[i].wbgt_date };
+                    }
+                }
+                if (!best) throw new Error('survey empty type' + dataType);
+                const hours = ['現在', '+3h', '+6h', '+9h'];
+                const slots = hours.map(function (h) { return { wbgt: best.wbgt, hour: h }; });
+                console.log('[WBGT] 環境省実況API OK', point, best.at || '', best.wbgt + '℃');
+                return {
+                    ok: true,
+                    source: 'moe-env.go.jp',
+                    inService: true,
+                    point: point,
+                    pointName: (SITE_CFG.moe && SITE_CFG.moe.pointName) || '',
+                    updatedAt: best.at || '',
+                    data: slots,
+                    slots: slots,
+                    dataVia: 'survey-direct'
+                };
+            } catch (e) {
+                lastErr = e;
+            }
+        }
+        throw lastErr || new Error('survey failed');
+    }
+    async function fetchWbgtFromMoeDirect_(pointCode) {
+        try {
+            return await fetchWbgtYohouCsvDirect_(pointCode);
+        } catch (e1) {
+            console.warn('[WBGT] 予報CSV直接取得不可 → 実況API', e1.message || e1);
+            return await fetchWbgtSurveyDirect_(pointCode);
+        }
     }
     function setTextAll(selector, text) {
         document.querySelectorAll(selector).forEach(el => { el.innerText = text; });
@@ -6786,15 +6941,27 @@
         const loc = getSiteLocationLabel_();
         const label = SCENE2_META_LABELS[type] || type;
         const foot = scene2FootTextForType_(type, obs);
-        const right = label + '：' + foot;
-        /* 下帯は 256|256（地点 | 種別：時刻） */
+        /* 地名と種別報を同じ文言に（256|256 両面とも同一） */
+        const line = loc + '　' + label + '：' + foot;
+        const slot = '<div class="s2-meta-slot s2-meta-slot-panel"><span class="s2-meta-panel-txt">' +
+            escapeS1Html(line) + '</span></div>';
         s2MetaTrack.innerHTML =
-            '<div class="s2-meta-set s2-meta-set-panels">' +
-            '<div class="s2-meta-slot s2-meta-slot-panel"><span class="s2-meta-panel-txt">' + escapeS1Html(loc) + '</span></div>' +
-            '<div class="s2-meta-slot s2-meta-slot-panel"><span class="s2-meta-panel-txt">' + escapeS1Html(right) + '</span></div>' +
-            '</div>';
+            '<div class="s2-meta-set s2-meta-set-panels">' + slot + slot + '</div>';
         scene2MetaLapPx = 512;
         applyScrollX_(s2MetaTrack, 0);
+        fitScene2MetaPanelText_();
+    }
+    function fitScene2MetaPanelText_() {
+        if (!s2MetaTrack) return;
+        s2MetaTrack.querySelectorAll('.s2-meta-panel-txt').forEach(function (el) {
+            let size = 15;
+            const minSize = 11;
+            el.style.fontSize = size + 'px';
+            while (size > minSize && el.scrollWidth > 244) {
+                size -= 1;
+                el.style.fontSize = size + 'px';
+            }
+        });
     }
     function scene2FootTextForType_(type, obs) {
         switch (type) {
