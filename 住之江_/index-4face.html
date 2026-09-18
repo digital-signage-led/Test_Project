@@ -11,6 +11,9 @@
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v1 -->
     <title>WBGT Signage 4面 - 住之江</title>
+    <link rel="preload" as="image" href="https://www.jma.go.jp/bosai/forecast/img/100.svg">
+    <link rel="preload" as="image" href="https://www.jma.go.jp/bosai/forecast/img/200.svg">
+    <link rel="preload" as="image" href="https://www.jma.go.jp/bosai/forecast/img/300.svg">
     <link rel="preload" as="image" href="./assets/greencross_foot_name.svg?v=1">
     <link rel="preload" as="image" href="./assets/greencross_logo.png?v=1">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=optional">
@@ -488,10 +491,14 @@
         .s2-foot { width: 100%; height: var(--led-foot-bar-h); flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 0 2px; }
         .s2-foot .s2-loc { font-size: 15px; font-weight: 700; color: #1a1a1a; font-family: "Noto Sans JP", sans-serif; margin: 0; }
         .s2-foot .d5-foot-txt {
-            font-size: 13px; font-weight: 700; color: #1a1a1a; line-height: 1;
+            font-size: 18px; font-weight: 800; color: #1a1a1a; line-height: 1;
             font-family: "Inter", "Noto Sans JP", sans-serif; font-variant-numeric: tabular-nums;
-            white-space: nowrap; letter-spacing: -0.2px;
+            white-space: nowrap; letter-spacing: -0.6px;
         }
+        /* 下帯クリーム上: 最低気温=青 / 降水確率=水色 */
+        .s2-foot .d5-foot-min { color: #1e5fd4; }
+        .s2-foot .d5-foot-pop { color: #0a8a9a; }
+        .s2-foot .d5-foot-sep { color: #5a5a5a; }
         .s2-zone-top { width: 100%; height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .s2-zone-mid { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .s2-zone-bot { width: 100%; height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -510,7 +517,35 @@
         #scene2 .s2-dir-text.dir-val { font-size: 30px; line-height: 1; }
         .s2-unit:empty { display: none; }
         .s2-unit { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); font-family: "Inter", sans-serif; }
-        .weather-svg { width: 46px; height: 46px; }
+        .weather-svg {
+            width: 46px; height: 46px;
+            max-width: 46px; max-height: 46px;
+            display: block; object-fit: contain;
+            position: absolute; left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+        .weather-icon-cell {
+            position: relative;
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 46px; height: 46px; flex-shrink: 0;
+            overflow: hidden;
+            border-radius: 50%;
+        }
+        .weather-icon-cell::before {
+            content: '';
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 40px; height: 40px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: #ffffff;
+            z-index: 0;
+        }
+        img.weather-svg.weather-icon-img {
+            display: block;
+            object-fit: contain;
+        }
         .s2-tmaxmin-card {
             display: inline-flex; align-items: baseline; justify-content: center;
             gap: 2px; padding: 3px 7px 4px;
@@ -529,16 +564,58 @@
             font-family: "Inter", sans-serif;
         }
 
-        .conveyor-track { display: flex; flex-direction: row; width: 2304px; transition: none; gap: 0; }
+        .conveyor-track { display: flex; flex-direction: row; width: 9216px; transition: none; gap: 0; }
         #scene2 { overflow: hidden; position: relative; }
         #scene2.active { display: block; }
         .s2-scroll-wrap { width: 512px; height: var(--led-col-main-h); overflow: hidden; position: relative; z-index: 1; }
-        #scene2 .s2-panel, #scene2 .s2-panel-data { height: var(--led-col-main-h); }
+        #scene2 .s2-panel, #scene2 .s2-panel-data {
+            height: var(--led-col-main-h);
+            overflow: hidden;
+        }
         #scene2 .s2-bar-label { font-size: 20px; line-height: 1.05; letter-spacing: 0.2px; }
         #scene2 .s2-num { font-size: 44px; }
         #scene2 .s2-dir-text.dir-val { font-size: 34px; }
         #scene2 .s2-unit { font-size: 20px; }
-        #scene2 .weather-svg { width: 54px; height: 54px; }
+        #scene2 .s2-panel[data-s2="weather"] .s2-body {
+            overflow: hidden;
+            align-items: center;
+            justify-content: center;
+        }
+        #scene2 .weather-svg {
+            width: 56px; height: 56px;
+            max-width: 56px; max-height: 56px;
+            object-fit: contain;
+            transform: translate(-50%, -50%) scale(1.18);
+        }
+        #scene2 .weather-icon-cell {
+            width: 56px; height: 56px;
+            max-width: 56px; max-height: 56px;
+            overflow: hidden;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        #scene2 .weather-icon-cell::before {
+            width: 54px; height: 54px;
+        }
+        #scene2 .s2-meta-set.s2-meta-set-panels {
+            width: 512px; height: var(--led-foot-bar-h); flex-shrink: 0;
+            display: flex; flex-direction: row; align-items: stretch;
+            box-sizing: border-box;
+        }
+        #scene2 .s2-meta-slot.s2-meta-slot-panel {
+            width: 256px; flex: 0 0 256px; min-width: 256px; max-width: 256px;
+            height: var(--led-foot-bar-h);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; padding: 0 6px; box-sizing: border-box;
+            background: var(--led-foot-bar-bg);
+        }
+        #scene2 .s2-meta-slot-panel .s2-meta-panel-txt {
+            display: block; max-width: 244px; overflow: hidden;
+            white-space: nowrap; line-height: var(--led-foot-bar-h);
+            font-size: var(--led-foot-font); font-weight: 700; color: #1a1a1a;
+            font-family: "Noto Sans JP", sans-serif; text-align: center;
+            letter-spacing: 0;
+        }
         #scene2 .s2-tmax-high, #scene2 .s2-tmax-low { font-size: 40px; }
         #scene2 .s2-tmax-sep { font-size: 40px; font-weight: 800; }
         #scene2 .s2-tmax-unit { font-size: 16px; }
@@ -630,9 +707,23 @@
             overflow: hidden;
             flex-shrink: 0;
         }
-        #scene5 .d5-body .weather-svg {
-            width: 58px; height: 58px;
+        #scene5 .d5-body .weather-icon-cell {
+            width: 64px; height: 64px;
+            margin-right: 0;
+            overflow: hidden;
+            border-radius: 50%;
+            z-index: 1;
             flex-shrink: 0;
+        }
+        #scene5 .d5-body .weather-icon-cell::before {
+            width: 62px; height: 62px;
+        }
+        #scene5 .d5-body .weather-svg {
+            width: 64px; height: 64px;
+            max-width: 64px; max-height: 64px;
+            flex-shrink: 0;
+            object-fit: contain;
+            transform: translate(-50%, -50%) scale(1.22);
         }
         #scene5 .d5-sep {
             font-size: 38px;
@@ -643,21 +734,27 @@
             opacity: 0.9;
             color: #ebebeb;
         }
-        /* 全列: ほぼ安全など=白文字 / 注意・警戒=黒文字 */
+        /* 全列: ほぼ安全など=白文字 / 注意・警戒=黒文字（下帯の最低/降水は色分け固定） */
         #scene5 .d5-panel:not(.col-bg-dark-text) .s2-bar-label,
         #scene5 .d5-panel:not(.col-bg-dark-text) .d5-sep,
         #scene5 .d5-panel:not(.col-bg-dark-text) .d5-temp,
-        #scene5 .d5-panel:not(.col-bg-dark-text) .s2-unit,
-        #scene5 .d5-panel:not(.col-bg-dark-text) .d5-foot-txt {
+        #scene5 .d5-panel:not(.col-bg-dark-text) .s2-unit {
             color: #ebebeb !important;
         }
         #scene5 .d5-panel.col-bg-dark-text .s2-bar-label,
         #scene5 .d5-panel.col-bg-dark-text .d5-sep,
         #scene5 .d5-panel.col-bg-dark-text .d5-temp,
-        #scene5 .d5-panel.col-bg-dark-text .s2-unit,
-        #scene5 .d5-panel.col-bg-dark-text .d5-foot-txt {
+        #scene5 .d5-panel.col-bg-dark-text .s2-unit {
             color: #000000 !important;
         }
+        #scene5 .d5-panel .s2-foot .d5-foot-txt {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.6px;
+        }
+        #scene5 .d5-panel .s2-foot .d5-foot-min { color: #1e5fd4 !important; }
+        #scene5 .d5-panel .s2-foot .d5-foot-pop { color: #0a8a9a !important; }
+        #scene5 .d5-panel .s2-foot .d5-foot-sep { color: #5a5a5a !important; }
         #scene5 .d5-body .s2-val { flex-shrink: 0; }
         #scene5 .d5-body .s2-num { font-size: 52px; line-height: 1; }
         #scene5 .d5-body .s2-unit { font-size: 24px; line-height: 1; }
@@ -683,6 +780,187 @@
             border-color: #ffffff;
         }
         #scene5 { overflow: hidden; }
+
+        /* ---------- 工程表（sceneSchedule）: 1日=128px・週ごと文言・横スクロール ---------- */
+        #sceneSchedule {
+            overflow: hidden;
+            position: relative;
+            background: #000000 !important;
+        }
+        #sceneSchedule.active { display: block !important; }
+        body.sch-only .content-area { background: #000000 !important; }
+        body.sch-only .content-area > .scene-strip-bg { display: none !important; }
+        .sch-track {
+            display: flex;
+            flex-direction: row;
+            height: 128px;
+            gap: 0;
+            will-change: transform;
+        }
+        .sch-day {
+            width: 128px;
+            height: 128px;
+            flex: 0 0 128px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+            overflow: hidden;
+            background: #000000;
+        }
+        .sch-date {
+            width: 128px;
+            height: 36px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: -1.2px;
+            line-height: 1;
+            font-family: "Noto Sans JP", sans-serif;
+            white-space: nowrap;
+            overflow: hidden;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .sch-date-txt {
+            display: inline-block;
+            white-space: nowrap;
+            line-height: 1;
+            font: inherit;
+            letter-spacing: inherit;
+            transform-origin: center center;
+        }
+        .sch-body {
+            width: 128px;
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .sch-mid {
+            width: 128px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .sch-youbi {
+            width: 128px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            font-weight: 700;
+            line-height: 1;
+            font-family: "Noto Sans JP", sans-serif;
+        }
+        .sch-workbox {
+            width: 128px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            box-sizing: border-box;
+            overflow: hidden;
+            gap: 2px;
+        }
+        .sch-work {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.1;
+            text-align: center;
+            font-family: "Noto Sans JP", sans-serif;
+            white-space: nowrap;
+            overflow: hidden;
+            max-width: 124px;
+        }
+        .sch-sub {
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.1;
+            text-align: center;
+            font-family: "Noto Sans JP", sans-serif;
+            white-space: nowrap;
+        }
+        .sch-warn {
+            display: none;
+            max-width: 120px;
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: "Noto Sans JP", sans-serif;
+            color: #ffffff;
+            box-sizing: border-box;
+        }
+        .sch-warn.is-on { display: inline-block; }
+        .sch-warn.is-advisory { background: #F2E700; color: #1a1a1a; }
+        .sch-warn.is-warning { background: #FA2900; }
+        .sch-warn.is-danger { background: #AB00AA; }
+        .sch-warn.is-special { background: #000000; border: 1px solid #ffffff; }
+        .sch-warn.is-early { background: #156082; }
+        .sch-day.sch-today .sch-youbi { font-weight: 900; }
+
+        /* ---------- 近隣挨拶（sceneGreeting） ---------- */
+        #sceneGreeting { overflow: hidden; position: relative; }
+        #sceneGreeting.active { display: block; }
+        .ng-shell {
+            width: 512px; height: 128px; display: flex; flex-direction: column;
+            overflow: hidden; position: relative; z-index: 1;
+        }
+        .ng-top {
+            width: 100%; height: 32px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ng-title {
+            font-size: 22px; font-weight: 700; letter-spacing: 0.42px; line-height: 1;
+            font-family: "Noto Sans JP", sans-serif; color: #ebebeb;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 500px;
+        }
+        .ng-body {
+            width: 100%; height: var(--led-col-body-h); flex-shrink: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 4px; padding: 0 12px; box-sizing: border-box; overflow: hidden;
+        }
+        .ng-line {
+            font-size: 26px; font-weight: 800; line-height: 1.1; text-align: center;
+            font-family: "Noto Sans JP", sans-serif; color: #ebebeb;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 488px;
+        }
+        .ng-foot {
+            width: 100%; height: var(--led-foot-bar-h); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--led-foot-bar-bg); box-sizing: border-box; padding: 0 8px;
+        }
+        .ng-foot-txt {
+            font-size: 15px; font-weight: 700; line-height: 1; letter-spacing: 0.02em;
+            font-family: "Noto Sans JP", sans-serif; color: #1a1a1a;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 496px;
+        }
+        #sceneGreeting.col-bg-dark-text .ng-title,
+        #sceneGreeting.col-bg-dark-text .ng-line { color: #000000; }
 
         #scene3 { overflow: hidden; position: relative; }
         /* 512×128: 上バー32 + 本体72 + 白下帯24（現在WBGT指針・シーン4） */
@@ -1618,7 +1896,25 @@
     geo: { lat: 34.605184, lon: 135.470949 },
     timeZone: 'Asia/Tokyo',
     refreshMs: 60000,
-    footSource: 'データ提供：気象庁、環境省'
+    footSource: 'データ提供：気象庁、環境省',
+    /* 工程表（1日=128px。itemsの1件=1週間。同じ文言を月〜日に入れる） */
+    schedule: {
+      enabled: true,
+      weekStartsOn: 1, /* 月曜始まり（月→日） */
+      items: [
+        { work: '足場組立', sub: '' },
+        { work: '外装工事', sub: '' },
+        { work: '内装工事', sub: '' },
+        { work: '仕上げ', sub: '' }
+      ]
+    },
+    /* 近隣挨拶（enabled:false でスキップ） */
+    greeting: {
+      enabled: false,
+      title: '近隣の皆様へ',
+      lines: ['工事期間中はご迷惑をおかけします', '安全第一で作業を進めてまいります'],
+      foot: 'ご理解・ご協力をお願いいたします'
+    }
   };
 
   global.SignageConfig = cfg;
@@ -1750,25 +2046,7 @@
     <div class="scene" id="scene2">
         <div class="s2-scroll-wrap">
         <div class="conveyor-track" id="conveyor">
-            <!-- WN比較用順: 天気/気温/暑さ指数(環境省)/湿度/降水量/風向/風速/気圧/最高最低（気象庁） -->
-            <div class="s2-panel s2-strip" data-s2="weather"><div class="s2-top-bar"><span class="s2-bar-label">天気</span></div><div class="s2-body"><svg class="weather-svg"><use class="weather-icon-use" href="#icon-sunny"/></svg></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="temp"><div class="s2-top-bar"><span class="s2-bar-label">気温</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num temp-val"></span><span class="s2-unit">℃</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="wbgt"><div class="s2-top-bar"><span class="s2-bar-label">暑さ指数</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num wbgt-val"></span><span class="s2-unit">℃</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="humi"><div class="s2-top-bar"><span class="s2-bar-label">湿度</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num humi-val"></span><span class="s2-unit">%</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="rain"><div class="s2-top-bar"><span class="s2-bar-label">降水量</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num rain-val"></span><span class="s2-unit">mm</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="wdir"><div class="s2-top-bar"><span class="s2-bar-label">風向き</span></div><div class="s2-body"><div class="s2-dir-text dir-val"></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="wind"><div class="s2-top-bar"><span class="s2-bar-label">風速</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num wind-val"></span><span class="s2-unit">m/s</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="pres"><div class="s2-top-bar"><span class="s2-bar-label">気圧</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num pres-val"></span><span class="s2-unit">hPa</span></div></div></div>
-            <div class="s2-panel-data s2-strip s2-panel-compact" data-s2="tmaxmin"><div class="s2-top-bar"><span class="s2-bar-label">最高/最低</span></div><div class="s2-body"><div class="s2-tmaxmin-card"><span class="s2-tmax-high tmaxmax-val">--</span><span class="s2-tmax-sep">/</span><span class="s2-tmax-low tmin-val">--</span><span class="s2-tmax-unit">℃</span></div></div></div>
-            <div class="s2-panel s2-strip" data-s2="weather"><div class="s2-top-bar"><span class="s2-bar-label">天気</span></div><div class="s2-body"><svg class="weather-svg"><use class="weather-icon-use" href="#icon-sunny"/></svg></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="temp"><div class="s2-top-bar"><span class="s2-bar-label">気温</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num temp-val"></span><span class="s2-unit">℃</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="wbgt"><div class="s2-top-bar"><span class="s2-bar-label">暑さ指数</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num wbgt-val"></span><span class="s2-unit">℃</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="humi"><div class="s2-top-bar"><span class="s2-bar-label">湿度</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num humi-val"></span><span class="s2-unit">%</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="rain"><div class="s2-top-bar"><span class="s2-bar-label">降水量</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num rain-val"></span><span class="s2-unit">mm</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="wdir"><div class="s2-top-bar"><span class="s2-bar-label">風向き</span></div><div class="s2-body"><div class="s2-dir-text dir-val"></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="wind"><div class="s2-top-bar"><span class="s2-bar-label">風速</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num wind-val"></span><span class="s2-unit">m/s</span></div></div></div>
-            <div class="s2-panel-data s2-strip" data-s2="pres"><div class="s2-top-bar"><span class="s2-bar-label">気圧</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num pres-val"></span><span class="s2-unit">hPa</span></div></div></div>
-            <div class="s2-panel-data s2-strip s2-panel-compact" data-s2="tmaxmin"><div class="s2-top-bar"><span class="s2-bar-label">最高/最低</span></div><div class="s2-body"><div class="s2-tmaxmin-card"><span class="s2-tmax-high tmaxmax-val">--</span><span class="s2-tmax-sep">/</span><span class="s2-tmax-low tmin-val">--</span><span class="s2-tmax-unit">℃</span></div></div></div>
+            <!-- 種別ごとに4面同一・固定切替（スクロールなし）。paintScene2Type_() が切替 -->
         </div>
         </div>
         <div class="s2-meta-bar"><div class="s2-meta-track" id="s2-meta-track"></div></div>
@@ -1792,14 +2070,31 @@
 
     <div class="scene forecast-scene daily-scene" id="scene5">
         <div class="d5-track" id="d5-conveyor">
-            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt">--℃ / --%</span></div><div class="d5-today-frame" aria-hidden="true"></div></div>
-            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt">--℃ / --%</span></div></div>
-            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt">--℃ / --%</span></div></div>
-            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt">--℃ / --%</span></div></div>
-            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt">--℃ / --%</span></div><div class="d5-today-frame" aria-hidden="true"></div></div>
-            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt">--℃ / --%</span></div></div>
-            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt">--℃ / --%</span></div></div>
-            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt">--℃ / --%</span></div></div>
+            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt"><span class="d5-foot-min">--℃</span><span class="d5-foot-sep"> / </span><span class="d5-foot-pop">--%</span></span></div><div class="d5-today-frame" aria-hidden="true"></div></div>
+            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt"><span class="d5-foot-min">--℃</span><span class="d5-foot-sep"> / </span><span class="d5-foot-pop">--%</span></span></div></div>
+            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt"><span class="d5-foot-min">--℃</span><span class="d5-foot-sep"> / </span><span class="d5-foot-pop">--%</span></span></div></div>
+            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt"><span class="d5-foot-min">--℃</span><span class="d5-foot-sep"> / </span><span class="d5-foot-pop">--%</span></span></div></div>
+            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt"><span class="d5-foot-min">--℃</span><span class="d5-foot-sep"> / </span><span class="d5-foot-pop">--%</span></span></div><div class="d5-today-frame" aria-hidden="true"></div></div>
+            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt"><span class="d5-foot-min">--℃</span><span class="d5-foot-sep"> / </span><span class="d5-foot-pop">--%</span></span></div></div>
+            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt"><span class="d5-foot-min">--℃</span><span class="d5-foot-sep"> / </span><span class="d5-foot-pop">--%</span></span></div></div>
+            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><span class="d5-foot-txt"><span class="d5-foot-min">--℃</span><span class="d5-foot-sep"> / </span><span class="d5-foot-pop">--%</span></span></div></div>
+        </div>
+    </div>
+
+    <!-- 工程表: 1日=128px。週ごとに同じ文言。SignageConfig.schedule で編集 -->
+    <div class="scene" id="sceneSchedule">
+        <div class="sch-track" id="sch-track"></div>
+    </div>
+
+    <!-- 近隣挨拶: SignageConfig.greeting で編集 -->
+    <div class="scene" id="sceneGreeting">
+        <div class="ng-shell">
+            <div class="ng-top"><span class="ng-title">近隣の皆様へ</span></div>
+            <div class="ng-body">
+                <div class="ng-line ng-line-0">工事期間中はご迷惑をおかけします</div>
+                <div class="ng-line ng-line-1">安全第一で作業を進めてまいります</div>
+            </div>
+            <div class="ng-foot"><span class="ng-foot-txt">ご理解・ご協力をお願いいたします</span></div>
         </div>
     </div>
 
@@ -2055,6 +2350,19 @@
         });
     }
 
+    function refreshSchedule(levelIdx, displayMode) {
+        const root = document.getElementById('sceneSchedule');
+        if (!root) return;
+        root.querySelectorAll('.col-bg-layer').forEach(function (el) { el.remove(); });
+        root.classList.remove('col-bg-host', 'col-bg-dark-text');
+    }
+
+    function refreshGreeting(levelIdx, displayMode) {
+        const el = document.getElementById('sceneGreeting');
+        if (!el) return;
+        el.classList.toggle('col-bg-dark-text', isDarkTextForDisplay(levelIdx, displayMode));
+    }
+
     function refreshTicker(levelIdx, displayMode) {
         document.querySelectorAll('#scene3 .t3-unit').forEach(panel => {
             applyT3UnitStrip(panel, levelIdx, displayMode);
@@ -2126,6 +2434,8 @@
         refreshScene2,
         refreshForecast,
         refreshScene5,
+        refreshSchedule,
+        refreshGreeting,
         refreshTicker,
         applyStrip,
         applyT3UnitStrip,
@@ -2169,11 +2479,15 @@
         const v = String(raw).toLowerCase();
         if (v === 'alert') return 'alert';
         if (v === 'rainwarn') return 'rainwarn';
+        if (v === 'schedule' || v === 'sch' || v === '6') return 'schedule';
+        if (v === 'greeting' || v === 'greet' || v === '7') return 'greeting';
         const map = { '1': 's1', '2': 's2', '3': 's4', '4': 's5', '5': 's3', s1: 's1', s2: 's2', s3: 's3', s4: 's4', s5: 's5' };
         return map[v] || null;
     }
     const SCENE_LABEL_BY_KEY = {
-        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', alert: '熱中症アラート', rainwarn: '大雨警報'
+        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5',
+        schedule: '工程表', greeting: '近隣挨拶',
+        alert: '熱中症アラート', rainwarn: '大雨警報'
     };
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
@@ -2226,7 +2540,7 @@
         return null;
     })();
     const DEMO_SIGNAGE_ACTIVE = DEMO_SIGNAGE || !!DEMO_ONLY;
-    /* フルデモ警報: 色付き3段（L1〜L5）→ 白ベース3段（L2〜L5）を順に流す */
+    /* フルデモ警報: 色付き3段（L2〜L5）→ 白ベース3段（L2〜L5）を順に流す */
     const DEMO_RAIN_PASS_ORDER = ['hero', 'white'];
     let demoRainPassIdx_ = 0;
     function isDemoFullRainLoop_() {
@@ -2432,6 +2746,8 @@
     let pendingSignageBgMode_ = '';
     let pendingForecastSlotsRefresh_ = false;
     let lastAmedasSnapshot_ = null;
+    let lastForecastWeatherCode_ = null;
+    let lastJmaForecastByYmd_ = {};
     const SIGNAGE_STATE_CACHE_KEY = 'osaka_suminoe_signage_state_v1';
     const SIGNAGE_STATE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
     const MOE_GAS_FETCH_TIMEOUT_MS = 12000;
@@ -2683,8 +2999,12 @@
         SignageBg.refreshScene1(lv, mode);
         SignageBg.refreshScene2(lv, mode);
         SignageBg.refreshScene5(lv, mode);
+        if (typeof SignageBg.refreshSchedule === 'function') SignageBg.refreshSchedule(lv, mode);
+        if (typeof SignageBg.refreshGreeting === 'function') SignageBg.refreshGreeting(lv, mode);
         applyD5TodayFrame_();
         applyD5ForecastTextColors_();
+        applyScheduleTextColors_();
+        applyGreetingTextColors_();
         const slots = (lastGoodWbgtSlots_ && hasFull4Slots(lastGoodWbgtSlots_))
             ? lastGoodWbgtSlots_
             : (lastWbgtSlots || (DEMO_SIGNAGE_ACTIVE ? mockSlotsForDemoLevel(lv) : null));
@@ -2736,7 +3056,8 @@
             maxT: amedasFieldValue(obs.maxTemp),
             minT: amedasFieldValue(obs.minTemp),
             gust: amedasFieldValue(obs.gust),
-            icon: amedasToWeatherIcon(obs)
+            icon: lastForecastWeatherCode_ || amedasToWeatherIcon(obs),
+            weatherCode: lastForecastWeatherCode_
         };
     }
     function applyAmedasSnapshot_(snap) {
@@ -2753,7 +3074,7 @@
             gust: snap.gust != null ? [snap.gust] : null
         };
         const when = snap.time ? new Date(snap.time) : null;
-        if (snap.icon) document.querySelectorAll('.weather-icon-use').forEach(function (el) { el.setAttribute('href', snap.icon); });
+        if (snap.weatherCode) lastForecastWeatherCode_ = snap.weatherCode;
         applyJmaAmedasToDom(obs, when && !isNaN(when.getTime()) ? when : null);
     }
     function persistSignageStateCache_() {
@@ -2809,10 +3130,14 @@
     const fcConveyor = document.getElementById('fc-conveyor');
     const fcLvTrack = document.getElementById('fc-lv-track');
     const s5 = document.getElementById('scene5');
+    const d5Conveyor = document.getElementById('d5-conveyor');
+    const sceneSchedule = document.getElementById('sceneSchedule');
+    const schTrack = document.getElementById('sch-track');
+    const sceneGreeting = document.getElementById('sceneGreeting');
     const sceneAlert = document.getElementById('sceneAlert');
     const sceneRainWarn = document.getElementById('sceneRainWarn');
-    const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
+    const ALL_SCENES_ = [s1, s2, s3, s4, s5, sceneSchedule, sceneGreeting, sceneAlert, sceneRainWarn];
 
     /** ロゴパネル: 現在の WBGT 段階色に同期 */
     function applySignageLogoPanel_() {
@@ -2971,7 +3296,7 @@
         danger:   { cls: 'ra-danger',   name: '大雨危険警報',     line2: 'が発表されました', logoBg: '#AB00AA' },
         special:  { cls: 'ra-special',  name: '大雨特別警報',     line2: 'が発表されました', logoBg: '#000000' }
     };
-    const RAIN_WARN_ORDER = ['early', 'advisory', 'warning', 'danger', 'special'];
+    const RAIN_WARN_ORDER = ['advisory', 'warning', 'danger', 'special']; /* 警戒レベル2〜5（L1早期注意情報は非表示） */
     /** 白ベース: 特別→危険→警報→注意（早期注意情報は運用外） */
     const RAIN_WHITE_LEVEL_ORDER = ['special', 'danger', 'warning', 'advisory'];
     /** 気象庁 reportcode → 段階＋種別（運用コード一覧準拠） */
@@ -3706,6 +4031,7 @@
                 applyRaWhiteMidX_(0);
             }
         }
+        if (typeof refreshScheduleWeatherWarn_ === 'function') refreshScheduleWeatherWarn_();
     }
     if (RAIN_WHITE_DESIGN) {
         syncRainWarnActiveForWhite_();
@@ -3813,6 +4139,7 @@
             rainWarnActive = [];
             rainWarnKindActive = ['rain'];
             queueDisplayRefresh_();
+            if (typeof refreshScheduleWeatherWarn_ === 'function') refreshScheduleWeatherWarn_();
             return;
         }
         if (RAIN_WHITE_DESIGN) {
@@ -3822,7 +4149,10 @@
                 syncRainWarnActiveForWhite_();
             }
         } else {
-            rainWarnActive = (level && level !== 'none' && RAIN_WARN_LEVELS[level]) ? [level] : [];
+            rainWarnActive = (level && level !== 'none' && level !== 'early' && RAIN_WARN_LEVELS[level]) ? [level] : [];
+            if (warnJson && !whiteModeForced_()) {
+                rainWhiteQueue = parseJmaActiveWhiteEntries_(warnJson);
+            }
         }
         if (!warnKindForced && kinds && kinds.length) {
             rainWarnKindActive = kinds.slice();
@@ -3830,6 +4160,7 @@
             rainWarnKindActive = ['rain'];
         }
         queueDisplayRefresh_();
+        if (typeof refreshScheduleWeatherWarn_ === 'function') refreshScheduleWeatherWarn_();
     }
     function parseJmaActiveL3Kinds_(warnJson) {
         const found = {};
@@ -3919,26 +4250,7 @@
                 });
             });
         }
-        if (probJson && Array.isArray(probJson) && bestRank === 0) {
-            probJson.forEach(function (block) {
-                (block.timeSeries || []).forEach(function (ts) {
-                    (ts.areas || []).forEach(function (area) {
-                        if (String(area.code) !== JMA_WARN_AREA) return;
-                        (area.properties || []).forEach(function (prop) {
-                            const t = String(prop.type || '');
-                            if (t.indexOf('警報級') < 0 || t.indexOf('雨') < 0) return;
-                            (prop.timeCells || []).forEach(function (cell) {
-                                (cell.locals || []).forEach(function (loc) {
-                                    const cond = String(loc.condition || '');
-                                    if (cond.indexOf('高') >= 0 || Number(loc.value) >= 50) consider('early', 'early');
-                                    else if (cond.indexOf('中') >= 0 || Number(loc.value) >= 30) consider('early', 'early');
-                                });
-                            });
-                        });
-                    });
-                });
-            });
-        }
+        /* 警戒レベル1（早期注意情報 / probability）は表示しないため参照しない */
         return best;
     }
     async function updateRainWarnFromJmaDirect_() {
@@ -4154,7 +4466,8 @@
     }
     function finishMainLoopToS1_() {
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
-        transitionToScene(s1, playScene1);
+        /* ループ先頭: 大雨（発表時）→ 工程表… */
+        gotoAfterRainWarnOrScene1_();
     }
     function gotoAfterRainWarnOrScene1_() {
         if (isDemoFullRainLoop_()) {
@@ -4167,7 +4480,7 @@
             transitionToScene(sceneRainWarn, function () { playSceneRainWarn(0); });
             return;
         }
-        finishMainLoopToS1_();
+        gotoSceneScheduleOrNext_();
     }
     function playSceneRainWarn(startIdx) {
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
@@ -4180,13 +4493,13 @@
         const hasQueue = whiteBundle ? getRainWhiteScrollQueue_().length : rainWarnActive.length;
         if (!hasQueue) {
             if (DEMO_RAINWARN_ONLY) return;
-            finishMainLoopToS1_();
+            gotoSceneScheduleOrNext_();
             return;
         }
         const idx = startIdx || 0;
         if (!setRainWarn_(idx)) {
             if (DEMO_RAINWARN_ONLY) return;
-            finishMainLoopToS1_();
+            gotoSceneScheduleOrNext_();
             return;
         }
         const heroBundle = !whiteBundle && pairEl && pairEl.classList.contains('ra-hero-bundle');
@@ -4196,7 +4509,7 @@
         const tracks = document.querySelectorAll('#sceneRainWarn .ra-track');
         if (!tracks.length && !midBundle) {
             if (DEMO_RAINWARN_ONLY) return;
-            finishMainLoopToS1_();
+            gotoSceneScheduleOrNext_();
             return;
         }
         raFlow_ = {
@@ -4280,7 +4593,7 @@
                         return;
                     } else {
                         raAnimId = null; raFlow_ = null;
-                        runAfterSceneEndHold_(finishMainLoopToS1_);
+                        runAfterSceneEndHold_(gotoSceneScheduleOrNext_);
                         return;
                     }
                 }
@@ -4337,7 +4650,7 @@
                             return;
                         } else {
                             raAnimId = null; raFlow_ = null;
-                            runAfterSceneEndHold_(finishMainLoopToS1_);
+                            runAfterSceneEndHold_(gotoSceneScheduleOrNext_);
                             return;
                         }
                     }
@@ -4362,28 +4675,28 @@
     function playSceneRainWarnStep_(idx) {
         clearDemoStepTimer_();
         raFlow_ = null;
-        if (!rainWarnActive.length) { finishMainLoopToS1_(); return; }
+        if (!rainWarnActive.length) { gotoSceneScheduleOrNext_(); return; }
         const key = rainWarnActive[idx];
-        if (!key) { finishMainLoopToS1_(); return; }
+        if (!key) { gotoSceneScheduleOrNext_(); return; }
         const entries = kindsForLevel_(key).map(function (kind) {
             return { level: key, kind: kind, name: jmaKindName_(key, kind) };
         });
         if (shouldUseHeroBundle_(key) || entries.length > 1) {
             setRainWarnHeroBundle_(key, entries);
         } else if (!setRainWarn_(idx)) {
-            finishMainLoopToS1_();
+            gotoSceneScheduleOrNext_();
             return;
         }
         stepLogo90(420, true);
         scheduleDemoStep_(function () {
             const next = idx + 1;
             if (next < rainWarnActive.length) playSceneRainWarn(next);
-            else finishMainLoopToS1_();
+            else gotoSceneScheduleOrNext_();
         });
     }
     async function startRainWarnOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        ALL_SCENES_.forEach(hideSceneEl);
         if (sceneRainWarn) {
             sceneRainWarn.style.display = 'block';
             sceneRainWarn.classList.add('active');
@@ -4453,13 +4766,49 @@
     let scene1SafetyTimerId = null;
     let scene1AdvanceToken = 0;
     let s1Flow_ = null;
-    const SCENE2_PANEL_COUNT = 9;
-    const SCENE2_LAPS = 2;
+    const SCENE2_FACE_COUNT = 4;
+    const SCENE2_TYPE_ORDER = ['weather', 'temp', 'wbgt', 'humi', 'rain', 'wdir', 'wind', 'pres', 'tmaxmin'];
+    const SCENE2_PANEL_COUNT = SCENE2_FACE_COUNT;
+    const SCENE2_LAPS = 1;
     const SCENE2_SCROLL_PX = 0.8;
     const SCENE2_META_LAP_PX = FOOT_BAR_LAP_PX;
     const SCENE2_META_SETS = 3;
     const SCENE2_META_SPEED_PX = 0.6;
-    let scene2SetWidth = SCENE2_PANEL_COUNT * 128;
+    const SCENE2_TYPE_HOLD_MS = 2800;
+    let scene2SetWidth = SCENE2_FACE_COUNT * 128;
+    const SCENE2_GROUP_W = SCENE2_FACE_COUNT * 128;
+    let scene2TypeTimerId = null;
+    let scene2MetaLapPx = FOOT_BAR_LAP_PX;    let scene2MetaLapPx = FOOT_BAR_LAP_PX;
+    const JMA_LATEST_TIME_URL = 'https://www.jma.go.jp/bosai/amedas/data/latest_time.txt';
+    const JMA_FORECAST_URL = `https://www.jma.go.jp/bosai/forecast/data/forecast/${JMA_FORECAST_AREA_CODE}.json`;
+    const SCENE4_PANEL_COUNT = 4;
+    const SCENE4_LAPS = 2;
+    const SCENE4_SCROLL_PX = 0.8;
+    const SCENE4_LV_LAP_PX = FOOT_BAR_LAP_PX;
+    const SCENE4_HOLD_MS = 8000;
+    let scene4SetWidth = SCENE4_PANEL_COUNT * 128;
+    let scene4AnimId = null;
+    let scene4HoldTimerId = null;
+    let scene4FcLvLapPx = SCENE4_LV_LAP_PX;
+    const SCENE4_LV_LAPS = 2;
+    const SCENE4_LV_SETS = 3;
+    const SCENE4_LV_LAPS = 2;
+    const SCENE4_LV_SETS = 3;
+    const SCENE4_LV_SPEED_PX = 0.6;
+    const SCENE5_PANEL_COUNT = 4;
+    const SCENE5_LAPS = 2;
+    const SCENE5_SCROLL_PX = 0.8;
+    let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
+    let scene5AnimId = null;
+    const SCENE_SCHEDULE_PANEL_COUNT = 4;
+    const SCENE_SCHEDULE_LAPS = 2;
+    let sceneScheduleSetWidth = SCENE_SCHEDULE_PANEL_COUNT * 128;
+    let sceneScheduleAnimId = null;
+    let scheduleScrollX_ = 0;
+    let sceneScheduleHoldTimerId = null;
+    const SCENE_SCHEDULE_HOLD_MS = 8000;
+    let sceneGreetingHoldTimerId = null;
+    const SCENE_GREETING_HOLD_MS = 8000;
     let scene2MetaLapPx = FOOT_BAR_LAP_PX;
     const JMA_LATEST_TIME_URL = 'https://www.jma.go.jp/bosai/amedas/data/latest_time.txt';
     const JMA_FORECAST_URL = `https://www.jma.go.jp/bosai/forecast/data/forecast/${JMA_FORECAST_AREA_CODE}.json`;
@@ -4478,6 +4827,15 @@
     const SCENE5_SCROLL_PX = 0.8;
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
     let scene5AnimId = null;
+    const SCENE_SCHEDULE_PANEL_COUNT = 4;
+    const SCENE_SCHEDULE_LAPS = 2;
+    let sceneScheduleSetWidth = SCENE_SCHEDULE_PANEL_COUNT * 128;
+    let sceneScheduleAnimId = null;
+    let scheduleScrollX_ = 0;
+    let sceneScheduleHoldTimerId = null;
+    const SCENE_SCHEDULE_HOLD_MS = 8000;
+    let sceneGreetingHoldTimerId = null;
+    const SCENE_GREETING_HOLD_MS = 8000;
     const T3_UNIT_W = 256;
     const T3_USABLE_W = T3_UNIT_W - 8;
     const T3_SLOT_GAP = 2;
@@ -4589,8 +4947,12 @@
         clearScenePostHoldTimer_();
         if (scene1AnimId) { cancelAnimationFrame(scene1AnimId); scene1AnimId = null; }
         if (scene2AnimId) { cancelAnimationFrame(scene2AnimId); scene2AnimId = null; }
-        if (scene4AnimId) { cancelAnimationFrame(scene4AnimId); scene4AnimId = null; }
+        clearScene2TypeTimer_();
+        clearScene4Timers();
         if (scene5AnimId) { cancelAnimationFrame(scene5AnimId); scene5AnimId = null; }
+        if (sceneScheduleAnimId) { cancelAnimationFrame(sceneScheduleAnimId); sceneScheduleAnimId = null; }
+        if (sceneScheduleHoldTimerId) { clearTimeout(sceneScheduleHoldTimerId); sceneScheduleHoldTimerId = null; }
+        clearGreetingHoldTimer_();
         if (tickerAnimId) { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; }
         if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
@@ -4952,8 +5314,13 @@
     }
     function compactScene4Panels() {
         if (!fcConveyor) return;
+        Array.from(fcConveyor.children).forEach(function (p, i) {
+            p.style.display = i < SCENE4_PANEL_COUNT ? '' : 'none';
+        });
         scene4SetWidth = SCENE4_PANEL_COUNT * 128;
-        fcConveyor.style.width = `${scene4SetWidth * 2}px`;
+        fcConveyor.style.width = scene4SetWidth + 'px';
+        fcConveyor.style.transition = 'none';
+        applyScrollX_(fcConveyor, 0);
     }
     function normalizeWbgtCelsius(raw) {
         if (raw === null || raw === undefined || raw === '') return null;
@@ -5210,6 +5577,8 @@
         bootDisplayHold_ = false;
         updateClock();
         if (!wbgtOffSeason) wbgtUnavailable = false;
+        buildScene2Conveyor_(SCENE2_TYPE_ORDER[0]);
+        compactScene2Panels();
         syncWbgtSlotsToDomIfReady_();
         refreshSignageBgIfChanged_(true);
         buildTicker();
@@ -5221,6 +5590,7 @@
     function paintBootSplash_() {
         if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
+        if (DEMO_ONLY && DEMO_ONLY !== 's1') return;
         if (s1) {
             s1.style.display = sceneDisplayMode(s1);
             s1.classList.add('active');
@@ -5327,7 +5697,7 @@
                     if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'local-fallback');
                     const live = applyJmaAmedasToDom(obs, latest);
                     if (plan.forecast && results[1]) {
-                        applyJmaDailyForecastToDom(results[1], live.todayMaxTemp, live.todayLiveIcon);
+                        applyJmaDailyForecastToDom(results[1], live.todayMaxTemp);
                     }
                     compactScene2Panels();
                     queueDisplayRefresh_();
@@ -5459,13 +5829,60 @@
     function setTextAll(selector, text) {
         document.querySelectorAll(selector).forEach(el => { el.innerText = text; });
     }
-    function weatherCodeToIconHref(code) {
-        const wc = Number(code);
-        if (!Number.isFinite(wc)) return '#icon-sunny';
-        const head = Math.floor(wc / 100);
-        if (head >= 3) return '#icon-rainy';
-        if (head === 2) return '#icon-cloudy';
-        return '#icon-sunny';
+    const JMA_TELOPS_ICON_BASE = 'https://www.jma.go.jp/bosai/forecast/img/';
+    function padTelopsCode_(code) {
+        const s = String(code == null ? '' : code).trim();
+        if (!/^\d{1,3}$/.test(s)) return '';
+        return s.padStart(3, '0');
+    }
+    function jmaTelopsIconUrl_(code) {
+        const c = padTelopsCode_(code);
+        return c ? (JMA_TELOPS_ICON_BASE + c + '.svg') : '';
+    }
+    function resolveJmaWeatherIconUrl_(codeOrHref) {
+        const raw = String(codeOrHref == null ? '' : codeOrHref).trim();
+        if (raw.indexOf('/bosai/forecast/img/') >= 0) return raw;
+        const fromCode = jmaTelopsIconUrl_(raw);
+        if (fromCode) return fromCode;
+        if (raw === '#icon-rainy') return jmaTelopsIconUrl_('300');
+        if (raw === '#icon-cloudy') return jmaTelopsIconUrl_('200');
+        if (raw === '#icon-sunny') return jmaTelopsIconUrl_('100');
+        return jmaTelopsIconUrl_('100');
+    }
+    function applyWeatherIconPair_(root, code) {
+        if (!root) return;
+        const cell = root.classList && root.classList.contains('weather-icon-cell')
+            ? root
+            : root.querySelector('.weather-icon-cell');
+        if (!cell) return;
+        let img = cell.querySelector('img.weather-icon-img');
+        if (!img) {
+            img = document.createElement('img');
+            img.className = 'weather-svg weather-icon-img';
+            img.alt = '';
+            img.decoding = 'async';
+            cell.appendChild(img);
+        }
+        cell.querySelectorAll('svg.weather-svg').forEach(function (svg) { svg.remove(); });
+        const url = resolveJmaWeatherIconUrl_(code);
+        const fallback = jmaTelopsIconUrl_('100');
+        img.onerror = function () {
+            if (fallback && img.getAttribute('src') !== fallback) {
+                img.onerror = null;
+                img.src = fallback;
+            }
+        };
+        if (url && img.getAttribute('src') !== url) img.src = url;
+    }
+    function applyScene2WeatherIcon_(code) {
+        document.querySelectorAll('#scene2 [data-s2="weather"]').forEach(function (el) {
+            applyWeatherIconPair_(el, code);
+        });
+    }
+    function applyD5WeatherIcon_(day, code) {
+        document.querySelectorAll('.d5-day-' + day).forEach(function (el) {
+            applyWeatherIconPair_(el, code);
+        });
     }
     function amedasFieldValue(field) {
         if (!Array.isArray(field) || field.length < 1) return null;
@@ -5480,6 +5897,12 @@
         const sun1 = amedasFieldValue(obs.sun1h);
         if (sun1 != null && Number(sun1) < 0.2) return '#icon-cloudy';
         return '#icon-sunny';
+    }
+    function amedasToTelopsCode_(obs) {
+        const href = amedasToWeatherIcon(obs);
+        if (href === '#icon-rainy') return '300';
+        if (href === '#icon-cloudy') return '200';
+        return '100';
     }
     function jmaWindDirFromCode(code) {
         if (!Number.isFinite(Number(code))) return '--';
@@ -5635,12 +6058,20 @@
         if (!res.ok) throw new Error('JMA forecast HTTP ' + res.status);
         return res.json();
     }
-    const D5_REL_LABELS = ['今日', '明日', '明後日', '明々後日'];
-    const D5_FORECAST_INDICES = [0, 1, 2, 3];
+    function d5DateLabel_(dayOffset) {
+        const now = jstPartsFromMs(getNowMs());
+        const p = jstAddDays(now.year, now.month, now.day, dayOffset);
+        const dow = (typeof jstDowIndex_ === 'function')
+            ? jstDowIndex_(p.year, p.month, p.day)
+            : new Date(jstMsFromParts(p.year, p.month, p.day, 12, 0, 0)).getDay();
+        const youbi = ['日', '月', '火', '水', '木', '金', '土'][dow] || '';
+        return p.month + '/' + p.day + '(' + youbi + ')';
+    }
     function applyD5BarLabels_() {
         for (let day = 0; day < SCENE5_PANEL_COUNT; day++) {
+            const label = d5DateLabel_(day);
             document.querySelectorAll(`.d5-day-${day} .s2-bar-label`).forEach(function (el) {
-                el.textContent = D5_REL_LABELS[day] || '--';
+                el.textContent = label;
             });
         }
     }
@@ -5676,7 +6107,7 @@
             panel.classList.toggle('col-bg-dark-text', dark);
         });
         document.querySelectorAll('#scene5 .d5-panel').forEach(function (panel) {
-            panel.querySelectorAll('.s2-bar-label, .d5-sep, .d5-temp, .s2-unit, .d5-foot-txt').forEach(function (n) {
+            panel.querySelectorAll('.s2-bar-label, .d5-sep, .d5-temp, .s2-unit').forEach(function (n) {
                 n.style.color = c;
             });
         });
@@ -5698,17 +6129,22 @@
             }
         });
         document.querySelectorAll('#scene5 .d5-weather-row').forEach(function (row) {
-            const icon = row.querySelector('.weather-svg');
+            const cell = row.querySelector('.weather-icon-cell');
+            const icons = row.querySelectorAll('.weather-svg');
             const sep = row.querySelector('.d5-sep');
             const wrap = row.querySelector('.s2-val');
             const num = wrap && wrap.querySelector('.d5-temp');
             if (!num) return;
-            let iconSz = 58;
-            let sepSz = 38;
-            let numSz = 52;
-            let unitSz = 24;
+            let iconSz = 64;
+            let sepSz = 34;
+            let numSz = 44;
+            let unitSz = 20;
             const apply = function () {
-                if (icon) { icon.style.width = iconSz + 'px'; icon.style.height = iconSz + 'px'; }
+                if (cell) { cell.style.width = iconSz + 'px'; cell.style.height = iconSz + 'px'; }
+                icons.forEach(function (icon) {
+                    icon.style.width = iconSz + 'px';
+                    icon.style.height = iconSz + 'px';
+                });
                 if (sep) sep.style.fontSize = sepSz + 'px';
                 num.style.fontSize = numSz + 'px';
                 const unit = wrap.querySelector('.s2-unit');
@@ -5721,10 +6157,10 @@
             let growGuard = 24;
             while (growGuard-- > 0) {
                 const prev = { iconSz: iconSz, sepSz: sepSz, numSz: numSz, unitSz: unitSz };
-                if (numSz < 56) numSz += 1;
-                else if (iconSz < 62) iconSz += 1;
-                else if (sepSz < 42) sepSz += 1;
-                else if (unitSz < 26) unitSz += 1;
+                if (iconSz < 66) iconSz += 1;
+                else if (numSz < 50) numSz += 1;
+                else if (sepSz < 38) sepSz += 1;
+                else if (unitSz < 24) unitSz += 1;
                 else break;
                 apply();
                 if (overflows()) {
@@ -5735,10 +6171,10 @@
             }
             let guard = 60;
             while (guard-- > 0 && overflows()) {
-                if (numSz > 30) { numSz -= 1; apply(); continue; }
-                if (iconSz > 38) { iconSz -= 2; apply(); continue; }
-                if (sepSz > 26) { sepSz -= 1; apply(); continue; }
-                if (unitSz > 16) { unitSz -= 1; apply(); continue; }
+                if (numSz > 28) { numSz -= 1; apply(); continue; }
+                if (sepSz > 24) { sepSz -= 1; apply(); continue; }
+                if (unitSz > 14) { unitSz -= 1; apply(); continue; }
+                if (iconSz > 48) { iconSz -= 1; apply(); continue; }
                 break;
             }
         });
@@ -5758,100 +6194,97 @@
     function jmaTodayYmdJst_() {
         return jmaYmdJst_(getSyncedUtcMs() != null ? getSyncedUtcMs() : Date.now());
     }
-    /** 気象庁予報JSONから WN相当（最高/最低/降水確率/天気）を日別に抽出 */
+    /** 気象庁予報JSONから WN相当（最高/最低/降水確率/天気コード）を日別に抽出 */
     function extractJmaDailyForecastDays_(forecastJson) {
         const short = Array.isArray(forecastJson) ? forecastJson[0] : null;
         const weekly = Array.isArray(forecastJson) ? forecastJson[1] : null;
+        const todayYmd = jmaTodayYmdJst_();
         const days = [];
         for (let i = 0; i < SCENE5_PANEL_COUNT; i++) {
-            days.push({ max: null, min: null, pop: null, weatherCode: null });
+            const d = new Date(todayYmd + 'T12:00:00+09:00');
+            d.setTime(d.getTime() + i * 86400000);
+            days.push({
+                ymd: jmaYmdJst_(d),
+                max: null,
+                min: null,
+                pop: null,
+                weatherCode: null
+            });
+        }
+        function dayByYmd_(ymd) {
+            return days.find(function (day) { return day.ymd === ymd; }) || null;
+        }
+        function applyBlock_(block, overwriteCode) {
+            const area = block && block.areas && block.areas[0];
+            const defines = (block && block.timeDefines) || [];
+            if (!area || !defines.length) return;
+            defines.forEach(function (td, idx) {
+                const day = dayByYmd_(jmaYmdJst_(td));
+                if (!day) return;
+                if (Array.isArray(area.tempsMax)) {
+                    const v = jmaNumOrNull_(area.tempsMax[idx]);
+                    if (v != null) day.max = v;
+                }
+                if (Array.isArray(area.tempsMin)) {
+                    const v = jmaNumOrNull_(area.tempsMin[idx]);
+                    if (v != null) day.min = v;
+                }
+                if (Array.isArray(area.pops)) {
+                    const v = jmaNumOrNull_(area.pops[idx]);
+                    if (v != null) day.pop = day.pop == null ? v : Math.max(day.pop, v);
+                }
+                if (Array.isArray(area.weatherCodes) && area.weatherCodes[idx]) {
+                    if (overwriteCode || !day.weatherCode) day.weatherCode = padTelopsCode_(area.weatherCodes[idx]);
+                }
+                if (Array.isArray(area.temps)) {
+                    const hour = Number(new Intl.DateTimeFormat('en-US', {
+                        timeZone: 'Asia/Tokyo', hour: 'numeric', hour12: false
+                    }).format(new Date(td)));
+                    const v = jmaNumOrNull_(area.temps[idx]);
+                    if (v == null) return;
+                    if (hour === 0 || hour === 24) { if (day.min == null) day.min = v; }
+                    else { if (day.max == null) day.max = v; }
+                }
+            });
         }
         const weeklySeries = weekly && weekly.timeSeries;
-        if (Array.isArray(weeklySeries)) {
-            for (const block of weeklySeries) {
-                const area = block.areas && block.areas[0];
-                if (!area) continue;
-                for (let day = 0; day < SCENE5_PANEL_COUNT; day++) {
-                    const idx = D5_FORECAST_INDICES[day];
-                    if (area.tempsMax) {
-                        const v = jmaNumOrNull_(area.tempsMax[idx]);
-                        if (v != null) days[day].max = v;
-                    }
-                    if (area.tempsMin) {
-                        const v = jmaNumOrNull_(area.tempsMin[idx]);
-                        if (v != null) days[day].min = v;
-                    }
-                    if (area.pops) {
-                        const v = jmaNumOrNull_(area.pops[idx]);
-                        if (v != null) days[day].pop = v;
-                    }
-                    if (area.weatherCodes && !days[day].weatherCode) {
-                        days[day].weatherCode = area.weatherCodes[idx] || null;
-                    }
-                }
-            }
-        }
-        /* 今日分の穴埋め: 短期予報（気温・降水確率） */
+        if (Array.isArray(weeklySeries)) weeklySeries.forEach(function (block) { applyBlock_(block, false); });
         const shortSeries = short && short.timeSeries;
-        if (Array.isArray(shortSeries)) {
-            const todayYmd = jmaTodayYmdJst_();
-            for (const block of shortSeries) {
-                const area = block.areas && block.areas[0];
-                const defines = block.timeDefines || [];
-                if (!area) continue;
-                if (Array.isArray(area.temps) && Array.isArray(defines)) {
-                    defines.forEach(function (td, i) {
-                        const ymd = jmaYmdJst_(td);
-                        const hour = Number(new Intl.DateTimeFormat('en-US', {
-                            timeZone: 'Asia/Tokyo', hour: 'numeric', hour12: false
-                        }).format(new Date(td)));
-                        const v = jmaNumOrNull_(area.temps[i]);
-                        if (v == null) return;
-                        if (ymd === todayYmd) {
-                            if (hour === 0 || hour === 24) { if (days[0].min == null) days[0].min = v; }
-                            else { if (days[0].max == null) days[0].max = v; }
-                        }
-                    });
-                }
-                if (Array.isArray(area.pops) && Array.isArray(defines)) {
-                    let todayPopMax = null;
-                    defines.forEach(function (td, i) {
-                        if (jmaYmdJst_(td) !== todayYmd) return;
-                        const v = jmaNumOrNull_(area.pops[i]);
-                        if (v == null) return;
-                        todayPopMax = todayPopMax == null ? v : Math.max(todayPopMax, v);
-                    });
-                    if (todayPopMax != null) days[0].pop = todayPopMax;
-                }
-                if (Array.isArray(area.weatherCodes) && !days[0].weatherCode) {
-                    days[0].weatherCode = area.weatherCodes[0] || null;
-                }
-            }
-        }
+        if (Array.isArray(shortSeries)) shortSeries.forEach(function (block) { applyBlock_(block, true); });
         return days;
     }
-    function applyJmaDailyForecastToDom(forecastJson, todayMaxTemp, todayLiveIcon) {
+    function applyJmaDailyForecastToDom(forecastJson, todayMaxTemp) {
         const days = extractJmaDailyForecastDays_(forecastJson);
+        lastJmaForecastByYmd_ = {};
+        days.forEach(function (row) {
+            if (row && row.ymd) lastJmaForecastByYmd_[row.ymd] = row;
+        });
         applyD5BarLabels_();
         for (let day = 0; day < SCENE5_PANEL_COUNT; day++) {
             const row = days[day] || {};
             let temp = row.max;
             if (day === 0 && todayMaxTemp != null && Number.isFinite(todayMaxTemp)) temp = todayMaxTemp;
-            let icon = weatherCodeToIconHref(row.weatherCode);
-            if (day === 0 && todayLiveIcon) icon = todayLiveIcon;
             const tempStr = temp != null && Number.isFinite(temp) ? String(Math.round(temp)) : '--';
             const minStr = row.min != null && Number.isFinite(row.min) ? String(Math.round(row.min)) : '--';
             const popStr = row.pop != null && Number.isFinite(row.pop) ? String(Math.round(row.pop)) : '--';
             document.querySelectorAll(`.d5-day-${day} .d5-temp`).forEach(el => { el.innerText = tempStr; });
-            document.querySelectorAll(`.d5-day-${day} .d5-weather-use`).forEach(el => el.setAttribute('href', icon));
-            /* WN scene4 foot 相当: 最低気温 / 降水確率（気象庁） */
+            applyD5WeatherIcon_(day, row.weatherCode);
+            /* WN scene4 foot 相当: 最低気温(青) / 降水確率(水色) */
             document.querySelectorAll(`.d5-day-${day} .d5-foot-txt`).forEach(el => {
-                el.textContent = minStr + '℃ / ' + popStr + '%';
+                el.innerHTML =
+                    '<span class="d5-foot-min">' + minStr + '℃</span>' +
+                    '<span class="d5-foot-sep"> / </span>' +
+                    '<span class="d5-foot-pop">' + popStr + '%</span>';
             });
+        }
+        if (days[0] && days[0].weatherCode) {
+            lastForecastWeatherCode_ = days[0].weatherCode;
+            applyScene2WeatherIcon_(lastForecastWeatherCode_);
         }
         applyD5TodayFrame_();
         applyD5ForecastTextColors_();
         fitD5PanelText_();
+        if (typeof refreshScheduleWeatherWarn_ === 'function') refreshScheduleWeatherWarn_();
     }
     function formatScene2ObsClock_(date) {
         const d = date instanceof Date ? date : new Date(date);
@@ -5869,7 +6302,79 @@
         weather: '天気', temp: '気温', wbgt: '暑さ指数', humi: '湿度', rain: '降水量',
         wdir: '風向き', wind: '風速', pres: '気圧', tmaxmin: '最高/最低'
     };
-    const SCENE2_META_ORDER = ['weather', 'temp', 'wbgt', 'humi', 'rain', 'wdir', 'wind', 'pres', 'tmaxmin'];
+    const SCENE2_META_ORDER = SCENE2_TYPE_ORDER;
+    function scene2PanelHtml_(type) {
+        switch (type) {
+            case 'weather':
+                return '<div class="s2-panel s2-strip" data-s2="weather"><div class="s2-top-bar"><span class="s2-bar-label">天気</span></div><div class="s2-body"><span class="weather-icon-cell"><img class="weather-svg weather-icon-img" src="https://www.jma.go.jp/bosai/forecast/img/100.svg" alt="" decoding="async"></span></div></div>';
+            case 'temp':
+                return '<div class="s2-panel-data s2-strip" data-s2="temp"><div class="s2-top-bar"><span class="s2-bar-label">気温</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num temp-val"></span><span class="s2-unit">℃</span></div></div></div>';
+            case 'wbgt':
+                return '<div class="s2-panel-data s2-strip" data-s2="wbgt"><div class="s2-top-bar"><span class="s2-bar-label">暑さ指数</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num wbgt-val"></span><span class="s2-unit">℃</span></div></div></div>';
+            case 'humi':
+                return '<div class="s2-panel-data s2-strip" data-s2="humi"><div class="s2-top-bar"><span class="s2-bar-label">湿度</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num humi-val"></span><span class="s2-unit">%</span></div></div></div>';
+            case 'rain':
+                return '<div class="s2-panel-data s2-strip" data-s2="rain"><div class="s2-top-bar"><span class="s2-bar-label">降水量</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num rain-val"></span><span class="s2-unit">mm</span></div></div></div>';
+            case 'wdir':
+                return '<div class="s2-panel-data s2-strip" data-s2="wdir"><div class="s2-top-bar"><span class="s2-bar-label">風向き</span></div><div class="s2-body"><div class="s2-dir-text dir-val"></div></div></div>';
+            case 'wind':
+                return '<div class="s2-panel-data s2-strip" data-s2="wind"><div class="s2-top-bar"><span class="s2-bar-label">風速</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num wind-val"></span><span class="s2-unit">m/s</span></div></div></div>';
+            case 'pres':
+                return '<div class="s2-panel-data s2-strip" data-s2="pres"><div class="s2-top-bar"><span class="s2-bar-label">気圧</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num pres-val"></span><span class="s2-unit">hPa</span></div></div></div>';
+            case 'tmaxmin':
+                return '<div class="s2-panel-data s2-strip s2-panel-compact" data-s2="tmaxmin"><div class="s2-top-bar"><span class="s2-bar-label">最高/最低</span></div><div class="s2-body"><div class="s2-tmaxmin-card"><span class="s2-tmax-high tmaxmax-val">--</span><span class="s2-tmax-sep">/</span><span class="s2-tmax-low tmin-val">--</span><span class="s2-tmax-unit">℃</span></div></div></div>';
+            default:
+                return '';
+        }
+    }
+    /** 1種別=4面すべて同一。天気→気温→暑さ指数…の順で横スクロール */
+    function clearScene2TypeTimer_() {
+        if (scene2TypeTimerId) {
+            clearTimeout(scene2TypeTimerId);
+            scene2TypeTimerId = null;
+        }
+    }
+    function buildScene2Conveyor_(type) {
+        if (!conveyor) return;
+        const t = type || SCENE2_TYPE_ORDER[0];
+        const cell = scene2PanelHtml_(t);
+        let html = '';
+        for (let i = 0; i < SCENE2_FACE_COUNT; i++) html += cell;
+        conveyor.innerHTML = html;
+        scene2SetWidth = SCENE2_FACE_COUNT * 128;
+        conveyor.style.width = scene2SetWidth + 'px';
+        conveyor.style.transition = 'none';
+        applyScrollX_(conveyor, 0);
+    }
+    function paintScene2Type_(typeIdx) {
+        const type = SCENE2_TYPE_ORDER[typeIdx];
+        if (!type) return;
+        buildScene2Conveyor_(type);
+        if (lastAmedasSnapshot_) applyAmedasSnapshot_(lastAmedasSnapshot_);
+        syncWbgtSlotsToDomIfReady_();
+        buildScene2MetaForType_(type, lastAmedasObsTime);
+        fitScene2BodyText();
+        if (typeof SignageBg !== 'undefined' && SignageBg.refreshScene2) {
+            SignageBg.refreshScene2(getSignageBgLevel_(), getSignageDisplayMode_());
+        }
+    }
+    function buildScene2MetaForType_(type, latest) {
+        if (!s2MetaTrack) return;
+        const when = latest || lastAmedasObsTime || (getSyncedUtcMs() != null ? new Date(getSyncedUtcMs()) : new Date());
+        const obs = formatScene2ObsClock_(when);
+        const loc = getSiteLocationLabel_();
+        const label = SCENE2_META_LABELS[type] || type;
+        const foot = scene2FootTextForType_(type, obs);
+        const right = label + '：' + foot;
+        /* 下帯は 256|256（地点 | 種別：時刻） */
+        s2MetaTrack.innerHTML =
+            '<div class="s2-meta-set s2-meta-set-panels">' +
+            '<div class="s2-meta-slot s2-meta-slot-panel"><span class="s2-meta-panel-txt">' + escapeS1Html(loc) + '</span></div>' +
+            '<div class="s2-meta-slot s2-meta-slot-panel"><span class="s2-meta-panel-txt">' + escapeS1Html(right) + '</span></div>' +
+            '</div>';
+        scene2MetaLapPx = 512;
+        applyScrollX_(s2MetaTrack, 0);
+    }
     function scene2FootTextForType_(type, obs) {
         switch (type) {
             case 'rain': return obs.time + '・10分';
@@ -5921,8 +6426,7 @@
     }
     function applyJmaAmedasToDom(obs, latest) {
         if (latest) lastAmedasObsTime = latest instanceof Date ? latest : new Date(latest);
-        const icon = amedasToWeatherIcon(obs);
-        document.querySelectorAll('.weather-icon-use').forEach(el => el.setAttribute('href', icon));
+        applyScene2WeatherIcon_(lastForecastWeatherCode_ || amedasToTelopsCode_(obs));
         const temp = amedasFieldValue(obs.temp);
         const humi = amedasFieldValue(obs.humidity);
         const p10 = amedasFieldValue(obs.precipitation10m);
@@ -5957,8 +6461,7 @@
         captureAmedasSnapshot_(obs, latest);
         persistSignageStateCache_();
         return {
-            todayMaxTemp: maxT != null ? Number(maxT) : (temp != null ? Number(temp) : null),
-            todayLiveIcon: icon
+            todayMaxTemp: maxT != null ? Number(maxT) : (temp != null ? Number(temp) : null)
         };
     }
     function fitScene2BodyText() {
@@ -6024,11 +6527,11 @@
     /* 気象庁アメダス + 環境省WBGT: WN比較用9項目を固定順でスクロール */
     function compactScene2Panels() {
         if (!conveyor) return;
-        const panels = Array.from(conveyor.children);
-        const half = Math.floor(panels.length / 2) || SCENE2_PANEL_COUNT;
-        panels.forEach(function (p) { p.style.display = 'flex'; });
-        scene2SetWidth = half * 128;
-        conveyor.style.width = `${scene2SetWidth * 2}px`;
+        if (!conveyor.children.length) buildScene2Conveyor_(SCENE2_TYPE_ORDER[0]);
+        Array.from(conveyor.children).forEach(function (p) { p.style.display = 'flex'; });
+        scene2SetWidth = SCENE2_FACE_COUNT * 128;
+        conveyor.style.width = scene2SetWidth + 'px';
+        applyScrollX_(conveyor, 0);
     }
     async function fetchWeatherAndWbgt(opts) {
         const plan = Object.assign(
@@ -6356,22 +6859,17 @@
     function buildFcLvTrack(clearTimers) {
         if (!fcLvTrack) return;
         const text = getFcLvText();
-        if (text === lastFcLvText_ && fcLvTrack.querySelector('.fc-lv-set')) {
-            if (clearTimers) clearScene4Timers();
-            applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
-            return;
-        }
-        lastFcLvText_ = text;
         if (clearTimers) clearScene4Timers();
-        let html = '';
-        for (let i = 0; i < SCENE4_LV_SETS; i++) html += buildFcLvSetHtml(text);
-        fcLvTrack.innerHTML = html;
+        lastFcLvText_ = text;
+        /* 下帯も固定（スクロールなし） */
+        fcLvTrack.innerHTML = buildFcLvSetHtml(text);
         const setEl = fcLvTrack.querySelector('.fc-lv-set');
         scene4FcLvLapPx = setEl ? Math.max(SCENE4_LV_LAP_PX, setEl.offsetWidth) : SCENE4_LV_LAP_PX;
-        applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
+        applyScrollX_(fcLvTrack, 0);
     }
     function clearScene4Timers() {
         if (scene4AnimId) { cancelAnimationFrame(scene4AnimId); scene4AnimId = null; }
+        if (scene4HoldTimerId) { clearTimeout(scene4HoldTimerId); scene4HoldTimerId = null; }
     }
     function clearScene4LvTimers() { clearScene4Timers(); }
     function updateS1FootMsgSlots_(text) {
@@ -6437,7 +6935,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneSchedule' || el.id === 'sceneGreeting' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         return 'flex';
     }
@@ -6451,26 +6949,34 @@
     function getActiveScene() {
         return document.querySelector('.content-area .scene.active');
     }
+    function runSceneCallback_(fn) {
+        if (typeof fn !== 'function') return;
+        try { fn(); } catch (err) { console.error('[scene]', err); }
+    }
     function transitionToScene(nextEl, onComplete) {
         clearSceneEndHoldTimer_();
         clearSceneSlideAnim_();
         clearOutgoingSceneAnims_();
+        if (nextEl !== sceneSchedule) clearScheduleSceneChrome_();
         const current = getActiveScene();
-        if (!nextEl) { onComplete?.(); return; }
-        if (current === nextEl) { onComplete?.(); return; }
+        if (!nextEl) { runSceneCallback_(onComplete); return; }
+        if (current === nextEl) { runSceneCallback_(onComplete); return; }
+        ALL_SCENES_.forEach(function (el) {
+            if (el && el !== current && el !== nextEl) hideSceneEl(el);
+        });
         nextEl.style.display = sceneDisplayMode(nextEl);
         nextEl.classList.add('active');
         if (!current || SCENE_SLIDE_MS <= 0) {
             if (current) hideSceneEl(current);
             applyScrollX_(nextEl, 0);
             nextEl.style.zIndex = '';
-            onComplete?.();
+            runSceneCallback_(onComplete);
             return;
         }
         nextEl.style.zIndex = '2';
         applyScrollX_(nextEl, SCENE_W);
         current.style.zIndex = '1';
-        onComplete?.();
+        runSceneCallback_(onComplete);
         const t0 = performance.now();
         function tick(now) {
             const p = Math.min(1, (now - t0) / SCENE_SLIDE_MS);
@@ -7254,31 +7760,21 @@
         }
         if (s1WbgtTrack && showWbgtFoot) {
             if (!s1WbgtTrack.children.length) refreshS1WbgtFootBar_(true);
-            const s1FootLap = getS1FootLapPx_();
-            s1Flow_ = {
-                startX: wrapScrollX_(globalScrollX_, s1FootLap),
-                x: wrapScrollX_(globalScrollX_, s1FootLap),
-                laps: 0,
-                moved: false
-            };
-            applyGlobalScroll_(s1WbgtTrack, s1FootLap);
+            const s1FootLap = Math.max(1, getS1FootLapPx_() || SCENE1_WBGT_LAP_PX);
+            const s1ScrollTotal = s1FootLap * SCENE1_ADVANCE_LAPS;
+            s1Flow_ = { x: 0, moved: 0 };
+            applyScrollX_(s1WbgtTrack, 0);
             function animateS1WbgtRtl() {
                 if (advanceToken !== scene1AdvanceToken + 1) return;
-                const prevX = s1Flow_.x;
-                advanceGlobalScroll_(getScrollSpeedPx_());
-                s1Flow_.x = wrapScrollX_(globalScrollX_, s1FootLap);
-                if (!s1Flow_.moved && Math.abs(s1Flow_.x - s1Flow_.startX) > 0.5) {
-                    s1Flow_.moved = true;
-                }
-                applyGlobalScroll_(s1WbgtTrack, s1FootLap);
-                if (s1Flow_.moved && detectScrollLapCrossed_(prevX, s1Flow_.x)) {
-                    s1Flow_.laps += 1;
-                    if (s1Flow_.laps >= SCENE1_ADVANCE_LAPS) {
-                        scene1AnimId = null;
-                        s1Flow_ = null;
-                        runAfterSceneEndHold_(finishScene1);
-                        return;
-                    }
+                const speed = getScrollSpeedPx_();
+                advanceGlobalScroll_(speed);
+                s1Flow_.moved += speed;
+                applyScrollX_(s1WbgtTrack, wrapScrollX_(-s1Flow_.moved, s1FootLap));
+                if (s1Flow_.moved >= s1ScrollTotal) {
+                    scene1AnimId = null;
+                    s1Flow_ = null;
+                    runAfterSceneEndHold_(finishScene1);
+                    return;
                 }
                 scene1AnimId = requestAnimationFrame(animateS1WbgtRtl);
             }
@@ -7304,49 +7800,71 @@
     function gotoSceneAfterScene4_() {
         transitionToScene(s5, playScene5);
     }
-    /* シーン4（4日予報）の次はシーン5（多言語WBGT） */
+    /* シーン4（4日予報）の次はシーン5（多言語WBGT）※工程表はループ先頭 */
     function gotoSceneAfterScene5_() {
+        gotoScene3OrAfter_();
+    }
+    function isScheduleEnabled_() {
+        const cfg = (SITE_CFG && SITE_CFG.schedule) || {};
+        return cfg.enabled !== false && Array.isArray(cfg.items) && cfg.items.length > 0 && !!sceneSchedule;
+    }
+    function isGreetingEnabled_() {
+        const cfg = (SITE_CFG && SITE_CFG.greeting) || {};
+        return cfg.enabled !== false && !!sceneGreeting;
+    }
+    function gotoSceneScheduleOrNext_() {
+        if (isScheduleEnabled_()) {
+            transitionToScene(sceneSchedule, playSceneSchedule);
+            return;
+        }
+        gotoSceneGreetingOrNext_();
+    }
+    function gotoSceneGreetingOrNext_() {
+        clearScheduleSceneChrome_();
+        if (sceneSchedule) hideSceneEl(sceneSchedule);
+        if (isGreetingEnabled_()) {
+            transitionToScene(sceneGreeting, playSceneGreeting);
+            return;
+        }
+        transitionToScene(s1, playScene1);
+    }
+    function gotoScene3OrAfter_() {
         if (!s3) { gotoAfterScene3_(); return; }
         transitionToScene(s3, playScene3);
     }
     function playScene2() {
         applyDisplayRefreshAtSceneEntry_();
         applyPendingSignageBgAtScene_();
-        compactScene2Panels();
-        buildScene2MetaTrack(lastAmedasObsTime);
-        fitScene2BodyText();
-        if (scene2AnimId) cancelAnimationFrame(scene2AnimId);
+        clearScene2TypeTimer_();
+        if (scene2AnimId) { cancelAnimationFrame(scene2AnimId); scene2AnimId = null; }
         stepLogo90(420, true);
         if (isFullDemoStep_()) {
+            paintScene2Type_(0);
             scheduleDemoStep_(gotoSceneAfterScene2_);
             return;
         }
-        const scene2ScrollTotal = scene2SetWidth * SCENE2_LAPS;
-        if (!scene2SetWidth || scene2SetWidth <= 0) {
+        const typeCount = SCENE2_TYPE_ORDER.length;
+        if (!typeCount) {
             gotoSceneAfterScene2_();
             return;
         }
-        let totalScrolled = 0;
-        applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
-        applyGlobalScroll_(conveyor, scene2SetWidth);
-        conveyor.style.transition = 'none';
-        function animateScene2() {
-            advanceGlobalScroll_(getScrollSpeedPx_());
-            totalScrolled += getScrollSpeedPx_();
-            applyGlobalScroll_(conveyor, scene2SetWidth);
-            applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
-            if (totalScrolled >= scene2ScrollTotal) {
-                scene2AnimId = null;
-                stopLogoSpinInterval();
-                if (demoOnlyLoop_('s2', playScene2)) return;
-                runAfterSceneEndHold_(gotoSceneAfterScene2_);
+        let typeIdx = 0;
+        function finishScene2_() {
+            clearScene2TypeTimer_();
+            stopLogoSpinInterval();
+            if (demoOnlyLoop_('s2', playScene2)) return;
+            runAfterSceneEndHold_(gotoSceneAfterScene2_);
+        }
+        function showScene2Type_() {
+            if (typeIdx >= typeCount) {
+                finishScene2_();
                 return;
             }
-            scene2AnimId = requestAnimationFrame(animateScene2);
+            paintScene2Type_(typeIdx);
+            typeIdx += 1;
+            scene2TypeTimerId = setTimeout(showScene2Type_, SCENE2_TYPE_HOLD_MS);
         }
-        runSceneScrollAfterHold_(function () {
-            scene2AnimId = requestAnimationFrame(animateScene2);
-        });
+        showScene2Type_();
     }
     function finishScene4() {
         clearScene4Timers();
@@ -7376,31 +7894,12 @@
             scheduleDemoStep_(finishScene4);
             return;
         }
-        const scene4ScrollTotal = scene4SetWidth * SCENE4_LAPS;
-        if (!fcConveyor || !scene4SetWidth || scene4SetWidth <= 0) {
-            setTimeout(finishScene4, 500);
-            return;
-        }
-        let totalScrolled = 0;
-        applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
-        applyGlobalScroll_(fcConveyor, scene4SetWidth);
-        fcConveyor.style.transition = 'none';
-        function animateScene4() {
-            advanceGlobalScroll_(getScrollSpeedPx_());
-            totalScrolled += getScrollSpeedPx_();
-            applyGlobalScroll_(fcConveyor, scene4SetWidth);
-            applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
-            if (totalScrolled >= scene4ScrollTotal) {
-                scene4AnimId = null;
-                stopLogoSpinInterval();
-                runAfterSceneEndHold_(finishScene4);
-                return;
-            }
-            scene4AnimId = requestAnimationFrame(animateScene4);
-        }
-        runSceneScrollAfterHold_(function () {
-            scene4AnimId = requestAnimationFrame(animateScene4);
-        });
+        /* スクロールなし：4面固定表示のまま一定時間表示 */
+        scene4HoldTimerId = setTimeout(function () {
+            scene4HoldTimerId = null;
+            stopLogoSpinInterval();
+            runAfterSceneEndHold_(finishScene4);
+        }, SCENE4_HOLD_MS);
     }
     function playScene5() {
         if (!s5 || !d5Conveyor) { gotoSceneAfterScene5_(); return; }
@@ -7441,6 +7940,432 @@
             scene5AnimId = requestAnimationFrame(animateScene5);
         });
     }
+
+    /* ===== 工程表 / 近隣挨拶 ===== */
+    const SCH_DOW = ['日', '月', '火', '水', '木', '金', '土'];
+    /* 曜日色（LED向け・高彩度）: 日赤 / 月青 / 火橙 / 水黄 / 木緑 / 金 / 土紺 */
+    const SCH_COLOR_SUN = '#FF2D2D';
+    const SCH_COLOR_SAT = '#1E6AFF';
+    const SCH_DOW_COLOR = [
+      SCH_COLOR_SUN, '#2E8CFF', '#FF5A00', '#FFE000', '#00D45A', '#FFD200', SCH_COLOR_SAT
+    ];
+    const SCH_EQUINOX_ = {
+      2025: { spr: 20, aut: 23 }, 2026: { spr: 20, aut: 23 },
+      2027: { spr: 21, aut: 23 }, 2028: { spr: 20, aut: 22 }
+    };
+    function schNthMonday_(y, mo, n) {
+      const firstDow = jstDowIndex_(y, mo, 1);
+      return 1 + ((1 - firstDow + 7) % 7) + (n - 1) * 7;
+    }
+    function schJpHolidaySet_(y) {
+      const set = {};
+      function add(mo, d) { set[y + '-' + mo + '-' + d] = true; }
+      const eq = SCH_EQUINOX_[y] || {
+        spr: Math.floor(20.8431 + 0.242194 * (y - 1851) - Math.floor((y - 1851) / 4)),
+        aut: Math.floor(23.2488 + 0.242194 * (y - 1851) - Math.floor((y - 1851) / 4))
+      };
+      add(1, 1);
+      add(1, schNthMonday_(y, 1, 2));
+      add(2, 11);
+      add(2, 23);
+      add(3, eq.spr);
+      add(4, 29);
+      add(5, 3); add(5, 4); add(5, 5);
+      add(7, schNthMonday_(y, 7, 3));
+      add(8, 11);
+      add(9, schNthMonday_(y, 9, 3));
+      add(9, eq.aut);
+      add(10, schNthMonday_(y, 10, 2));
+      add(11, 3);
+      add(11, 23);
+      for (let mo = 1; mo <= 12; mo++) {
+        const dim = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+        for (let d = 2; d < dim; d++) {
+          const k = y + '-' + mo + '-' + d;
+          if (!set[k] && set[y + '-' + mo + '-' + (d - 1)] && set[y + '-' + mo + '-' + (d + 1)]) {
+            const dow = jstDowIndex_(y, mo, d);
+            if (dow !== 0 && dow !== 6) set[k] = true;
+          }
+        }
+      }
+      Object.keys(set).forEach(function (key) {
+        const p = key.split('-');
+        const mo = Number(p[1]);
+        const d = Number(p[2]);
+        if (jstDowIndex_(y, mo, d) !== 0) return;
+        let n = jstAddDays(y, mo, d, 1);
+        while (set[n.year + '-' + n.month + '-' + n.day]) n = jstAddDays(n.year, n.month, n.day, 1);
+        set[n.year + '-' + n.month + '-' + n.day] = true;
+      });
+      return set;
+    }
+    function schIsHoliday_(y, mo, d) {
+      if (!schIsHoliday_._map) schIsHoliday_._map = {};
+      if (!schIsHoliday_._map[y]) schIsHoliday_._map[y] = schJpHolidaySet_(y);
+      return !!schIsHoliday_._map[y][y + '-' + mo + '-' + d];
+    }
+    function schDayColor_(y, mo, d, dow) {
+      if (dow === 0 || schIsHoliday_(y, mo, d)) return SCH_COLOR_SUN;
+      if (dow === 6) return SCH_COLOR_SAT;
+      return SCH_DOW_COLOR[dow];
+    }
+    function getScheduleItems_() {
+        const cfg = (SITE_CFG && SITE_CFG.schedule) || {};
+        const items = Array.isArray(cfg.items) ? cfg.items : [];
+        const filtered = items.filter(function (row) { return row && (row.work || row.label); });
+        if (filtered.length) return filtered;
+        return [{ work: '足場組立' }, { work: '外装工事' }, { work: '内装工事' }, { work: '仕上げ' }];
+    }
+    function jstDowIndex_(y, mo, d) {
+        const ms = jstMsFromParts(y, mo, d, 12, 0, 0);
+        const name = new Intl.DateTimeFormat('en-US', { timeZone: CLOCK_TZ, weekday: 'short' }).format(new Date(ms));
+        return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[name] || 0;
+    }
+    function mondayOf_(y, mo, d) {
+        const back = (jstDowIndex_(y, mo, d) + 6) % 7;
+        return jstAddDays(y, mo, d, -back);
+    }
+    function buildScheduleDays_() {
+        const cfg = (SITE_CFG && SITE_CFG.schedule) || {};
+        const items = getScheduleItems_();
+        const now = jstPartsFromMs(getNowMs());
+        let origin;
+        if (cfg.startDate && /^\d{4}-\d{2}-\d{2}$/.test(String(cfg.startDate))) {
+            const bits = String(cfg.startDate).split('-');
+            origin = mondayOf_(Number(bits[0]), Number(bits[1]), Number(bits[2]));
+        } else {
+            origin = mondayOf_(now.year, now.month, now.day);
+        }
+        const thisMon = mondayOf_(now.year, now.month, now.day);
+        const originMs = jstMsFromParts(origin.year, origin.month, origin.day, 12, 0, 0);
+        const thisMonMs = jstMsFromParts(thisMon.year, thisMon.month, thisMon.day, 12, 0, 0);
+        let weekIdx = Math.round((thisMonMs - originMs) / (7 * 86400000));
+        if (!Number.isFinite(weekIdx) || weekIdx < 0) weekIdx = 0;
+        if (weekIdx >= items.length) weekIdx = Math.max(0, items.length - 1);
+        const row = items[weekIdx] || {};
+        const work = row.work != null ? String(row.work) : (row.label != null ? String(row.label) : '');
+        const sub = row.sub != null ? String(row.sub) : '';
+        const todayKey = now.year + '-' + now.month + '-' + now.day;
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+            const p = jstAddDays(thisMon.year, thisMon.month, thisMon.day, i);
+            const dow = jstDowIndex_(p.year, p.month, p.day);
+            days.push({
+                year: p.year,
+                month: p.month,
+                day: p.day,
+                dow: dow,
+                youbi: SCH_DOW[dow],
+                color: schDayColor_(p.year, p.month, p.day, dow),
+                work: work,
+                sub: sub,
+                isToday: (p.year + '-' + p.month + '-' + p.day) === todayKey
+            });
+        }
+        return days;
+    }
+    function schYmdPad_(y, mo, d) {
+        return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+    function schActiveWarnChip_() {
+        let level = null;
+        if (rainWhiteQueue && rainWhiteQueue.length) {
+            level = highestWhiteLevel_(rainWhiteQueue);
+        } else if (rainWarnActive && rainWarnActive.length) {
+            for (let i = 0; i < RAIN_WHITE_LEVEL_ORDER.length; i++) {
+                if (rainWarnActive.indexOf(RAIN_WHITE_LEVEL_ORDER[i]) >= 0) {
+                    level = RAIN_WHITE_LEVEL_ORDER[i];
+                    break;
+                }
+            }
+        }
+        if (!level || level === 'early') return null;
+        const chip = RAIN_WHITE_LEVEL_CHIP[level];
+        if (!chip) return null;
+        let label = chip.label;
+        if (rainWhiteQueue && rainWhiteQueue.length === 1 && rainWhiteQueue[0] && rainWhiteQueue[0].name) {
+            const n = String(rainWhiteQueue[0].name);
+            if (n.length <= 6) label = n;
+        }
+        return { level: level, label: label };
+    }
+    function makeScheduleDayEl_(day) {
+        const el = document.createElement('div');
+        el.className = 'sch-day' + (day.isToday ? ' sch-today' : '');
+        el.setAttribute('data-sch-ymd', schYmdPad_(day.year, day.month, day.day));
+        const warn = schActiveWarnChip_();
+        const subHtml = day.sub ? '<div class="sch-sub">(' + escapeS1Html(day.sub) + ')</div>' : '';
+        const warnHtml = warn
+            ? '<div class="sch-warn is-on is-' + warn.level + '">' + escapeS1Html(warn.label) + '</div>'
+            : '<div class="sch-warn" aria-hidden="true"></div>';
+        el.innerHTML = '<div class="sch-date" style="background:' + day.color + '">'
+            + '<span class="sch-date-txt">' + day.year + '年' + day.month + '月' + day.day + '日</span></div>'
+            + '<div class="sch-body">'
+            + '<div class="sch-mid">'
+            + '<div class="sch-youbi" style="color:' + day.color + '">' + day.youbi + '</div>'
+            + '</div>'
+            + '<div class="sch-workbox"><div class="sch-work">' + escapeS1Html(day.work) + '</div>'
+            + subHtml + warnHtml + '</div>'
+            + '</div>';
+        return el;
+    }
+    function applyScheduleTextColors_() {
+        /* 工程表は黒背景固定。日付帯・曜日はセル固有色を維持 */
+        document.querySelectorAll('#sceneSchedule .sch-work, #sceneSchedule .sch-sub').forEach(function (n) {
+            n.style.color = '#ffffff';
+        });
+    }
+    function fitScheduleText_() {
+        document.querySelectorAll('#sceneSchedule .sch-day').forEach(function (panel) {
+            const work = panel.querySelector('.sch-work');
+            const date = panel.querySelector('.sch-date');
+            const warn = panel.querySelector('.sch-warn.is-on');
+            if (work) {
+                let size = 14;
+                work.style.fontSize = size + 'px';
+                while (size > 10 && work.scrollWidth > 124) {
+                    size -= 1;
+                    work.style.fontSize = size + 'px';
+                }
+            }
+            if (date) {
+                const txt = date.querySelector('.sch-date-txt') || date;
+                const maxW = 128;
+                const size = Math.min(26, Math.max(22, date.clientHeight - 10));
+                date.style.fontSize = size + 'px';
+                date.style.letterSpacing = '-1.2px';
+                date.style.lineHeight = '1';
+                txt.style.transform = 'none';
+                const tw = txt.scrollWidth || date.scrollWidth;
+                if (tw > maxW) {
+                    txt.style.transform = 'scaleX(' + (maxW / tw).toFixed(4) + ')';
+                }
+            }
+            if (warn) {
+                let size = 12;
+                warn.style.fontSize = size + 'px';
+                while (size > 9 && warn.scrollWidth > 120) {
+                    size -= 1;
+                    warn.style.fontSize = size + 'px';
+                }
+            }
+        });
+    }
+    function refreshScheduleWeatherWarn_() {
+        if (!schTrack || !schTrack.children.length) return;
+        const warn = schActiveWarnChip_();
+        document.querySelectorAll('#sceneSchedule .sch-day').forEach(function (panel) {
+            let warnEl = panel.querySelector('.sch-warn');
+            if (!warnEl) return;
+            warnEl.className = 'sch-warn';
+            if (warn) {
+                warnEl.classList.add('is-on', 'is-' + warn.level);
+                warnEl.textContent = warn.label;
+                warnEl.removeAttribute('aria-hidden');
+            } else {
+                warnEl.textContent = '';
+                warnEl.setAttribute('aria-hidden', 'true');
+            }
+        });
+        fitScheduleText_();
+    }
+    function applyScheduleToDom_() {
+        if (!schTrack) return;
+        const days = buildScheduleDays_();
+        schTrack.innerHTML = '';
+        if (!days.length) {
+            sceneScheduleSetWidth = 512;
+            return;
+        }
+        const frag = document.createDocumentFragment();
+        for (let pass = 0; pass < 2; pass++) {
+            days.forEach(function (day) { frag.appendChild(makeScheduleDayEl_(day)); });
+        }
+        schTrack.appendChild(frag);
+        sceneScheduleSetWidth = days.length * 128;
+        schTrack.style.width = (sceneScheduleSetWidth * 2) + 'px';
+        scheduleScrollX_ = 0;
+        applyScrollX_(schTrack, 0);
+        fitScheduleText_();
+    }
+    function prepareScheduleSceneChrome_() {
+        document.body.classList.add('sch-only');
+        const content = document.querySelector('.content-area');
+        if (content) {
+            content.style.backgroundColor = '#000000';
+            const strip = content.querySelector('.scene-strip-bg');
+            if (strip) strip.style.display = 'none';
+        }
+        if (sceneSchedule) {
+            sceneSchedule.style.display = 'block';
+            sceneSchedule.style.background = '#000000';
+            sceneSchedule.style.zIndex = '';
+            sceneSchedule.classList.add('active');
+        }
+    }
+    function clearScheduleSceneChrome_() {
+        document.body.classList.remove('sch-only');
+        const content = document.querySelector('.content-area');
+        if (content) {
+            content.style.backgroundColor = '';
+            const strip = content.querySelector('.scene-strip-bg');
+            if (strip) strip.style.display = '';
+        }
+        if (sceneSchedule) {
+            sceneSchedule.style.zIndex = '';
+            sceneSchedule.style.background = '';
+        }
+    }
+    function finishSceneSchedule_() {
+        if (sceneScheduleAnimId) { cancelAnimationFrame(sceneScheduleAnimId); sceneScheduleAnimId = null; }
+        if (sceneScheduleHoldTimerId) { clearTimeout(sceneScheduleHoldTimerId); sceneScheduleHoldTimerId = null; }
+        stopLogoSpinInterval();
+        clearScheduleSceneChrome_();
+        if (demoOnlyLoop_('schedule', playSceneSchedule)) return;
+        runAfterSceneEndHold_(gotoSceneGreetingOrNext_);
+    }
+    function playSceneSchedule() {
+        prepareScheduleSceneChrome_();
+        if (!sceneSchedule || !schTrack) {
+            if (DEMO_ONLY === 'schedule') return;
+            finishSceneSchedule_();
+            return;
+        }
+        if (!isScheduleEnabled_() && DEMO_ONLY !== 'schedule') {
+            finishSceneSchedule_();
+            return;
+        }
+        if (sceneScheduleAnimId) { cancelAnimationFrame(sceneScheduleAnimId); sceneScheduleAnimId = null; }
+        if (sceneScheduleHoldTimerId) { clearTimeout(sceneScheduleHoldTimerId); sceneScheduleHoldTimerId = null; }
+        try { applyScheduleToDom_(); } catch (err) { console.error('[schedule]', err); }
+        if (DEMO_ONLY !== 'schedule') {
+            applyDisplayRefreshAtSceneEntry_();
+            applyPendingSignageBgAtScene_();
+            if (typeof SignageBg !== 'undefined' && SignageBg.refreshSchedule) {
+                SignageBg.refreshSchedule(getSignageBgLevel_(), getSignageDisplayMode_());
+            }
+        }
+        stepLogo90(420, true);
+        if (isFullDemoStep_()) {
+            if (DEMO_ONLY === 'schedule') return;
+            scheduleDemoStep_(finishSceneSchedule_);
+            return;
+        }
+        const scheduleScrollTotal = sceneScheduleSetWidth * SCENE_SCHEDULE_LAPS;
+        if (!sceneScheduleSetWidth || sceneScheduleSetWidth <= 0) {
+            if (DEMO_ONLY === 'schedule') return;
+            finishSceneSchedule_();
+            return;
+        }
+        let totalScrolled = 0;
+        let finished = false;
+        scheduleScrollX_ = 0;
+        applyScrollX_(schTrack, 0);
+        schTrack.style.transition = 'none';
+        function endScheduleOnce_() {
+            if (finished) return;
+            finished = true;
+            finishSceneSchedule_();
+        }
+        sceneScheduleHoldTimerId = setTimeout(endScheduleOnce_, Math.max(20000, (scheduleScrollTotal / Math.max(0.2, getScrollSpeedPx_())) * 20 + 5000));
+        function animateSceneSchedule() {
+            if (finished) return;
+            const speed = getScrollSpeedPx_();
+            scheduleScrollX_ -= speed;
+            totalScrolled += speed;
+            applyScrollX_(schTrack, wrapScrollX_(scheduleScrollX_, sceneScheduleSetWidth));
+            if (totalScrolled >= scheduleScrollTotal) {
+                sceneScheduleAnimId = null;
+                endScheduleOnce_();
+                return;
+            }
+            sceneScheduleAnimId = requestAnimationFrame(animateSceneSchedule);
+        }
+        runSceneScrollAfterHold_(function () {
+            if (finished) return;
+            sceneScheduleAnimId = requestAnimationFrame(animateSceneSchedule);
+        });
+    }
+
+    function applyGreetingToDom_() {
+        const cfg = (SITE_CFG && SITE_CFG.greeting) || {};
+        const title = cfg.title != null ? String(cfg.title) : '近隣の皆様へ';
+        const lines = Array.isArray(cfg.lines) ? cfg.lines : [];
+        const foot = cfg.foot != null ? String(cfg.foot) : 'ご理解・ご協力をお願いいたします';
+        document.querySelectorAll('#sceneGreeting .ng-title').forEach(function (el) { el.textContent = title; });
+        document.querySelectorAll('#sceneGreeting .ng-line-0').forEach(function (el) {
+            el.textContent = lines[0] != null ? String(lines[0]) : '';
+            el.style.display = lines[0] ? '' : 'none';
+        });
+        document.querySelectorAll('#sceneGreeting .ng-line-1').forEach(function (el) {
+            el.textContent = lines[1] != null ? String(lines[1]) : '';
+            el.style.display = lines[1] ? '' : 'none';
+        });
+        document.querySelectorAll('#sceneGreeting .ng-foot-txt').forEach(function (el) { el.textContent = foot; });
+        applyGreetingTextColors_();
+        fitGreetingText_();
+    }
+    function applyGreetingTextColors_() {
+        const mode = getSignageDisplayMode_();
+        const bgLv = mode === 'normal' ? getSignageBgLevel_() : -1;
+        const dark = (typeof SignageBg !== 'undefined' && SignageBg.isDarkTextForDisplay)
+            ? SignageBg.isDarkTextForDisplay(bgLv, mode)
+            : (mode === 'normal' && (bgLv === 1 || bgLv === 2));
+        const c = dark ? '#000000' : '#ebebeb';
+        if (sceneGreeting) sceneGreeting.classList.toggle('col-bg-dark-text', dark);
+        document.querySelectorAll('#sceneGreeting .ng-title, #sceneGreeting .ng-line').forEach(function (n) {
+            n.style.color = c;
+        });
+    }
+    function fitGreetingText_() {
+        document.querySelectorAll('#sceneGreeting .ng-line').forEach(function (el) {
+            let size = 26;
+            el.style.fontSize = size + 'px';
+            while (size > 16 && el.scrollWidth > 488) {
+                size -= 1;
+                el.style.fontSize = size + 'px';
+            }
+        });
+        document.querySelectorAll('#sceneGreeting .ng-title').forEach(function (el) {
+            let size = 22;
+            el.style.fontSize = size + 'px';
+            while (size > 14 && el.scrollWidth > 500) {
+                size -= 1;
+                el.style.fontSize = size + 'px';
+            }
+        });
+    }
+    function clearGreetingHoldTimer_() {
+        if (sceneGreetingHoldTimerId) {
+            clearTimeout(sceneGreetingHoldTimerId);
+            sceneGreetingHoldTimerId = null;
+        }
+    }
+    function playSceneGreeting() {
+        clearGreetingHoldTimer_();
+        if (!sceneGreeting || !isGreetingEnabled_()) {
+            transitionToScene(s1, playScene1);
+            return;
+        }
+        applyDisplayRefreshAtSceneEntry_();
+        applyGreetingToDom_();
+        applyPendingSignageBgAtScene_();
+        if (typeof SignageBg !== 'undefined' && SignageBg.refreshGreeting) {
+            SignageBg.refreshGreeting(getSignageBgLevel_(), getSignageDisplayMode_());
+        }
+        stepLogo90(420, true);
+        if (isFullDemoStep_()) {
+            scheduleDemoStep_(function () { transitionToScene(s1, playScene1); });
+            return;
+        }
+        sceneGreetingHoldTimerId = setTimeout(function () {
+            sceneGreetingHoldTimerId = null;
+            stopLogoSpinInterval();
+            if (demoOnlyLoop_('greeting', playSceneGreeting)) return;
+            runAfterSceneEndHold_(function () { transitionToScene(s1, playScene1); });
+        }, SCENE_GREETING_HOLD_MS);
+    }
+
     function mockSlotsForDemoLevel(levelIdx) {
         const w = DEMO_WBGT_BY_LEVEL[levelIdx];
         return [
@@ -7452,8 +8377,9 @@
     }
     function applyDemoWeatherStatic() {
         applyRainPreviewFromParam_();
-        document.querySelectorAll('.weather-icon-use').forEach(el => el.setAttribute('href', '#icon-sunny'));
-        document.querySelectorAll('.d5-weather-use').forEach(el => el.setAttribute('href', '#icon-sunny'));
+        lastForecastWeatherCode_ = '100';
+        applyScene2WeatherIcon_('100');
+        for (let day = 0; day < SCENE5_PANEL_COUNT; day++) applyD5WeatherIcon_(day, '100');
         setTextAll('.temp-val', '30');
         setTextAll('.humi-val', '65');
         setTextAll('.rain-val', '0.0');
@@ -7466,7 +8392,12 @@
         buildScene2MetaTrack(getSyncedUtcMs() != null ? new Date(getSyncedUtcMs()) : new Date());
         fitScene2BodyText();
         document.querySelectorAll('.d5-temp').forEach(el => { el.innerText = '32'; });
-        document.querySelectorAll('.d5-foot-txt').forEach(el => { el.textContent = '24℃ / 20%'; });
+        document.querySelectorAll('.d5-foot-txt').forEach(el => {
+            el.innerHTML =
+                '<span class="d5-foot-min">24℃</span>' +
+                '<span class="d5-foot-sep"> / </span>' +
+                '<span class="d5-foot-pop">20%</span>';
+        });
         applyD5BarLabels_();
         applyD5TodayFrame_();
         applyD5ForecastTextColors_();
@@ -7544,16 +8475,20 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        ALL_SCENES_.forEach(hideSceneEl);
         if (!el) return;
         el.style.display = sceneDisplayMode(el);
         el.classList.add('active');
         el.style.transform = 'translateX(0px)';
         el.style.zIndex = '';
-        playFn();
+        try {
+            playFn();
+        } catch (err) {
+            console.error('[only-scene]', DEMO_ONLY, err);
+        }
     }
     function startSingleSceneDemo_() {
-        applyReviewEnv_();
+        try { applyReviewEnv_(); } catch (err) { console.warn('[only-scene] review', err); }
         const badge = document.getElementById('demo-badge');
         const onlyLabels = SCENE_LABEL_BY_KEY;
         if (badge && shouldShowDemoBadge_()) {
@@ -7570,6 +8505,8 @@
                 case 's3': showOnlyScene_(s3, playScene3); break;
                 case 's4': showOnlyScene_(s4, playScene4); break;
                 case 's5': showOnlyScene_(s5, playScene5); break;
+                case 'schedule': showOnlyScene_(sceneSchedule, playSceneSchedule); break;
+                case 'greeting': showOnlyScene_(sceneGreeting, playSceneGreeting); break;
                 default: break;
             }
         }
@@ -7578,7 +8515,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        ALL_SCENES_.forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -7604,8 +8541,8 @@
     function startSequence() {
         clearDemoStepTimer_();
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
-        transitionToScene(s1, playScene1);
+        ALL_SCENES_.forEach(hideSceneEl);
+        gotoAfterRainWarnOrScene1_();
     }
 
     window.onload = async function() {
@@ -7613,7 +8550,26 @@
         restoreSignageStateCache_();
         if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         applySiteLocationLabels_();
-        paintBootSplash_();
+        if (DEMO_ONLY === 'schedule') {
+            bootDisplayHold_ = false;
+            try { applySyncedUtcMs(Date.now(), 'schedule-only'); } catch (e) {}
+            ALL_SCENES_.forEach(hideSceneEl);
+            prepareScheduleSceneChrome_();
+            (async function () {
+                try {
+                    await updateRainWarnFromJmaDirect_();
+                } catch (e) {
+                    console.warn('[工程表] 警報の取得失敗:', e && e.message ? e.message : e);
+                }
+                showOnlyScene_(sceneSchedule, playSceneSchedule);
+            })();
+            return;
+        }
+        if (DEMO_ONLY && DEMO_ONLY !== 's1') {
+            if (s1) hideSceneEl(s1);
+        } else {
+            paintBootSplash_();
+        }
         const logoEl = document.getElementById('signage-logo');
         const logoCfg = window.SIGNAGE_CONFIG;
         if (logoEl && logoCfg && logoCfg.logoSrc) {
@@ -7639,13 +8595,13 @@
             setInterval(function () {
                 syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
             }, CLOCK_SYNC_INTERVAL_MS);
-            applyDemoWeatherStatic();
+            if (DEMO_ONLY !== 'schedule') applyDemoWeatherStatic();
             if (DEMO_PREVIEW === 's1' || DEMO_PREVIEW === 's3') {
                 startPreviewDemo_(DEMO_PREVIEW);
                 return;
             }
             if (DEMO_ONLY && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rainwarn') {
-                setTimeout(startSingleSceneDemo_, 200);
+                startSingleSceneDemo_();
                 return;
             }
             applyDemoLevel(DEMO_LEVEL_FIXED != null ? DEMO_LEVEL_FIXED : DEMO_LEVEL_ORDER[0]);
@@ -7660,36 +8616,18 @@
             syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
         }, CLOCK_SYNC_INTERVAL_MS);
         syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
+        /* 取得完了を待たずループ開始（工程表→挨拶→時計…）。気象は裏で差し替え */
+        try { flushInitialDisplay_(); } catch (e) { console.error('flushInitialDisplay_', e); }
+        bootDisplayHold_ = false;
+        mainLoopStarted_ = true;
+        scheduleDataRefresh();
         try {
-            await Promise.race([
-                runScheduledFetch({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] }),
-                new Promise(function (resolve) { setTimeout(resolve, 3500); })
-            ]);
-            if (s1) {
-                s1.style.display = sceneDisplayMode(s1);
-                s1.classList.add('active');
-            }
-            flushInitialDisplay_();
-            mainLoopStarted_ = true;
-            scheduleDataRefresh();
-            playScene1();
-        } catch (err) {
-            console.error('Init:', err);
-            bootDisplayHold_ = false;
-            if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'local-fallback');
-            updateClock();
-            refreshSignageBgIfChanged_(true);
-            if (s1) {
-                s1.style.display = sceneDisplayMode(s1);
-                s1.classList.add('active');
-            }
-            startClockTicker();
-            mainLoopStarted_ = true;
-            scheduleDataRefresh();
-            playScene1();
-        } finally {
-            bootDisplayHold_ = false;
+            startSequence();
+        } catch (e) {
+            console.error('startSequence', e);
+            try { transitionToScene(s1, playScene1); } catch (e2) { console.error('fallback playScene1', e2); }
         }
+        startBackgroundFetch_({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] });
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
                 syncTimeFromNetwork().then(function () { updateClock(); startClockTicker(); }).catch(function () { startClockTicker(); });
