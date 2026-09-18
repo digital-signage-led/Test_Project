@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 3856
+Connection: keep-alive
+x-amzn-RequestId: 11c6a8cf-95ee-4fdc-a85d-a731d3a05307
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token
+x-amz-apigw-id: D4xl9HAHNjMEqUQ=
+Access-Control-Allow-Methods: GET,OPTIONS
+X-Amzn-Trace-Id: Root=1-6aacfc8c-ed91201794afcf2efbaf7198;Parent=7641937baa2df4f3;Sampled=0;Lineage=1:8bcfdd3c:0
+Date: Fri, 18 Sep 2026 08:55:39 GMT
+X-Cache: Miss from cloudfront
+Via: 1.1 6d5c1f4fe1c77be4edb66faa2466ac1e.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: KIX56-P5
+X-Amz-Cf-Id: b_iWQCowclbRnKkbYyUO5tbqPjdL_iYAuQ_4mesGapHFVa0pxXlFow==
+

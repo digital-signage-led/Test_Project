@@ -61,7 +61,7 @@
     </script>
     <style>
         :root {
-            --led-foot-bar-bg: #fff9f0;
+            --led-foot-bar-bg: #ffffff;
             --led-foot-bar-h: 32px;
             --led-col-body-h: 64px;
             --led-col-main-h: 96px;
@@ -488,7 +488,7 @@
             font-family: "Inter", sans-serif; max-width: 116px; overflow: hidden;
             white-space: nowrap; text-align: center;
         }
-        .s2-foot { width: 100%; height: var(--led-foot-bar-h); flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 0 2px; }
+        .s2-foot { width: 100%; height: var(--led-foot-bar-h); flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 0 2px; background: var(--led-foot-bar-bg); }
         .s2-foot .s2-loc { font-size: 15px; font-weight: 700; color: #1a1a1a; font-family: "Noto Sans JP", sans-serif; margin: 0; }
         .s2-foot .d5-foot-txt {
             font-size: 18px; font-weight: 800; color: #1a1a1a; line-height: 1;
@@ -571,6 +571,30 @@
         #scene2 .s2-panel, #scene2 .s2-panel-data {
             height: var(--led-col-main-h);
             overflow: hidden;
+        }
+        /* 気象種別切替: 現行は上へシュッ、次は下から */
+        #scene2 .conveyor-track {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: var(--led-col-main-h);
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+        #scene2 .conveyor-track.s2-slide-exit {
+            transition: transform 0.28s cubic-bezier(0.33, 0, 0.2, 1);
+            transform: translate3d(0, -100%, 0);
+            z-index: 2;
+            pointer-events: none;
+        }
+        #scene2 .conveyor-track.s2-slide-enter-from {
+            transform: translate3d(0, 100%, 0);
+            z-index: 1;
+        }
+        #scene2 .conveyor-track.s2-slide-enter {
+            transition: transform 0.28s cubic-bezier(0.33, 0, 0.2, 1);
+            transform: translate3d(0, 0, 0);
+            z-index: 1;
         }
         #scene2 .s2-bar-label { font-size: 20px; line-height: 1.05; letter-spacing: 0.2px; }
         #scene2 .s2-num { font-size: 44px; }
@@ -681,8 +705,8 @@
         /* シーン5: 時刻と同型 上32 + 中72 + 下24（列内フッタ） */
         #scene5 .d5-panel .s2-top-bar { height: 32px; flex-shrink: 0; }
         #scene5 .d5-panel .s2-body { height: var(--led-col-body-h); flex-shrink: 0; max-width: 128px; }
-        #scene5 .d5-panel .s2-foot { height: var(--led-foot-bar-h); flex-shrink: 0; }
-        #scene5 .d5-panel .col-bg-foot { display: none; }
+        #scene5 .d5-panel .s2-foot { height: var(--led-foot-bar-h); flex-shrink: 0; background: var(--led-foot-bar-bg); }
+        #scene5 .d5-panel .col-bg-foot { display: block; background: var(--led-foot-bar-bg); }
         #scene5 .col-bg-host { flex-shrink: 0; }
         #scene5 .col-bg-layer { width: calc(100% + 1px); }
         #scene5 .d5-body {
@@ -810,13 +834,13 @@
         }
         .sch-date {
             width: 128px;
-            height: 36px;
+            height: 32px;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #ffffff;
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 900;
             letter-spacing: -1.2px;
             line-height: 1;
@@ -842,13 +866,14 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 2px;
+            gap: 0;
             overflow: hidden;
             box-sizing: border-box;
+            padding: 2px 0 4px;
         }
         .sch-mid {
             width: 128px;
-            flex-shrink: 0;
+            flex: 0 0 auto;
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -862,33 +887,41 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 50px;
+            font-size: 40px;
             font-weight: 700;
             line-height: 1;
             font-family: "Noto Sans JP", sans-serif;
         }
         .sch-workbox {
             width: 128px;
-            flex-shrink: 0;
+            flex: 1 1 auto;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 0 4px;
+            padding: 0 2px;
             box-sizing: border-box;
             overflow: hidden;
             gap: 2px;
         }
         .sch-work {
             color: #ffffff;
-            font-size: 14px;
-            font-weight: 700;
-            line-height: 1.1;
+            font-size: 28px;
+            font-weight: 900;
+            line-height: 1.05;
             text-align: center;
             font-family: "Noto Sans JP", sans-serif;
             white-space: nowrap;
             overflow: hidden;
             max-width: 124px;
+            letter-spacing: -0.5px;
+        }
+        .sch-work.is-wrap {
+            white-space: normal;
+            word-break: break-all;
+            line-height: 1.08;
+            max-height: 44px;
         }
         .sch-sub {
             color: #ffffff;
@@ -1129,6 +1162,55 @@
         .ha-pair.ha-special .ha-line { background: #FFFFFF; }
         .ha-pair.ha-special .ha-l1 { color: #FF5A5A; }
         .ha-pair.ha-special .ha-l2 { color: #FFFFFF; }
+        /* --- 防災情報・台風（256×128×2・アラートキューブ同型＋台風アイコン） --- */
+        #sceneTyphoon.active { display: block; }
+        .ty-pair { width: 512px; height: 128px; display: flex; flex-direction: row; font-family: "Noto Sans JP", sans-serif; }
+        .ty-unit {
+            width: 256px; height: 128px; box-sizing: border-box; flex-shrink: 0;
+            display: flex; flex-direction: column; padding: 4px 0; overflow: hidden;
+            background: #0A2748;
+        }
+        .ty-line { width: 100%; flex-shrink: 0; height: 5px; background: #00B0F0; animation: tyLineBlink 1.4s ease-in-out infinite; }
+        .ty-line.bottom { margin-top: auto; }
+        .ty-body { flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden; }
+        .ty-track {
+            position: absolute; top: 0; left: 0; height: 100%;
+            display: flex; flex-direction: row; align-items: center;
+            will-change: transform; backface-visibility: hidden;
+        }
+        .ty-slot {
+            width: 256px; height: 100%; flex-shrink: 0; box-sizing: border-box;
+            display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+            gap: 0; padding: 0;
+        }
+        .ty-std {
+            flex: 1 1 auto; min-width: 0; max-height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 4px; padding: 0 2px 0 4px; box-sizing: border-box; overflow: hidden;
+        }
+        .ty-icon {
+            flex: 0 0 44px; width: 44px; height: 44px; align-self: center;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; box-sizing: border-box;
+        }
+        .ty-icon-badge {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: #4A90E2; overflow: hidden; position: relative;
+            flex-shrink: 0;
+        }
+        .ty-icon-badge svg {
+            position: absolute; inset: 0; width: 40px; height: 40px; display: block;
+            animation: tyIconSpin 2.4s linear infinite;
+        }
+        .ty-l1, .ty-l2 {
+            line-height: 1.05; font-weight: 900; white-space: nowrap;
+            letter-spacing: -0.5px; text-align: center;
+            max-width: 204px; box-sizing: border-box;
+        }
+        .ty-l1 { color: #FFE34D; }
+        .ty-l2 { color: #FFFFFF; }
+        @keyframes tyLineBlink { 0%,60%{opacity:1;} 80%{opacity:0.25;} 100%{opacity:1;} }
+        @keyframes tyIconSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         /* --- 大雨警報（256×128×2・熱中症アラートと同型） --- */
         #sceneRainWarn.active { display: block; }
         .ra-pair { width: 512px; height: 128px; display: flex; flex-direction: row; font-family: "Noto Sans JP", sans-serif; }
@@ -1959,6 +2041,38 @@
             </div>
         </div>
     </div>
+    <div class="scene" id="sceneTyphoon">
+        <div class="ty-pair" id="ty-pair">
+            <div class="ty-unit">
+                <div class="ty-line top"></div>
+                <div class="ty-body"><div class="ty-track">
+                    <div class="ty-slot">
+                        <div class="ty-std"><div class="ty-l1"></div><div class="ty-l2"></div></div>
+                        <div class="ty-icon" aria-hidden="true"><div class="ty-icon-badge"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path fill="#FFFFFF" d="M33.5 9.2c13.6 1 23.3 12.2 23.3 25.2 0 10.4-6.8 19.3-16.4 22.4-2.4.8-4.7-1.2-4-3.6.5-1.9 2.2-3.1 4.1-3.5 6.4-1.6 11-7.4 11-14.2 0-9-7.1-16.4-16-17V9.2z"/><path fill="#FFFFFF" d="M30.5 54.8C16.9 53.8 7.2 42.6 7.2 29.6c0-10.4 6.8-19.3 16.4-22.4 2.4-.8 4.7 1.2 4 3.6-.5 1.9-2.2 3.1-4.1 3.5-6.4 1.6-11 7.4-11 14.2 0 9 7.1 16.4 16 17v9.3z"/><circle cx="32" cy="32" r="8" fill="none" stroke="#FFFFFF" stroke-width="4.2"/><circle cx="32" cy="32" r="4.2" fill="#4A90E2"/></svg></div></div>
+                    </div>
+                    <div class="ty-slot">
+                        <div class="ty-std"><div class="ty-l1"></div><div class="ty-l2"></div></div>
+                        <div class="ty-icon" aria-hidden="true"><div class="ty-icon-badge"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path fill="#FFFFFF" d="M33.5 9.2c13.6 1 23.3 12.2 23.3 25.2 0 10.4-6.8 19.3-16.4 22.4-2.4.8-4.7-1.2-4-3.6.5-1.9 2.2-3.1 4.1-3.5 6.4-1.6 11-7.4 11-14.2 0-9-7.1-16.4-16-17V9.2z"/><path fill="#FFFFFF" d="M30.5 54.8C16.9 53.8 7.2 42.6 7.2 29.6c0-10.4 6.8-19.3 16.4-22.4 2.4-.8 4.7 1.2 4 3.6-.5 1.9-2.2 3.1-4.1 3.5-6.4 1.6-11 7.4-11 14.2 0 9 7.1 16.4 16 17v9.3z"/><circle cx="32" cy="32" r="8" fill="none" stroke="#FFFFFF" stroke-width="4.2"/><circle cx="32" cy="32" r="4.2" fill="#4A90E2"/></svg></div></div>
+                    </div>
+                </div></div>
+                <div class="ty-line bottom"></div>
+            </div>
+            <div class="ty-unit">
+                <div class="ty-line top"></div>
+                <div class="ty-body"><div class="ty-track">
+                    <div class="ty-slot">
+                        <div class="ty-std"><div class="ty-l1"></div><div class="ty-l2"></div></div>
+                        <div class="ty-icon" aria-hidden="true"><div class="ty-icon-badge"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path fill="#FFFFFF" d="M33.5 9.2c13.6 1 23.3 12.2 23.3 25.2 0 10.4-6.8 19.3-16.4 22.4-2.4.8-4.7-1.2-4-3.6.5-1.9 2.2-3.1 4.1-3.5 6.4-1.6 11-7.4 11-14.2 0-9-7.1-16.4-16-17V9.2z"/><path fill="#FFFFFF" d="M30.5 54.8C16.9 53.8 7.2 42.6 7.2 29.6c0-10.4 6.8-19.3 16.4-22.4 2.4-.8 4.7 1.2 4 3.6-.5 1.9-2.2 3.1-4.1 3.5-6.4 1.6-11 7.4-11 14.2 0 9 7.1 16.4 16 17v9.3z"/><circle cx="32" cy="32" r="8" fill="none" stroke="#FFFFFF" stroke-width="4.2"/><circle cx="32" cy="32" r="4.2" fill="#4A90E2"/></svg></div></div>
+                    </div>
+                    <div class="ty-slot">
+                        <div class="ty-std"><div class="ty-l1"></div><div class="ty-l2"></div></div>
+                        <div class="ty-icon" aria-hidden="true"><div class="ty-icon-badge"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path fill="#FFFFFF" d="M33.5 9.2c13.6 1 23.3 12.2 23.3 25.2 0 10.4-6.8 19.3-16.4 22.4-2.4.8-4.7-1.2-4-3.6.5-1.9 2.2-3.1 4.1-3.5 6.4-1.6 11-7.4 11-14.2 0-9-7.1-16.4-16-17V9.2z"/><path fill="#FFFFFF" d="M30.5 54.8C16.9 53.8 7.2 42.6 7.2 29.6c0-10.4 6.8-19.3 16.4-22.4 2.4-.8 4.7 1.2 4 3.6-.5 1.9-2.2 3.1-4.1 3.5-6.4 1.6-11 7.4-11 14.2 0 9 7.1 16.4 16 17v9.3z"/><circle cx="32" cy="32" r="8" fill="none" stroke="#FFFFFF" stroke-width="4.2"/><circle cx="32" cy="32" r="4.2" fill="#4A90E2"/></svg></div></div>
+                    </div>
+                </div></div>
+                <div class="ty-line bottom"></div>
+            </div>
+        </div>
+    </div>
     <div class="scene" id="sceneRainWarn">
         <div class="ra-pair ra-advisory" id="ra-pair">
             <div class="ra-mid-band-wrap" aria-hidden="true"><div class="ra-mid-band-unit"></div><div class="ra-mid-band-unit"></div></div>
@@ -2154,7 +2268,7 @@
     const UNKNOWN = { bgColor: '#2a2a2a', barColor: '#3a3a3a' };
     /** WBGT提供期間外（特別警報の黒・取得不可の灰色とは別のダークグレー） */
     const OFF_SEASON = { bgColor: '#484848', barColor: '#585858' };
-    const LED_FOOT_BAR_BG = '#fff9f0';
+    const LED_FOOT_BAR_BG = '#ffffff';
 
     const LEVELS = [
         { min: 31, levelIdx: 4, bgColor: '#D61914', barColor: '#E94540' },  /* 5 危険 */
@@ -2210,8 +2324,10 @@
         if (!layer) return;
         const top = layer.querySelector('.col-bg-top');
         const body = layer.querySelector('.col-bg-body');
+        const foot = layer.querySelector('.col-bg-foot');
         if (top) top.style.backgroundColor = colors.barColor;
         if (body) body.style.backgroundColor = colors.bgColor;
+        if (foot) foot.style.backgroundColor = LED_FOOT_BAR_BG;
     }
 
     /** シーン4モジュール: 上バーは t3-scene-top-bar 側。列背景は本体72px+下帯24pxのみ */
@@ -2455,6 +2571,7 @@
     const DEMO_SIGNAGE = demoParam === '1' || demoParam === 'all' || demoParam === 'full';
     const DEMO_ALERT_ONLY = demoParam === 'alert' || query.get('only') === 'alert';  /* アラートのみ流すデモ */
     const DEMO_RAINWARN_ONLY = demoParam === 'rainwarn' || query.get('only') === 'rainwarn';
+    const DEMO_TYPHOON_ONLY = demoParam === 'typhoon' || query.get('only') === 'typhoon';
     const WBGT_ONLY = query.get('wbgtOnly') === '1';
     /** 大雨警報シーンを有効化 */
     const SITE_CFG = window.SignageConfig || {};
@@ -2464,14 +2581,17 @@
     const NO_JMA_WARN = false;
     /** 熱中症アラートシーンを有効化（環境省発表時に表示） */
     const NO_HEAT_ALERT = false;
+    /** 防災情報・台風シーン（気象庁発表時）。?typhoon=0 で無効 */
+    const NO_TYPHOON = query.get('typhoon') === '0';
     const RAIN_HERO_OFF = query.get('rainhero') === '0';
     const RAIN_WHITE_DESIGN = query.get('rainwhite') === '1';
     /* 3段デザイン案は確認ボードと同じく既定ON（?rainhero=0 で従来レイアウト） */
     const RAIN_HERO_DESIGN = !RAIN_HERO_OFF && !RAIN_WHITE_DESIGN;
     /*
-     * 流れる順の表示番号（順序は変えずラベルのみ）
-     *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
-     *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
+     * 流れる順（発表時は大雨・台風を先頭側）
+     *  大雨警報・注意報（発表時）→ 防災情報・台風（発表時）→ 工程表 → 近隣挨拶
+     *  → 1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
+     *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → 熱中症アラート（発表時）→ 先頭へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
      */
     function normalizeOnlyParam_(raw) {
@@ -2479,6 +2599,7 @@
         const v = String(raw).toLowerCase();
         if (v === 'alert') return 'alert';
         if (v === 'rainwarn') return 'rainwarn';
+        if (v === 'typhoon' || v === 'bosai') return 'typhoon';
         if (v === 'schedule' || v === 'sch' || v === '6') return 'schedule';
         if (v === 'greeting' || v === 'greet' || v === '7') return 'greeting';
         const map = { '1': 's1', '2': 's2', '3': 's4', '4': 's5', '5': 's3', s1: 's1', s2: 's2', s3: 's3', s4: 's4', s5: 's5' };
@@ -2487,7 +2608,7 @@
     const SCENE_LABEL_BY_KEY = {
         s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5',
         schedule: '工程表', greeting: '近隣挨拶',
-        alert: '熱中症アラート', rainwarn: '大雨警報'
+        alert: '熱中症アラート', rainwarn: '大雨警報', typhoon: '防災情報・台風'
     };
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
@@ -3136,8 +3257,9 @@
     const sceneGreeting = document.getElementById('sceneGreeting');
     const sceneAlert = document.getElementById('sceneAlert');
     const sceneRainWarn = document.getElementById('sceneRainWarn');
+    const sceneTyphoon = document.getElementById('sceneTyphoon');
     const logoRotator = document.getElementById('logo-rotator');
-    const ALL_SCENES_ = [s1, s2, s3, s4, s5, sceneSchedule, sceneGreeting, sceneAlert, sceneRainWarn];
+    const ALL_SCENES_ = [s1, s2, s3, s4, s5, sceneSchedule, sceneGreeting, sceneAlert, sceneRainWarn, sceneTyphoon];
 
     /** ロゴパネル: 現在の WBGT 段階色に同期 */
     function applySignageLogoPanel_() {
@@ -3215,6 +3337,240 @@
         else if (level === 'warning') heatAlertActive = ['warning'];
         else heatAlertActive = [];
         queueDisplayRefresh_();
+    }
+    /* ===== 防災情報・台風（会場付近に接近・通過見込みのときだけ表示） ===== */
+    const JMA_TYPHOON_LIST_URL = 'https://www.jma.go.jp/bosai/typhoon/data/targetTc.json';
+    const JMA_TYPHOON_SPEC_URL = function (id) { return 'https://www.jma.go.jp/bosai/typhoon/data/' + id + '/specifications.json'; };
+    const DEMO_TYPHOON_SLIDES_ = [
+        { l1: '防災情報　台風情報', l2: '台風第25号 ドゥージェン' },
+        { l1: '19日(土) 03:00　12時間後', l2: '父島の南西約190km' },
+        { l1: '中心気圧 970hPa', l2: '最大風速 30m/s　瞬間 45m/s' },
+        { l1: '進行方向 西', l2: '移動速度 15km/h' }
+    ];
+    /* 中心がこの距離以内、または暴風域の外縁がこの距離以内なら「通りそう／影響あり」 */
+    const TY_APPROACH_KM = 800;
+    const TY_GALE_EDGE_KM = 350;
+    const TY_UNIT_W = 256;
+    const TY_ICON_W = 44;
+    const TY_L1_MAX = 42;
+    const TY_L2_RATIO = 0.72;
+    const TY_LAPS_BEFORE_SWITCH = 4;
+    let tyAnimId = null;
+    let tyFlow_ = null;
+    let typhoonSlidesActive = [];
+    const typhoonForced = !NO_TYPHOON && (query.get('typhoon') === '1' || DEMO_SIGNAGE || DEMO_TYPHOON_ONLY);
+    if (!NO_TYPHOON && typhoonForced) typhoonSlidesActive = DEMO_TYPHOON_SLIDES_.slice();
+    function tyPartName_(part) {
+        if (!part) return '';
+        if (typeof part === 'string') return part;
+        return part.jp || part.en || '';
+    }
+    function tyNumOrNull_(value) {
+        if (value == null || value === '' || value === '-') return null;
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+    }
+    function tyParseJst_(value) {
+        if (!value) return null;
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+    function tyFormatStamp_(date) {
+        if (!date || Number.isNaN(date.getTime())) return '';
+        const week = '日月火水木金土'[date.getDay()];
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mm = String(date.getMinutes()).padStart(2, '0');
+        return date.getDate() + '日(' + week + ') ' + hh + ':' + mm;
+    }
+    function typhoonNoLabel_(num) {
+        const raw = String(num || '');
+        if (/^\d{4}$/.test(raw)) return '台風第' + Number(raw.slice(2)) + '号';
+        if (/^\d+$/.test(raw)) return '台風第' + Number(raw) + '号';
+        return '';
+    }
+    function getTyphoonSiteLatLon_() {
+        const g = (SITE_CFG && SITE_CFG.geo) || {};
+        const lat = Number(g.lat);
+        const lon = Number(g.lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat: lat, lon: lon };
+        return { lat: 34.605184, lon: 135.470949 }; /* 住之江区新北島 */
+    }
+    function tyHaversineKm_(aLat, aLon, bLat, bLon) {
+        const toR = function (deg) { return (deg * Math.PI) / 180; };
+        const dLat = toR(bLat - aLat);
+        const dLon = toR(bLon - aLon);
+        const s = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+            + Math.cos(toR(aLat)) * Math.cos(toR(bLat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(s)));
+    }
+    function tyLatLonFromItem_(item) {
+        const deg = item && item.position && item.position.deg;
+        if (!Array.isArray(deg) || deg.length < 2) return null;
+        const lat = Number(deg[0]);
+        const lon = Number(deg[1]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+        return { lat: lat, lon: lon };
+    }
+    function tyMaxGaleRadiusKm_(item) {
+        let max = 0;
+        const gale = item && item.galeWarning;
+        if (Array.isArray(gale)) {
+            gale.forEach(function (g) {
+                const km = tyNumOrNull_(g && g.range && g.range.km);
+                if (km != null && km > max) max = km;
+            });
+        }
+        const storm = item && item.stormWarning;
+        if (Array.isArray(storm)) {
+            storm.forEach(function (g) {
+                const km = tyNumOrNull_(g && g.range && g.range.km);
+                if (km != null && km > max) max = km;
+            });
+        }
+        const circle = tyNumOrNull_(item && item.probabilityCircleRadius && item.probabilityCircleRadius.km);
+        if (circle != null && circle > max) max = circle;
+        return max;
+    }
+    function tySpecTrackItems_(spec) {
+        return (spec || []).filter(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('実況') >= 0
+                || name.indexOf('予報') >= 0
+                || (item.part && item.part.en === 'Analysis')
+                || String((item.part && item.part.en) || '').indexOf('Forecast') === 0;
+        });
+    }
+    /** 会場付近に接近・通過・暴風域が届きそうなら true */
+    function typhoonThreatensSite_(spec) {
+        const site = getTyphoonSiteLatLon_();
+        const items = tySpecTrackItems_(spec);
+        let bestKm = Infinity;
+        for (let i = 0; i < items.length; i++) {
+            const c = tyLatLonFromItem_(items[i]);
+            if (!c) continue;
+            const d = tyHaversineKm_(site.lat, site.lon, c.lat, c.lon);
+            if (d < bestKm) bestKm = d;
+            if (d <= TY_APPROACH_KM) {
+                return { ok: true, km: Math.round(d), reason: 'approach' };
+            }
+            const gale = tyMaxGaleRadiusKm_(items[i]);
+            const edge = d - gale;
+            if (gale > 0 && edge <= TY_GALE_EDGE_KM) {
+                return { ok: true, km: Math.round(d), reason: 'gale', galeKm: gale };
+            }
+        }
+        return {
+            ok: false,
+            km: Number.isFinite(bestKm) ? Math.round(bestKm) : null,
+            reason: 'far'
+        };
+    }
+    function tyPushFactSlides_(slides, step, whenLabel) {
+        const when = [tyFormatStamp_(step.at), whenLabel].filter(Boolean).join('　');
+        if (when || step.location) {
+            slides.push({ l1: when || '台風情報', l2: step.location || '' });
+        }
+        const p = step.pressure != null ? ('中心気圧 ' + step.pressure + 'hPa') : '';
+        const winds = [];
+        if (step.maxWindMs != null) winds.push('最大風速 ' + step.maxWindMs + 'm/s');
+        if (step.gustMs != null) winds.push('瞬間 ' + step.gustMs + 'm/s');
+        if (p || winds.length) slides.push({ l1: p || '風速情報', l2: winds.join('　') });
+        const course = step.course ? ('進行方向 ' + step.course) : '';
+        const speed = step.speedKmh != null ? ('移動速度 ' + step.speedKmh + 'km/h') : '';
+        if (course || speed) slides.push({ l1: course || '移動情報', l2: speed });
+    }
+    function buildTyphoonSlidesFromSpec_(meta, spec) {
+        const slides = [];
+        const title = (spec || []).find(function (item) { return item.part === 'title'; }) || {};
+        const analysis = (spec || []).find(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('実況') >= 0 || (item.part && item.part.en === 'Analysis');
+        }) || null;
+        const forecasts = (spec || []).filter(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('予報') >= 0 || String((item.part && item.part.en) || '').indexOf('Forecast') === 0;
+        }).slice(0, 2);
+        const noLabel = typhoonNoLabel_(title.typhoonNumber || meta.typhoonNumber);
+        const nameJp = (title.name && title.name.jp) || '';
+        const titleL2 = [noLabel || '台風', nameJp].filter(Boolean).join(' ');
+        slides.push({ l1: '防災情報　台風情報', l2: titleL2 });
+        if (analysis) {
+            tyPushFactSlides_(slides, {
+                at: tyParseJst_(analysis.validtime && analysis.validtime.JST),
+                location: analysis.location || '',
+                pressure: tyNumOrNull_(analysis.pressure),
+                maxWindMs: tyNumOrNull_(analysis.maximumWind && analysis.maximumWind.sustained && analysis.maximumWind.sustained['m/s']),
+                gustMs: tyNumOrNull_(analysis.maximumWind && analysis.maximumWind.gust && analysis.maximumWind.gust['m/s']),
+                course: analysis.course || '',
+                speedKmh: tyNumOrNull_(analysis.speed && analysis.speed['km/h'])
+            }, '実況');
+        }
+        forecasts.forEach(function (item) {
+            const hours = item.advancedHours;
+            const whenLabel = hours != null ? (hours + '時間後') : '予報';
+            tyPushFactSlides_(slides, {
+                at: tyParseJst_(item.validtime && item.validtime.JST),
+                location: item.location || '',
+                pressure: tyNumOrNull_(item.pressure),
+                maxWindMs: tyNumOrNull_(item.maximumWind && item.maximumWind.sustained && item.maximumWind.sustained['m/s']),
+                gustMs: tyNumOrNull_(item.maximumWind && item.maximumWind.gust && item.maximumWind.gust['m/s']),
+                course: item.course || '',
+                speedKmh: tyNumOrNull_(item.speed && item.speed['km/h'])
+            }, whenLabel);
+        });
+        return slides.filter(function (s) { return s.l1 || s.l2; });
+    }
+    function setTyphoonSlides_(slides) {
+        const next = Array.isArray(slides) ? slides.filter(function (s) { return s && (s.l1 || s.l2); }) : [];
+        const same = next.length === typhoonSlidesActive.length && next.every(function (s, i) {
+            return s.l1 === typhoonSlidesActive[i].l1 && s.l2 === typhoonSlidesActive[i].l2;
+        });
+        typhoonSlidesActive = next;
+        if (!same) queueDisplayRefresh_();
+    }
+    async function updateTyphoonFromJma_() {
+        if (NO_TYPHOON || WBGT_ONLY) return;
+        if (typhoonForced && !DEMO_TYPHOON_ONLY && DEMO_SIGNAGE) return;
+        try {
+            const listRes = await fetch(JMA_TYPHOON_LIST_URL, { cache: 'no-store', mode: 'cors' });
+            if (!listRes.ok) throw new Error('typhoon list HTTP ' + listRes.status);
+            const list = JSON.parse(await listRes.text());
+            const targets = Array.isArray(list) ? list : (list && list.tropicalCyclone ? [list] : []);
+            if (!targets.length) {
+                if (typhoonForced || DEMO_TYPHOON_ONLY) setTyphoonSlides_(DEMO_TYPHOON_SLIDES_);
+                else setTyphoonSlides_([]);
+                console.log('[台風] 発表なし');
+                return;
+            }
+            const site = getTyphoonSiteLatLon_();
+            const allSlides = [];
+            for (let i = 0; i < targets.length; i++) {
+                const meta = targets[i];
+                const id = meta.tropicalCyclone;
+                if (!id) continue;
+                const specRes = await fetch(JMA_TYPHOON_SPEC_URL(id), { cache: 'no-store', mode: 'cors' });
+                if (!specRes.ok) continue;
+                const spec = JSON.parse(await specRes.text());
+                const threat = typhoonThreatensSite_(spec);
+                const noLabel = typhoonNoLabel_((spec.find(function (x) { return x.part === 'title'; }) || {}).typhoonNumber || meta.typhoonNumber);
+                if (!threat.ok) {
+                    console.log('[台風] 会場から遠いため非表示', noLabel || id,
+                        threat.km != null ? ('最短約' + threat.km + 'km') : '',
+                        'site=' + site.lat.toFixed(3) + ',' + site.lon.toFixed(3));
+                    continue;
+                }
+                console.log('[台風] 接近見込みで表示', noLabel || id,
+                    '約' + threat.km + 'km', threat.reason);
+                const built = buildTyphoonSlidesFromSpec_(meta, spec);
+                for (let j = 0; j < built.length; j++) allSlides.push(built[j]);
+            }
+            if (!allSlides.length && (typhoonForced || DEMO_TYPHOON_ONLY)) setTyphoonSlides_(DEMO_TYPHOON_SLIDES_);
+            else setTyphoonSlides_(allSlides);
+            console.log('[台風] スライド', typhoonSlidesActive.length, '件');
+        } catch (e) {
+            console.warn('[台風] 取得失敗:', e && e.message ? e.message : e);
+            if (typhoonForced || DEMO_TYPHOON_ONLY) setTyphoonSlides_(DEMO_TYPHOON_SLIDES_);
+        }
     }
     /* ===== 大雨警報（気象庁・5段階）＋ L3 警報4種 ===== */
     /** 気象庁情報一覧（種別順送り用 warntype=lXall）— 気象庁カテゴリ対応表準拠 */
@@ -4480,7 +4836,7 @@
             transitionToScene(sceneRainWarn, function () { playSceneRainWarn(0); });
             return;
         }
-        gotoSceneScheduleOrNext_();
+        gotoAfterTyphoonOrSchedule_();
     }
     function playSceneRainWarn(startIdx) {
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
@@ -4493,13 +4849,13 @@
         const hasQueue = whiteBundle ? getRainWhiteScrollQueue_().length : rainWarnActive.length;
         if (!hasQueue) {
             if (DEMO_RAINWARN_ONLY) return;
-            gotoSceneScheduleOrNext_();
+            gotoAfterTyphoonOrSchedule_();
             return;
         }
         const idx = startIdx || 0;
         if (!setRainWarn_(idx)) {
             if (DEMO_RAINWARN_ONLY) return;
-            gotoSceneScheduleOrNext_();
+            gotoAfterTyphoonOrSchedule_();
             return;
         }
         const heroBundle = !whiteBundle && pairEl && pairEl.classList.contains('ra-hero-bundle');
@@ -4509,7 +4865,7 @@
         const tracks = document.querySelectorAll('#sceneRainWarn .ra-track');
         if (!tracks.length && !midBundle) {
             if (DEMO_RAINWARN_ONLY) return;
-            gotoSceneScheduleOrNext_();
+            gotoAfterTyphoonOrSchedule_();
             return;
         }
         raFlow_ = {
@@ -4593,7 +4949,7 @@
                         return;
                     } else {
                         raAnimId = null; raFlow_ = null;
-                        runAfterSceneEndHold_(gotoSceneScheduleOrNext_);
+                        runAfterSceneEndHold_(gotoAfterTyphoonOrSchedule_);
                         return;
                     }
                 }
@@ -4650,7 +5006,7 @@
                             return;
                         } else {
                             raAnimId = null; raFlow_ = null;
-                            runAfterSceneEndHold_(gotoSceneScheduleOrNext_);
+                            runAfterSceneEndHold_(gotoAfterTyphoonOrSchedule_);
                             return;
                         }
                     }
@@ -4675,23 +5031,23 @@
     function playSceneRainWarnStep_(idx) {
         clearDemoStepTimer_();
         raFlow_ = null;
-        if (!rainWarnActive.length) { gotoSceneScheduleOrNext_(); return; }
+        if (!rainWarnActive.length) { gotoAfterTyphoonOrSchedule_(); return; }
         const key = rainWarnActive[idx];
-        if (!key) { gotoSceneScheduleOrNext_(); return; }
+        if (!key) { gotoAfterTyphoonOrSchedule_(); return; }
         const entries = kindsForLevel_(key).map(function (kind) {
             return { level: key, kind: kind, name: jmaKindName_(key, kind) };
         });
         if (shouldUseHeroBundle_(key) || entries.length > 1) {
             setRainWarnHeroBundle_(key, entries);
         } else if (!setRainWarn_(idx)) {
-            gotoSceneScheduleOrNext_();
+            gotoAfterTyphoonOrSchedule_();
             return;
         }
         stepLogo90(420, true);
         scheduleDemoStep_(function () {
             const next = idx + 1;
             if (next < rainWarnActive.length) playSceneRainWarn(next);
-            else gotoSceneScheduleOrNext_();
+            else gotoAfterTyphoonOrSchedule_();
         });
     }
     async function startRainWarnOnlyDemo_() {
@@ -4775,10 +5131,12 @@
     const SCENE2_META_SETS = 3;
     const SCENE2_META_SPEED_PX = 0.6;
     const SCENE2_TYPE_HOLD_MS = 2800;
+    const SCENE2_SLIDE_MS = 280;
     let scene2SetWidth = SCENE2_FACE_COUNT * 128;
     const SCENE2_GROUP_W = SCENE2_FACE_COUNT * 128;
     let scene2TypeTimerId = null;
-    let scene2MetaLapPx = FOOT_BAR_LAP_PX;    let scene2MetaLapPx = FOOT_BAR_LAP_PX;
+    let scene2SlideTimerId = null;
+    let scene2MetaLapPx = FOOT_BAR_LAP_PX;
     const JMA_LATEST_TIME_URL = 'https://www.jma.go.jp/bosai/amedas/data/latest_time.txt';
     const JMA_FORECAST_URL = `https://www.jma.go.jp/bosai/forecast/data/forecast/${JMA_FORECAST_AREA_CODE}.json`;
     const SCENE4_PANEL_COUNT = 4;
@@ -5564,7 +5922,7 @@
         });
     }
     function isMainLoopPlaying_() {
-        if (DEMO_ONLY || DEMO_ALERT_ONLY || DEMO_RAINWARN_ONLY) return false;
+        if (DEMO_ONLY || DEMO_ALERT_ONLY || DEMO_RAINWARN_ONLY || DEMO_TYPHOON_ONLY) return false;
         if (DEMO_PREVIEW === 's1' || DEMO_PREVIEW === 's3') return false;
         return !!getActiveScene();
     }
@@ -5704,6 +6062,9 @@
                     const sWarn = performance.now();
                     await updateRainWarnFromGas_();
                     timings['大雨警報'] = Math.round(performance.now() - sWarn);
+                    const sTy = performance.now();
+                    await updateTyphoonFromJma_();
+                    timings['台風'] = Math.round(performance.now() - sTy);
                     jmaOk = true;
                 } catch (error) {
                     console.error('JMA fetch error:', error);
@@ -6327,11 +6688,26 @@
                 return '';
         }
     }
-    /** 1種別=4面すべて同一。天気→気温→暑さ指数…の順で横スクロール */
+    /** 気象観測: スクロールなし。種別ごとに4面を同一内容で固定切替 */
     function clearScene2TypeTimer_() {
         if (scene2TypeTimerId) {
             clearTimeout(scene2TypeTimerId);
             scene2TypeTimerId = null;
+        }
+        if (scene2SlideTimerId) {
+            clearTimeout(scene2SlideTimerId);
+            scene2SlideTimerId = null;
+        }
+        clearScene2SlideLayers_();
+    }
+    function clearScene2SlideLayers_() {
+        const wrap = document.querySelector('#scene2 .s2-scroll-wrap');
+        if (!wrap) return;
+        wrap.querySelectorAll('.conveyor-track.s2-slide-ghost').forEach(function (el) { el.remove(); });
+        if (conveyor) {
+            conveyor.classList.remove('s2-slide-exit', 's2-slide-enter-from', 's2-slide-enter');
+            conveyor.style.transition = 'none';
+            conveyor.style.transform = 'translate3d(0,0,0)';
         }
     }
     function buildScene2Conveyor_(type) {
@@ -6357,6 +6733,51 @@
         if (typeof SignageBg !== 'undefined' && SignageBg.refreshScene2) {
             SignageBg.refreshScene2(getSignageBgLevel_(), getSignageDisplayMode_());
         }
+    }
+    /** 気象コンテンツ切替: 上へ消えて下から現れる */
+    function paintScene2TypeSlide_(typeIdx, animate, done) {
+        const finish = typeof done === 'function' ? done : function () {};
+        const type = SCENE2_TYPE_ORDER[typeIdx];
+        if (!type || !conveyor) { finish(); return; }
+        const wrap = document.querySelector('#scene2 .s2-scroll-wrap');
+        const hasCur = !!(conveyor.children && conveyor.children.length);
+        if (!animate || !wrap) {
+            clearScene2SlideLayers_();
+            paintScene2Type_(typeIdx);
+            finish();
+            return;
+        }
+        clearScene2SlideLayers_();
+        let ghost = null;
+        if (hasCur) {
+            ghost = conveyor.cloneNode(true);
+            ghost.id = '';
+            ghost.classList.add('s2-slide-ghost');
+            ghost.style.transition = 'none';
+            ghost.style.transform = 'translate3d(0,0,0)';
+            wrap.appendChild(ghost);
+        }
+
+        paintScene2Type_(typeIdx);
+        conveyor.classList.add('s2-slide-enter-from');
+        conveyor.style.transition = 'none';
+        conveyor.style.transform = 'translate3d(0,100%,0)';
+
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (ghost) ghost.classList.add('s2-slide-exit');
+                conveyor.classList.remove('s2-slide-enter-from');
+                conveyor.classList.add('s2-slide-enter');
+                scene2SlideTimerId = setTimeout(function () {
+                    scene2SlideTimerId = null;
+                    if (ghost && ghost.parentNode) ghost.remove();
+                    conveyor.classList.remove('s2-slide-enter', 's2-slide-enter-from', 's2-slide-exit');
+                    conveyor.style.transition = 'none';
+                    conveyor.style.transform = 'translate3d(0,0,0)';
+                    finish();
+                }, SCENE2_SLIDE_MS + 20);
+            });
+        });
     }
     function buildScene2MetaForType_(type, latest) {
         if (!s2MetaTrack) return;
@@ -6935,7 +7356,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneSchedule' || el.id === 'sceneGreeting' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneSchedule' || el.id === 'sceneGreeting' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneTyphoon') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         return 'flex';
     }
@@ -7166,6 +7587,177 @@
         else if (badge) { badge.hidden = true; }
         if (!DEMO_EMBED) document.title = '熱中症アラート デモ';
         playSceneAlert(0);
+    }
+    function sizeTyphoonText_() {
+        const probe = document.querySelector('#sceneTyphoon .ty-slot .ty-l1');
+        if (!probe) return;
+        /* 文言領域はアイコン分を除く */
+        const usableW = TY_UNIT_W - TY_ICON_W - 8;
+        const bodyEl = document.querySelector('#sceneTyphoon .ty-body');
+        const usableH = bodyEl ? bodyEl.clientHeight - 2 : 100;
+        const setAll = function (f1, f2, track) {
+            document.querySelectorAll('#sceneTyphoon .ty-l1').forEach(function (n) {
+                n.style.fontSize = f1 + 'px';
+                n.style.letterSpacing = track + 'px';
+                n.style.maxWidth = usableW + 'px';
+            });
+            document.querySelectorAll('#sceneTyphoon .ty-l2').forEach(function (n) {
+                n.style.fontSize = f2 + 'px';
+                n.style.letterSpacing = track + 'px';
+                n.style.maxWidth = usableW + 'px';
+            });
+        };
+        let f1 = Math.min(TY_L1_MAX, Math.floor((usableH - 4) / (1 + TY_L2_RATIO)));
+        let f2 = Math.max(18, Math.round(f1 * TY_L2_RATIO));
+        let track = -0.5;
+        setAll(f1, f2, track);
+        let g = 120;
+        while (probe.scrollWidth > usableW && f1 > 18 && g-- > 0) {
+            if (track > -1.6) {
+                track -= 0.2;
+            } else {
+                f1 -= 1;
+                f2 = Math.max(16, Math.round(f1 * TY_L2_RATIO));
+            }
+            setAll(f1, f2, track);
+        }
+        const probe2 = document.querySelector('#sceneTyphoon .ty-slot .ty-l2');
+        if (probe2) {
+            g = 80;
+            while (probe2.scrollWidth > usableW && f2 > 14 && g-- > 0) {
+                if (track > -1.8) track -= 0.15;
+                else f2 -= 1;
+                setAll(f1, f2, track);
+            }
+        }
+    }
+    function setTyphoonSlide_(idx) {
+        const def = typhoonSlidesActive[idx] || typhoonSlidesActive[0];
+        if (!def) return false;
+        document.querySelectorAll('#sceneTyphoon .ty-l1').forEach(function (n) { n.textContent = def.l1 || ''; });
+        document.querySelectorAll('#sceneTyphoon .ty-l2').forEach(function (n) { n.textContent = def.l2 || ''; });
+        sizeTyphoonText_();
+        applySignageLogoPanel_();
+        return true;
+    }
+    function applyTyTrackX_(tracks, x) {
+        const tx = scrollPx_(x);
+        tracks.forEach(function (t) { applyScrollX_(t, tx); });
+    }
+    function prepTyphoon_(i) {
+        setTyphoonSlide_(i || 0);
+        const x = wrapScrollX_(globalScrollX_, TY_UNIT_W);
+        document.querySelectorAll('#sceneTyphoon .ty-track').forEach(function (t) {
+            applyScrollX_(t, x);
+        });
+    }
+    function playSceneTyphoon(startIdx) {
+        if (tyAnimId) { cancelAnimationFrame(tyAnimId); tyAnimId = null; }
+        if (!typhoonSlidesActive.length) {
+            if (DEMO_TYPHOON_ONLY) return;
+            gotoSceneScheduleOrNext_();
+            return;
+        }
+        const idx = startIdx || 0;
+        if (isFullDemoStep_()) {
+            prepTyphoon_(idx);
+            stepLogo90(420, true);
+            scheduleDemoStep_(function () {
+                const next = idx + 1;
+                if (next < typhoonSlidesActive.length) playSceneTyphoon(next);
+                else gotoSceneScheduleOrNext_();
+            });
+            return;
+        }
+        if (!setTyphoonSlide_(idx)) {
+            if (DEMO_TYPHOON_ONLY) return;
+            gotoSceneScheduleOrNext_();
+            return;
+        }
+        stepLogo90(420, true);
+        const tracks = document.querySelectorAll('#sceneTyphoon .ty-track');
+        if (!tracks.length) {
+            if (DEMO_TYPHOON_ONLY) return;
+            gotoSceneScheduleOrNext_();
+            return;
+        }
+        tyFlow_ = {
+            x: wrapScrollX_(globalScrollX_, TY_UNIT_W),
+            slideIdx: idx,
+            laps: 0
+        };
+        applyTyTrackX_(tracks, tyFlow_.x);
+        function step() {
+            const prevX = tyFlow_.x;
+            advanceGlobalScroll_(getScrollSpeedPx_());
+            tyFlow_.x = wrapScrollX_(globalScrollX_, TY_UNIT_W);
+            if (detectScrollLapCrossed_(prevX, tyFlow_.x)) {
+                tyFlow_.laps += 1;
+                if (tyFlow_.laps >= TY_LAPS_BEFORE_SWITCH) {
+                    tyFlow_.laps = 0;
+                    tyFlow_.slideIdx += 1;
+                    if (tyFlow_.slideIdx >= typhoonSlidesActive.length) {
+                        if (DEMO_TYPHOON_ONLY) {
+                            tyFlow_.slideIdx = 0;
+                            tyAnimId = null;
+                            holdThenNextContent_(function () {
+                                setTyphoonSlide_(tyFlow_.slideIdx);
+                                applyTyTrackX_(tracks, wrapScrollX_(globalScrollX_, TY_UNIT_W));
+                                tyFlow_.x = wrapScrollX_(globalScrollX_, TY_UNIT_W);
+                            }, function () {
+                                tyAnimId = requestAnimationFrame(step);
+                            });
+                            return;
+                        } else if (DEMO_SIGNAGE && !DEMO_ONLY) {
+                            tyAnimId = null; tyFlow_ = null;
+                            runAfterSceneEndHold_(advanceDemoLevel);
+                            return;
+                        } else {
+                            tyAnimId = null; tyFlow_ = null;
+                            runAfterSceneEndHold_(gotoSceneScheduleOrNext_);
+                            return;
+                        }
+                    }
+                    tyAnimId = null;
+                    holdThenNextContent_(function () {
+                        setTyphoonSlide_(tyFlow_.slideIdx);
+                        tyFlow_.x = wrapScrollX_(globalScrollX_, TY_UNIT_W);
+                        applyTyTrackX_(tracks, tyFlow_.x);
+                    }, function () {
+                        tyAnimId = requestAnimationFrame(step);
+                    });
+                    return;
+                }
+            }
+            applyTyTrackX_(tracks, tyFlow_.x);
+            tyAnimId = requestAnimationFrame(step);
+        }
+        runSceneScrollAfterHold_(function () {
+            tyAnimId = requestAnimationFrame(step);
+        });
+    }
+    function startTyphoonOnlyDemo_() {
+        resetLogoRotation();
+        [s1, s2, s3, s4, s5].forEach(hideSceneEl);
+        if (!typhoonSlidesActive.length) typhoonSlidesActive = DEMO_TYPHOON_SLIDES_.slice();
+        if (sceneTyphoon) {
+            sceneTyphoon.style.display = 'block';
+            sceneTyphoon.classList.add('active');
+            sceneTyphoon.style.transform = 'translateX(0px)';
+        }
+        const badge = document.getElementById('demo-badge');
+        if (badge && shouldShowDemoBadge_()) { badge.hidden = false; badge.textContent = '確認 · 防災情報・台風'; }
+        else if (badge) { badge.hidden = true; }
+        if (!DEMO_EMBED) document.title = '防災情報・台風 デモ';
+        playSceneTyphoon(0);
+    }
+    function gotoAfterTyphoonOrSchedule_() {
+        if (!NO_TYPHOON && typhoonSlidesActive.length && sceneTyphoon) {
+            prepTyphoon_(0);
+            transitionToScene(sceneTyphoon, function () { playSceneTyphoon(0); });
+            return;
+        }
+        gotoSceneScheduleOrNext_();
     }
     function splitT3Message_(text) {
         const s = String(text || '').trim();
@@ -7836,6 +8428,7 @@
         applyDisplayRefreshAtSceneEntry_();
         applyPendingSignageBgAtScene_();
         clearScene2TypeTimer_();
+        clearScene2SlideLayers_();
         if (scene2AnimId) { cancelAnimationFrame(scene2AnimId); scene2AnimId = null; }
         stepLogo90(420, true);
         if (isFullDemoStep_()) {
@@ -7851,6 +8444,7 @@
         let typeIdx = 0;
         function finishScene2_() {
             clearScene2TypeTimer_();
+            clearScene2SlideLayers_();
             stopLogoSpinInterval();
             if (demoOnlyLoop_('s2', playScene2)) return;
             runAfterSceneEndHold_(gotoSceneAfterScene2_);
@@ -7860,9 +8454,11 @@
                 finishScene2_();
                 return;
             }
-            paintScene2Type_(typeIdx);
-            typeIdx += 1;
-            scene2TypeTimerId = setTimeout(showScene2Type_, SCENE2_TYPE_HOLD_MS);
+            /* 初回も下から、2回目以降は上へ消えて下から */
+            paintScene2TypeSlide_(typeIdx, true, function () {
+                typeIdx += 1;
+                scene2TypeTimerId = setTimeout(showScene2Type_, SCENE2_TYPE_HOLD_MS);
+            });
         }
         showScene2Type_();
     }
@@ -7943,11 +8539,13 @@
 
     /* ===== 工程表 / 近隣挨拶 ===== */
     const SCH_DOW = ['日', '月', '火', '水', '木', '金', '土'];
-    /* 曜日色（LED向け・高彩度）: 日赤 / 月青 / 火橙 / 水黄 / 木緑 / 金 / 土紺 */
+    /* 曜日色: 日・祝=赤 / 土=青 / 月〜金=橙（平日統一・カラフル） */
     const SCH_COLOR_SUN = '#FF2D2D';
     const SCH_COLOR_SAT = '#1E6AFF';
+    const SCH_COLOR_WEEKDAY = '#FF8A00';
     const SCH_DOW_COLOR = [
-      SCH_COLOR_SUN, '#2E8CFF', '#FF5A00', '#FFE000', '#00D45A', '#FFD200', SCH_COLOR_SAT
+      SCH_COLOR_SUN, SCH_COLOR_WEEKDAY, SCH_COLOR_WEEKDAY, SCH_COLOR_WEEKDAY,
+      SCH_COLOR_WEEKDAY, SCH_COLOR_WEEKDAY, SCH_COLOR_SAT
     ];
     const SCH_EQUINOX_ = {
       2025: { spr: 20, aut: 23 }, 2026: { spr: 20, aut: 23 },
@@ -8007,7 +8605,11 @@
     function schDayColor_(y, mo, d, dow) {
       if (dow === 0 || schIsHoliday_(y, mo, d)) return SCH_COLOR_SUN;
       if (dow === 6) return SCH_COLOR_SAT;
-      return SCH_DOW_COLOR[dow];
+      return SCH_COLOR_WEEKDAY;
+    }
+    /* 日付帯の背景: 曜日色そのまま（白文字） */
+    function schDayBarColor_(color) {
+      return color;
     }
     function getScheduleItems_() {
         const cfg = (SITE_CFG && SITE_CFG.schedule) || {};
@@ -8098,7 +8700,7 @@
         const warnHtml = warn
             ? '<div class="sch-warn is-on is-' + warn.level + '">' + escapeS1Html(warn.label) + '</div>'
             : '<div class="sch-warn" aria-hidden="true"></div>';
-        el.innerHTML = '<div class="sch-date" style="background:' + day.color + '">'
+        el.innerHTML = '<div class="sch-date" style="background:' + schDayBarColor_(day.color) + '">'
             + '<span class="sch-date-txt">' + day.year + '年' + day.month + '月' + day.day + '日</span></div>'
             + '<div class="sch-body">'
             + '<div class="sch-mid">'
@@ -8121,17 +8723,34 @@
             const date = panel.querySelector('.sch-date');
             const warn = panel.querySelector('.sch-warn.is-on');
             if (work) {
-                let size = 14;
+                const maxW = 124;
+                const len = String(work.textContent || '').length;
+                /* 4文字前後は大きく、長い文言は段階的に縮小（最大約10文字想定） */
+                let size = len <= 4 ? 30 : (len <= 6 ? 24 : (len <= 8 ? 20 : 17));
+                work.classList.remove('is-wrap');
+                work.style.whiteSpace = 'nowrap';
                 work.style.fontSize = size + 'px';
-                while (size > 10 && work.scrollWidth > 124) {
+                work.style.letterSpacing = len >= 6 ? '-1px' : '-0.5px';
+                while (size > 13 && work.scrollWidth > maxW) {
                     size -= 1;
                     work.style.fontSize = size + 'px';
+                }
+                if (work.scrollWidth > maxW) {
+                    work.classList.add('is-wrap');
+                    work.style.whiteSpace = 'normal';
+                    size = Math.min(size, len >= 10 ? 15 : 17);
+                    work.style.fontSize = size + 'px';
+                    let g = 20;
+                    while (g-- > 0 && size > 12 && work.scrollHeight > 44) {
+                        size -= 1;
+                        work.style.fontSize = size + 'px';
+                    }
                 }
             }
             if (date) {
                 const txt = date.querySelector('.sch-date-txt') || date;
                 const maxW = 128;
-                const size = Math.min(26, Math.max(22, date.clientHeight - 10));
+                const size = Math.min(24, Math.max(20, date.clientHeight - 8));
                 date.style.fontSize = size + 'px';
                 date.style.letterSpacing = '-1.2px';
                 date.style.lineHeight = '1';
@@ -8586,6 +9205,15 @@
             setTimeout(startRainWarnOnlyDemo_, 300);
             return;
         }
+        if (DEMO_TYPHOON_ONLY && !NO_TYPHOON) {
+            bootDisplayHold_ = false;
+            setTimeout(function () {
+                updateTyphoonFromJma_().finally(function () {
+                    startTyphoonOnlyDemo_();
+                });
+            }, 300);
+            return;
+        }
         if (DEMO_SIGNAGE_ACTIVE) {
             bootDisplayHold_ = false;
             applySyncedUtcMs(Date.now(), 'demo-local');
@@ -8600,7 +9228,7 @@
                 startPreviewDemo_(DEMO_PREVIEW);
                 return;
             }
-            if (DEMO_ONLY && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rainwarn') {
+            if (DEMO_ONLY && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rainwarn' && DEMO_ONLY !== 'typhoon') {
                 startSingleSceneDemo_();
                 return;
             }
