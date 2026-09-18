@@ -1,0 +1,36 @@
+/* 既存デザイン維持。フォント未取得でも文字は出す */
+@font-face {
+  font-family: "Noto Sans JP";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local("Noto Sans JP Bold"), local("NotoSansJP-Bold"), local("Hiragino Sans"), local("Yu Gothic UI");
+}
+@font-face {
+  font-family: "Noto Sans JP";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: local("Noto Sans JP Black"), local("NotoSansJP-Black"), local("Hiragino Sans"), local("Yu Gothic UI");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local("Inter Bold"), local("Inter"), local("Segoe UI"), local("Yu Gothic UI");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: local("Inter ExtraBold"), local("Inter"), local("Segoe UI"), local("Yu Gothic UI");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: local("Inter Black"), local("Inter"), local("Segoe UI"), local("Yu Gothic UI");
+}
