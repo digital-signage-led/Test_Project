@@ -1,27 +1,49 @@
 <!DOCTYPE html>
-<!-- wbgt-cube-aichi-nagoya-4face / 位置情報＝名古屋市（名古屋観測） -->
-<!-- 320サイズ: 本番 512×128（4面・ロゴ列なし） -->
-<!-- 白帯: 名古屋市（社名・ロゴなし） -->
-<!-- 会場・WBGT・警報の地点は assets/site-config.js（名古屋市 / 名古屋 51106 / 警報 2310000） -->
-<!-- 本番サイネージは index.html + assets/。天気・WBGT・発表中の警報を同じループで流す -->
-<!-- build 20260914-nagoya-4face -->
-<html lang="ja" class="layout-512">
+<!-- alert-cube-v2 / 通年気象・防災サイネージ（現場は config/site-config.js） -->
+<!-- 本番 512×128（名古屋市・社名ロゴなし。面数・地点は現場設定） -->
+<!-- 本番: index.html + config/scripts/styles/images。WBGT期間は環境省5段階、期間外は気温9段階。防災は通年監視・発表時のみ -->
+<!-- build 20260923-nagoya-v20 -->
+<html lang="ja" class="native-640 layout-512">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=512, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <!-- HTMLは再検証。固定素材は ?v= と Service Worker でキャッシュ -->
+    <meta http-equiv="Cache-Control" content="max-age=0, must-revalidate">
     <!-- clock: jst-network-v2 / 表示・同期は常に Asia/Tokyo（端末TZ非依存） -->
-    <title>WBGT Signage 4面 - 名古屋市（名古屋観測）</title>
+    <title>Alert Cube</title>
+    <script src="./config/site-config.js?v=20260923-nagoya"></script>
+    <script src="./scripts/alert-cube-core.js?v=20260918-layout"></script>
+    <script src="./scripts/alert-cube-runtime.js?v=20260918-layout"></script>
+    <script>
+    (function () {
+        var brand = window.SIGNAGE_CONFIG || {};
+        var site = window.SignageConfig || {};
+        var loc = (site.site && (site.site.locationLabel || site.site.label)) || '';
+        var name = (site.site && site.site.customer) || brand.logoAlt || '';
+        var bits = ['Alert Cube'];
+        if (name) bits.push(name);
+        if (loc) bits.push(loc);
+        document.title = bits.join(' - ');
+        [brand.logoSrc, brand.footBannerSrc].forEach(function (href) {
+            if (!href) return;
+            var link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'image';
+            link.href = href;
+            document.head.appendChild(link);
+        });
+    })();
+    </script>
+    <link rel="stylesheet" href="./styles/fonts.css?v=20260918-layout">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Sans+JP:wght@700;900&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Sans+JP:wght@700;900&display=swap"></noscript>
     <script>
 /** 4面 512×128。実寸は常に同じCSS。画面が大きいときだけ拡大プレビュー。512×128端末はネイティブ */
 (function () {
     var q = new URLSearchParams(location.search);
-    var useLayout512 = q.get('layout512') !== '0';
+    var useLayout512 = true;
     var w = window.innerWidth || 640;
     var h = window.innerHeight || 128;
     /* LEDは 640×128 / 1800×360 など横長。PC確認だけ高さ400超で拡大プレビュー */
@@ -33,13 +55,12 @@
     var vp = document.querySelector('meta[name="viewport"]');
     if (vp) {
         vp.setAttribute('content', forceNative
-            ? (useLayout512
-                ? 'width=512, initial-scale=1, maximum-scale=1, user-scalable=no'
-                : 'width=640, initial-scale=1, maximum-scale=1, user-scalable=no')
+            ? 'width=512, initial-scale=1, maximum-scale=1, user-scalable=no'
             : 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
     }
     function applyRoot_() {
         var root = document.documentElement;
+        root.classList.add('layout-512');
         if (forceNative) {
             root.classList.add('native-640');
             root.classList.remove('browser-preview');
@@ -49,8 +70,6 @@
         }
         if (q.get('out') === '1800') root.classList.add('out-1800');
         else root.classList.remove('out-1800');
-        if (useLayout512) root.classList.add('layout-512');
-        else root.classList.remove('layout-512');
     }
     applyRoot_();
     function addBody_() {
@@ -200,8 +219,9 @@
         body.browser-preview.layout-512 .canvas {
             transform: scale(min(calc(100vw / 512), calc(100vh / 128))) !important;
         }
-        /* 4面（512×128）: ロゴ列なし */
-        body.layout-512 .logo-panel { display: none !important; }
+        /* 4面本番: 右端の固定ロゴ列は使わない。各コンテンツのコンベア末尾ロゴは出す */
+        body.layout-512 .logo-panel,
+        html.layout-512 .logo-panel { display: none !important; }
         body.layout-512 .canvas { width: 512px !important; }
         @media screen and (min-width: 513px) {
             body.layout-512 .canvas { transform: scale(calc(100vw / 512)); }
@@ -289,9 +309,10 @@
         .ticker-scene { width: 512px; height: 128px; background: transparent !important; position: relative; }
         .ticker-scene > .t3-shell { z-index: 1; }
         .panel, .s2-panel, .s2-panel-data, .fc-panel, .d5-panel { background: transparent; }
-        /* 注意(黄)・警戒(橙黄): 上バー・本体の文字は黒（白い下帯の地点ラベルは従来どおり） */
+        /* 警戒(黄)・注意(水色): 上バー・本体の文字は黒。下帯の出典は常に黒 */
         .content-area.col-bg-dark-text .s1-bar-label,
         .content-area.col-bg-dark-text .panel-clock .time-val,
+        .content-area.col-bg-dark-text .clock-hm,
         .content-area.col-bg-dark-text .s2-bar-label,
         .content-area.col-bg-dark-text .s2-body .s2-num,
         .content-area.col-bg-dark-text .s2-body .s2-dir-text,
@@ -312,6 +333,7 @@
         .col-bg-dark-text .fc-bar-label,
         .col-bg-dark-text .fc-body .fc-wbgt,
         .col-bg-dark-text .panel-clock .time-val,
+        .col-bg-dark-text .clock-hm,
         .col-bg-dark-text .msg-text,
         .col-bg-dark-text .t3-lv-label,
         .col-bg-dark-text .t3-l1,
@@ -522,7 +544,7 @@
         }
         #scene1 .s1-wbgt-site-slot .s1-wbgt-banner {
             display: block; margin: 0 auto;
-            height: 28px; width: auto; max-width: 248px; max-height: 28px;
+            height: 26px; width: auto; max-width: 240px; max-height: 26px;
             object-fit: contain; object-position: center center;
             background: transparent;
             mix-blend-mode: normal;
@@ -563,6 +585,19 @@
         .s1-wbgt-logo {
             height: 15px; width: auto; max-width: 28px; flex-shrink: 0;
             display: block; object-fit: contain;
+        }
+        .s1-foot-eneos {
+            display: block;
+            height: 28px;
+            width: 28px;
+            object-fit: cover;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .s1-wbgt-logo-slot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .s1-wbgt-site-label {
             font-size: var(--led-foot-site-font); font-weight: 700; color: #1a1a1a; line-height: var(--led-foot-bar-h);
@@ -615,7 +650,28 @@
         #scene2 .s2-dir-text.dir-val { font-size: 30px; line-height: 1; }
         .s2-unit:empty { display: none; }
         .s2-unit { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); font-family: "Inter", sans-serif; }
-        .weather-svg { width: 46px; height: 46px; }
+        .weather-svg { width: 46px; height: 46px; display: block; object-fit: contain; position: relative; z-index: 1; }
+        .weather-icon-cell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            flex-shrink: 0;
+        }
+        .weather-icon-cell::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 40px;
+            height: 40px;
+            transform: translate(-50%, -50%);
+            border-radius: 3px;
+            background: #ffffff;
+            z-index: 0;
+        }
         .s2-tmaxmin-card {
             display: inline-flex; align-items: baseline; justify-content: center;
             gap: 2px; padding: 3px 7px 4px;
@@ -654,7 +710,7 @@
             height: 128px !important; min-height: 128px !important; max-height: 128px !important;
             flex: 0 0 128px !important; padding: 0; gap: 0; margin: 0;
             background: #ffffff !important;
-            position: relative; z-index: 2;
+            position: relative; z-index: 13;
             box-sizing: border-box; overflow: hidden;
             display: flex; align-items: center; justify-content: center;
         }
@@ -662,15 +718,15 @@
         #scene2 .s2-logo-panel .s2-top-bar,
         #scene2 .s2-logo-panel .s2-foot { display: none !important; }
         #scene2 .s2-logo-panel .s2-body {
-            width: 128px !important; min-width: 0; max-width: 128px;
+            width: 128px !important; min-width: 128px; max-width: 128px;
             height: 128px !important; max-height: 128px;
             padding: 0; margin: 0; overflow: hidden;
             background: #ffffff !important;
             display: flex; align-items: center; justify-content: center;
         }
         #scene2 .s2-logo-panel .s2-logo-face-img {
-            display: block; width: 112px; height: 112px;
-            max-width: 112px; max-height: 112px; min-width: 0; min-height: 0;
+            display: block; width: 128px; height: 128px;
+            max-width: 128px; max-height: 128px; min-width: 128px; min-height: 128px;
             object-fit: contain; object-position: center center;
             background: #ffffff; flex-shrink: 0;
         }
@@ -700,7 +756,25 @@
         #scene2 .s2-num { font-size: 44px; }
         #scene2 .s2-dir-text.dir-val { font-size: 34px; }
         #scene2 .s2-unit { font-size: 20px; }
-        #scene2 .weather-svg { width: 54px; height: 54px; }
+        #scene2 .weather-svg {
+            width: 60px;
+            height: 60px;
+            max-width: 60px;
+            max-height: 60px;
+            object-fit: contain;
+            transform: scale(1.22);
+        }
+        #scene2 .s2-panel[data-s2="weather"] .s2-body { overflow: hidden; }
+        #scene2 .weather-icon-cell {
+            width: 60px;
+            height: 60px;
+            overflow: hidden;
+            border-radius: 3px;
+        }
+        #scene2 .weather-icon-cell::before {
+            width: 58px;
+            height: 58px;
+        }
         #scene2 .s2-tmax-high, #scene2 .s2-tmax-low { font-size: 40px; }
         #scene2 .s2-tmax-sep { font-size: 40px; font-weight: 800; }
         #scene2 .s2-tmax-unit { font-size: 16px; }
@@ -760,7 +834,7 @@
             height: 128px !important; min-height: 128px !important; max-height: 128px !important;
             flex: 0 0 128px !important; padding: 0; gap: 0; margin: 0;
             background: #ffffff !important;
-            position: relative; z-index: 2;
+            position: relative; z-index: 13;
             box-sizing: border-box; overflow: hidden;
             display: flex; align-items: center; justify-content: center;
         }
@@ -768,8 +842,8 @@
         #scene4 .fc-logo-panel .fc-top-bar,
         #scene4 .fc-logo-panel .fc-body { display: none !important; }
         #scene4 .fc-logo-panel .fc-logo-face-img {
-            display: block; width: 112px; height: 112px;
-            max-width: 112px; max-height: 112px; min-width: 0; min-height: 0;
+            display: block; width: 128px; height: 128px;
+            max-width: 128px; max-height: 128px; min-width: 128px; min-height: 128px;
             object-fit: contain; object-position: center center;
             background: #ffffff; flex-shrink: 0;
         }
@@ -821,7 +895,7 @@
             background: #ffffff !important;
             display: flex; align-items: center; justify-content: center;
             padding: 0; gap: 0; margin: 0; overflow: hidden; box-sizing: border-box;
-            position: relative; z-index: 2;
+            position: relative; z-index: 13;
         }
         #scene5 .d5-logo-panel .col-bg-layer { display: none !important; }
         #scene5 .d5-logo-panel .s2-top-bar,
@@ -829,8 +903,8 @@
         #scene5 .d5-logo-panel .s2-foot,
         #scene5 .d5-logo-panel .d5-today-frame { display: none !important; }
         #scene5 .d5-logo-panel .d5-logo-face-img {
-            display: block; width: 112px; height: 112px;
-            max-width: 112px; max-height: 112px; min-width: 0; min-height: 0;
+            display: block; width: 128px; height: 128px;
+            max-width: 128px; max-height: 128px; min-width: 128px; min-height: 128px;
             object-fit: contain; object-position: center center;
             background: #ffffff; flex-shrink: 0;
         }
@@ -850,7 +924,8 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            padding: 0 4px;
+            padding: 0 2px;
+            overflow: hidden;
         }
         #scene5 .s2-bar-label {
             font-size: 22px; line-height: 1.05; letter-spacing: 0.2px;
@@ -862,18 +937,34 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            gap: 2px;
-            max-width: 120px;
-            max-height: var(--led-col-body-h);
+            gap: 1px;
+            max-width: 124px;
             overflow: hidden;
-            flex-shrink: 0;
+            flex-shrink: 1;
+        }
+        #scene5 .weather-icon-cell {
+            width: 54px;
+            height: 54px;
+            margin-right: 0;
+            overflow: hidden;
+            border-radius: 3px;
+            z-index: 1;
+        }
+        #scene5 .weather-icon-cell::before {
+            width: 52px;
+            height: 52px;
         }
         #scene5 .d5-body .weather-svg {
-            width: 58px; height: 58px;
+            width: 54px;
+            height: 54px;
+            max-width: 54px;
+            max-height: 54px;
             flex-shrink: 0;
+            object-fit: contain;
+            transform: scale(1.22);
         }
         #scene5 .d5-sep {
-            font-size: 38px;
+            font-size: 22px;
             font-weight: 700;
             line-height: 1;
             flex-shrink: 0;
@@ -881,7 +972,7 @@
             opacity: 0.9;
             color: #ebebeb;
         }
-        /* 全列: ほぼ安全など=白文字 / 注意・警戒=黒文字 */
+        /* 全列: 黄の警戒・水色の注意は黒文字。ほぼ安全などは白文字 */
         #scene5 .d5-panel:not(.col-bg-dark-text) .s2-bar-label,
         #scene5 .d5-panel:not(.col-bg-dark-text) .d5-sep,
         #scene5 .d5-panel:not(.col-bg-dark-text) .d5-temp,
@@ -895,8 +986,8 @@
             color: #000000 !important;
         }
         #scene5 .d5-body .s2-val { flex-shrink: 0; }
-        #scene5 .d5-body .s2-num { font-size: 52px; line-height: 1; }
-        #scene5 .d5-body .s2-unit { font-size: 24px; line-height: 1; }
+        #scene5 .d5-body .s2-num { font-size: 34px; line-height: 1; }
+        #scene5 .d5-body .s2-unit { font-size: 16px; line-height: 1; }
         /* 今日のみ 128×128 枠で強調 — 実DOM（LEDサイネージで ::after が欠ける対策） */
         #scene5 .d5-panel.d5-today-focus {
             position: relative;
@@ -914,11 +1005,155 @@
             pointer-events: none;
             z-index: 10;
         }
-        /* 今日枠: ほぼ安全・厳重警戒・危険=白 / 注意・警戒=黒 */
+        /* 今日枠: 黄の警戒・水色の注意は黒。ほぼ安全などは白 */
         #scene5 .d5-panel.d5-today-focus.d5-today-frame-white .d5-today-frame {
             border-color: #ffffff;
         }
         #scene5 { overflow: hidden; }
+
+        /* ---------- 工程表（sceneSchedule）: 1日=128px・週ごと文言・横スクロール ---------- */
+        #sceneSchedule {
+            overflow: hidden;
+            position: relative;
+            background: #000000 !important;
+            z-index: 5 !important;
+        }
+        #sceneSchedule.active { display: block !important; }
+        body.sch-only .content-area { background: #000000 !important; }
+        body.sch-only .content-area > .scene-strip-bg { display: none !important; }
+        .sch-track {
+            display: flex;
+            flex-direction: row;
+            height: 128px;
+            gap: 0;
+            will-change: transform;
+        }
+        .sch-day {
+            width: 128px;
+            height: 128px;
+            flex: 0 0 128px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+            overflow: hidden;
+            background: #000000;
+        }
+        .sch-date {
+            width: 128px;
+            height: 36px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: -1.8px;
+            line-height: 1;
+            font-family: "Noto Sans JP", sans-serif;
+            white-space: nowrap;
+            overflow: hidden;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .sch-date-txt {
+            display: inline-block;
+            white-space: nowrap;
+            line-height: 1;
+            font: inherit;
+            letter-spacing: inherit;
+            transform-origin: center center;
+        }
+        .sch-body {
+            width: 128px;
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .sch-mid {
+            width: 128px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .sch-youbi {
+            width: 128px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            font-weight: 700;
+            line-height: 1;
+            font-family: "Noto Sans JP", sans-serif;
+        }
+        .sch-workbox {
+            width: 128px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            box-sizing: border-box;
+            overflow: hidden;
+            gap: 2px;
+        }
+        .sch-work {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.1;
+            text-align: center;
+            font-family: "Noto Sans JP", sans-serif;
+            white-space: nowrap;
+            overflow: hidden;
+            max-width: 124px;
+        }
+        .sch-sub {
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.1;
+            text-align: center;
+            font-family: "Noto Sans JP", sans-serif;
+            white-space: nowrap;
+        }
+        .sch-warn {
+            display: none;
+            max-width: 120px;
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: "Noto Sans JP", sans-serif;
+            color: #ffffff;
+            box-sizing: border-box;
+        }
+        .sch-warn.is-on { display: inline-block; }
+        .sch-warn.is-advisory { background: #F2E700; color: #1a1a1a; }
+        .sch-warn.is-warning { background: #FA2900; }
+        .sch-warn.is-danger { background: #AB00AA; }
+        .sch-warn.is-special { background: #000000; border: 1px solid #ffffff; }
+        .sch-warn.is-early { background: #156082; }
+        .sch-day.sch-today .sch-youbi { font-weight: 900; }
+
 
         /* 色3段（警戒レベル）— 外部CSSが落ちても横一列で見えるようここに正を置く */
         #sceneWarnHero { width: 512px; height: 128px; overflow: hidden; background: #f2e700; }
@@ -986,16 +1221,16 @@
             background: rgba(255,255,255,0.2);
         }
         #sceneWarnHero .bot-txt {
-            display: block; width: 100%; max-width: 100%; max-height: 38px; overflow: hidden;
-            white-space: pre-line; word-break: keep-all; text-align: center;
-            font-size: 17px; line-height: 1.05; letter-spacing: 0; margin: 0 auto;
+            display: block; width: 100%; max-width: 240px; max-height: 40px; overflow: visible;
+            white-space: normal; word-break: keep-all; text-align: center;
+            font-size: 22px; line-height: 1; letter-spacing: 0; margin: 0 auto;
         }
         #sceneWarnHero .mid-chip {
             position: relative; display: flex; align-items: center; justify-content: center;
-            flex: 0 0 auto; width: 100%; max-width: 100%; height: 48px; overflow: hidden;
-            white-space: nowrap; text-align: center; font-size: 42px; line-height: 1;
-            letter-spacing: 0; transform: none; color: #fff; padding: 0 2px;
-            box-sizing: border-box; margin: 0 auto;
+            flex: 0 0 auto; width: 248px; min-width: 248px; max-width: 248px; height: 48px; overflow: hidden;
+            white-space: nowrap; text-align: center; font-size: 30px; font-weight: 900;
+            line-height: 1; letter-spacing: 0; transform: none; color: #fff;
+            padding: 0 2px; box-sizing: border-box; margin: 0 auto;
             -webkit-text-stroke: 0; paint-order: normal; text-shadow: none;
         }
         #sceneWarnHero .mid-chip-stroke,
@@ -1004,12 +1239,10 @@
             white-space: nowrap; font-size: inherit; font-weight: inherit;
             letter-spacing: inherit; line-height: inherit; font-family: inherit;
         }
-        #sceneWarnHero .mid-chip-stroke {
-            position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-            color: #fff; -webkit-text-stroke: 3px #000; z-index: 0;
-        }
+        #sceneWarnHero .mid-chip-stroke { display: none; }
         #sceneWarnHero .mid-chip-fill {
-            position: relative; z-index: 1; color: #fff; -webkit-text-stroke: 0;
+            position: relative; z-index: 1; width: 100%; justify-content: center;
+            text-align: center; color: #fff; -webkit-text-stroke: 0;
         }
         #sceneWarnHero .badge {
             flex: 0 0 auto; background: #fff; padding: 2px 5px; border-radius: 2px; line-height: 1;
@@ -2014,7 +2247,7 @@
             flex-wrap: nowrap;
             align-items: center;
             height: 40px;
-            padding: 0 4px;
+            padding: 0 16px 0 8px;
             gap: 8px;
             flex: 0 0 auto;
             white-space: nowrap;
@@ -2146,14 +2379,10 @@
         #sceneWarn .white-foot-chip.chip-warning { background: #fa2900; color: #fff; }
         #sceneWarn .white-foot-chip.chip-advisory { background: #f2e700; color: #1a1a1a; }
     </style>
-    <link rel="stylesheet" href="./assets/white-hero.css?v=20260907-vpad">
-    <link rel="stylesheet" href="./assets/color-hero.css?v=20260909-w256">
 </head>
 <body class="native-640 layout-512">
-<!-- 位置情報だけ差し替え: assets/site-config.js（雛形は site-config.template.js） -->
-<script src="./assets/site-config.js?v=20260914-nagoya"></script>
-<div class="demo-badge" id="demo-badge" hidden>デモ</div>
-<svg style="display: none;">
+<!-- 位置情報だけ差し替え: config/site-config.js（雛形は config/site-config.template.js） -->
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
     <symbol id="icon-sunny" viewBox="0 0 120 120"><circle cx="60" cy="60" r="24" fill="#ff4d00"/><g stroke="#ff4d00" stroke-width="8" stroke-linecap="round"><line x1="60" y1="15" x2="60" y2="30"/><line x1="60" y1="90" x2="60" y2="105"/><line x1="15" y1="60" x2="30" y2="60"/><line x1="90" y1="60" x2="105" y2="60"/><line x1="28" y1="28" x2="39" y2="39"/><line x1="81" y1="81" x2="92" y2="92"/><line x1="28" y1="92" x2="39" y2="81"/><line x1="81" y1="39" x2="92" y2="28"/></g></symbol>
     <symbol id="icon-cloudy" viewBox="0 0 100 100"><path d="M25,65 a20,20 0 1,1 20,-20 a25,25 0 1,1 40,5 a15,15 0 1,1 0,30 h-60 a20,20 0 1,1 0,-40" fill="#999"/></symbol>
     <symbol id="icon-rainy" viewBox="0 0 100 100"><path d="M25,65 a20,20 0 1,1 20,-20 a25,25 0 1,1 40,5 a15,15 0 1,1 0,30 h-60 a20,20 0 1,1 0,-40" fill="#666"/><path d="M36,75 L31,90 M50,75 L45,90 M64,75 L59,90" stroke="#00b0f0" stroke-width="6" stroke-linecap="round"/></symbol>
@@ -2165,7 +2394,7 @@
         <div class="ra-pair ra-advisory" id="ra-pair">
             <div class="ra-mid-band-wrap" aria-hidden="true"><div class="ra-mid-band-unit"></div><div class="ra-mid-band-unit"></div></div>
             <div class="ra-white-header" aria-hidden="true">
-                <span class="ra-white-area">名古屋市</span>
+                <span class="ra-white-area"></span>
                 <span class="ra-white-what">注意報</span>
                 <span class="ra-white-badge"><span>発表中</span></span>
             </div>
@@ -2235,20 +2464,42 @@
             </div>
         </div>
     </div>
-    <div class="scene" id="scene1">
+    <div class="scene active" id="scene1">
         <div class="scene1-state active" id="s1-stateA">
-            <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
-            <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
-            <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
-            <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val">--:--</div></div><div class="s1-foot"></div></div>
+            <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val"><span class="clock-h">--</span><span class="clock-colon" aria-hidden="true">:</span><span class="clock-m">--</span></div></div><div class="s1-foot"></div></div>
+            <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val"><span class="clock-h">--</span><span class="clock-colon" aria-hidden="true">:</span><span class="clock-m">--</span></div></div><div class="s1-foot"></div></div>
+            <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val"><span class="clock-h">--</span><span class="clock-colon" aria-hidden="true">:</span><span class="clock-m">--</span></div></div><div class="s1-foot"></div></div>
+            <div class="panel panel-clock"><div class="s1-top-bar"><span class="s1-bar-label">--</span></div><div class="s1-body"><div class="clock-hm time-val"><span class="clock-h">--</span><span class="clock-colon" aria-hidden="true">:</span><span class="clock-m">--</span></div></div><div class="s1-foot"></div></div>
         </div>
         <div class="s1-wbgt-bar"><div class="s1-wbgt-track" id="s1-wbgt-track"><div class="s1-wbgt-set s1-wbgt-set-scroll"><div class="s1-wbgt-slot s1-wbgt-site-slot"><span class="s1-foot-co-txt">名古屋市</span></div><div class="s1-wbgt-slot s1-wbgt-site-slot"><span class="s1-foot-co-txt">名古屋市</span></div></div></div></div>
     </div>
+<script>
+(function () {
+    try {
+        var now = new Date();
+        var jst = new Date(now.getTime() + now.getTimezoneOffset() * 60000 + 9 * 3600000);
+        var days = ['日', '月', '火', '水', '木', '金', '土'];
+        var dateTxt = (jst.getMonth() + 1) + '月' + jst.getDate() + '日(' + days[jst.getDay()] + ')';
+        var hh = (jst.getHours() < 10 ? '0' : '') + jst.getHours();
+        var mm = (jst.getMinutes() < 10 ? '0' : '') + jst.getMinutes();
+        var labels = document.querySelectorAll('#scene1 .s1-bar-label');
+        var i;
+        for (i = 0; i < labels.length; i++) labels[i].textContent = dateTxt;
+        var clocks = document.querySelectorAll('#scene1 .clock-hm');
+        for (i = 0; i < clocks.length; i++) {
+            var hEl = clocks[i].querySelector('.clock-h');
+            var mEl = clocks[i].querySelector('.clock-m');
+            if (hEl) hEl.textContent = hh;
+            if (mEl) mEl.textContent = mm;
+        }
+    } catch (e) {}
+})();
+</script>
 
     <div class="scene" id="scene2">
         <div class="s2-scroll-wrap">
         <div class="conveyor-track" id="conveyor">
-            <div class="s2-panel s2-strip" data-s2="weather"><div class="s2-top-bar"><span class="s2-bar-label">天気</span></div><div class="s2-body"><svg class="weather-svg"><use class="weather-icon-use" href="#icon-sunny"/></svg></div></div>
+            <div class="s2-panel s2-strip" data-s2="weather"><div class="s2-top-bar"><span class="s2-bar-label">天気</span></div><div class="s2-body"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon weather-icon-use" alt="" src="images/jma-icons/100.svg"></span></div></div>
             <div class="s2-panel-data s2-strip" data-s2="temp"><div class="s2-top-bar"><span class="s2-bar-label">気温</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num temp-val"></span><span class="s2-unit">℃</span></div></div></div>
             <div class="s2-panel-data s2-strip" data-s2="rain"><div class="s2-top-bar"><span class="s2-bar-label">降水量</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num rain-val"></span><span class="s2-unit">mm</span></div></div></div>
             <div class="s2-panel-data s2-strip" data-s2="wdir"><div class="s2-top-bar"><span class="s2-bar-label">風向き</span></div><div class="s2-body"><div class="s2-dir-text dir-val"></div></div></div>
@@ -2257,7 +2508,7 @@
             <div class="s2-panel-data s2-strip" data-s2="pres"><div class="s2-top-bar"><span class="s2-bar-label">気圧</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num pres-val"></span><span class="s2-unit">hPa</span></div></div></div>
             <div class="s2-panel-data s2-strip s2-panel-compact" data-s2="tmaxmin"><div class="s2-top-bar"><span class="s2-bar-label">最高/最低</span></div><div class="s2-body"><div class="s2-tmaxmin-card"><span class="s2-tmax-high tmaxmax-val">--</span><span class="s2-tmax-sep">/</span><span class="s2-tmax-low tmin-val">--</span><span class="s2-tmax-unit">℃</span></div></div></div>
             <div class="s2-panel-data s2-strip s2-panel-compact" data-s2="gust"><div class="s2-top-bar"><span class="s2-bar-label">最大瞬間風速</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num gust-val"></span><span class="s2-unit">m/s</span></div></div></div>
-            <div class="s2-panel s2-strip" data-s2="weather"><div class="s2-top-bar"><span class="s2-bar-label">天気</span></div><div class="s2-body"><svg class="weather-svg"><use class="weather-icon-use" href="#icon-sunny"/></svg></div></div>
+            <div class="s2-panel s2-strip" data-s2="weather"><div class="s2-top-bar"><span class="s2-bar-label">天気</span></div><div class="s2-body"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon weather-icon-use" alt="" src="images/jma-icons/100.svg"></span></div></div>
             <div class="s2-panel-data s2-strip" data-s2="temp"><div class="s2-top-bar"><span class="s2-bar-label">気温</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num temp-val"></span><span class="s2-unit">℃</span></div></div></div>
             <div class="s2-panel-data s2-strip" data-s2="rain"><div class="s2-top-bar"><span class="s2-bar-label">降水量</span></div><div class="s2-body"><div class="s2-val"><span class="s2-num rain-val"></span><span class="s2-unit">mm</span></div></div></div>
             <div class="s2-panel-data s2-strip" data-s2="wdir"><div class="s2-top-bar"><span class="s2-bar-label">風向き</span></div><div class="s2-body"><div class="s2-dir-text dir-val"></div></div></div>
@@ -2289,14 +2540,14 @@
 
     <div class="scene forecast-scene daily-scene" id="scene5">
         <div class="d5-track" id="d5-conveyor">
-            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
-            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
-            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
-            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
-            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
-            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
-            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
-            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><svg class="weather-svg"><use class="d5-weather-use" href="#icon-sunny"/></svg><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc">名古屋市</div></div></div>
+            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon d5-weather-use" alt="" src="images/jma-icons/100.svg"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc"></div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
+            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon d5-weather-use" alt="" src="images/jma-icons/100.svg"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc"></div></div></div>
+            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon d5-weather-use" alt="" src="images/jma-icons/100.svg"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc"></div></div></div>
+            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon d5-weather-use" alt="" src="images/jma-icons/100.svg"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc"></div></div></div>
+            <div class="d5-panel d5-day-0 d5-today-focus s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">今日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon d5-weather-use" alt="" src="images/jma-icons/100.svg"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc"></div></div><div class="d5-today-frame" aria-hidden="true"></div></div>
+            <div class="d5-panel d5-day-1 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon d5-weather-use" alt="" src="images/jma-icons/100.svg"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc"></div></div></div>
+            <div class="d5-panel d5-day-2 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon d5-weather-use" alt="" src="images/jma-icons/100.svg"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc"></div></div></div>
+            <div class="d5-panel d5-day-3 s2-strip"><div class="s2-top-bar"><span class="s2-bar-label">明々後日</span></div><div class="s2-body d5-body"><div class="d5-weather-row"><span class="weather-icon-cell"><img class="weather-svg jma-wx-icon d5-weather-use" alt="" src="images/jma-icons/100.svg"></span><span class="d5-sep" aria-hidden="true">/</span><div class="s2-val"><span class="s2-num d5-temp">--</span><span class="s2-unit">℃</span></div></div></div><div class="s2-foot"><div class="s2-loc"></div></div></div>
         </div>
     </div>
 
@@ -2328,6 +2579,11 @@
         </div>
     </div>
 
+    <!-- 工程表: 1日=128px。週ごとに同じ文言。SignageConfig.schedule で編集 -->
+    <div class="scene" id="sceneSchedule">
+        <div class="sch-track" id="sch-track"></div>
+    </div>
+
     <div class="scene" id="sceneWarn" aria-label="気象警報注意報">
         <div class="hero is-white" id="hero">
             <div class="band band-top"><div class="track" id="whiteTopTrack"></div></div>
@@ -2345,8 +2601,13 @@
     </div>
 
     </div>
-    <div class="logo-panel" aria-hidden="true">
-        <div class="logo-rotator" id="logo-rotator"></div>
+    <div class="logo-panel">
+        <div class="logo-rotator" id="logo-rotator">
+            <div class="logo-stack">
+                <img class="logo-img" id="signage-logo" src="" alt="" decoding="async">
+                <img class="logo-corp-img" src="" alt="" decoding="async">
+            </div>
+        </div>
     </div>
 
 <script>
@@ -2362,12 +2623,13 @@
     const OFF_SEASON = { bgColor: '#484848', barColor: '#585858' };
     const LED_FOOT_BAR_BG = '#fff9f0';
 
+    /* 環境省5段階（参考画像ベース。公式HEXとしては未確認） 青→水色→黄→橙→赤 */
     const LEVELS = [
-        { min: 31, levelIdx: 4, bgColor: '#D61914', barColor: '#E94540' },  /* 5 危険 */
-        { min: 28, levelIdx: 3, bgColor: '#FF7E00', barColor: '#FF9A38' },  /* 4 厳重警戒 */
-        { min: 25, levelIdx: 2, bgColor: '#FFBE2D', barColor: '#FECD58' },  /* 3 警戒 */
-        { min: 21, levelIdx: 1, bgColor: '#FFD92D', barColor: '#FEE968' },  /* 2 注意 */
-        { min: -99, levelIdx: 0, bgColor: '#308DD8', barColor: '#55A5E6' } /* 1 ほぼ安全 */
+        { min: 31, levelIdx: 4, bgColor: '#ED1A3D', barColor: '#F24A64' },  /* 危険 赤 */
+        { min: 28, levelIdx: 3, bgColor: '#F39800', barColor: '#FFB133' },  /* 厳重警戒 橙 */
+        { min: 25, levelIdx: 2, bgColor: '#FFEE00', barColor: '#FFF44D' },  /* 警戒 黄 */
+        { min: 21, levelIdx: 1, bgColor: '#67C1EA', barColor: '#85D0F0' },  /* 注意 水色 */
+        { min: -99, levelIdx: 0, bgColor: '#3181BD', barColor: '#4A96CC' } /* ほぼ安全 青 */
     ];
 
     const KIND = { STRIP: 'strip', WBGT: 'wbgt', FORECAST: 'forecast' };
@@ -2380,20 +2642,44 @@
     }
 
     /** displayMode: 'normal' | 'unavailable' | 'offseason' — 濃い灰は unavailable / offseason のみ */
+    const ALERT_COLORS = {
+        special: { bgColor: '#000000', barColor: '#333333' },
+        danger: { bgColor: '#AB00AA', barColor: '#7A0078' },
+        warning: { bgColor: '#FA2900', barColor: '#C82400' },
+        advisory: { bgColor: '#F2E700', barColor: '#CDB800' },
+        heat: { bgColor: '#70006A', barColor: '#8A0080' }
+    };
+
     function colorsForDisplay(levelIdx, displayMode) {
-        if (displayMode === 'offseason') return OFF_SEASON;
+        if (displayMode && String(displayMode).indexOf('alert-') === 0) {
+            const key = String(displayMode).slice(6);
+            return ALERT_COLORS[key] || colorsForLevel(0);
+        }
+        if (displayMode === 'temperature') {
+            const bands = (global.AlertCubeCore && global.AlertCubeCore.TEMP_BANDS) || [];
+            const row = bands[levelIdx];
+            if (row) return { bgColor: row.bg, barColor: row.bar };
+            return colorsForLevel(0);
+        }
         if (displayMode === 'unavailable') return UNKNOWN;
         if (levelIdx == null || levelIdx < 0) return colorsForLevel(0);
         return colorsForLevel(levelIdx);
     }
 
-    /** 注意(1)・警戒(2): 黄〜橙黄背景で文字を黒にする */
+    /** 警戒(2)の黄・注意(1)の水色は黒文字 */
     function isDarkTextLevel(levelIdx) {
         return levelIdx === 1 || levelIdx === 2;
     }
 
     function isDarkTextForDisplay(levelIdx, displayMode) {
-        if (displayMode === 'offseason' || displayMode === 'unavailable') return false;
+        if (displayMode === 'alert-advisory') return true;
+        if (displayMode && String(displayMode).indexOf('alert-') === 0) return false;
+        if (displayMode === 'unavailable') return false;
+        if (displayMode === 'temperature') {
+            const bands = (global.AlertCubeCore && global.AlertCubeCore.TEMP_BANDS) || [];
+            const row = bands[levelIdx];
+            return !!(row && row.ink && row.ink !== '#ffffff');
+        }
         return isDarkTextLevel(levelIdx);
     }
 
@@ -2442,7 +2728,7 @@
         ensureBgLayer(el, KIND.STRIP);
         applyColorsToT3UnitLayer(el.querySelector('.col-bg-layer'), colorsForDisplay(levelIdx, displayMode));
         el.classList.toggle('col-bg-dark-text', isDarkTextForDisplay(levelIdx, displayMode));
-        el.classList.toggle('wbgt-off-season', displayMode === 'offseason');
+        el.classList.toggle('wbgt-off-season', false);
         el.classList.toggle('wbgt-unavailable', displayMode === 'unavailable');
     }
 
@@ -2450,7 +2736,7 @@
         ensureBgLayer(el, KIND.STRIP);
         applyColorsToLayer(el.querySelector('.col-bg-layer'), colorsForDisplay(levelIdx, displayMode), KIND.STRIP);
         el.classList.toggle('col-bg-dark-text', isDarkTextForDisplay(levelIdx, displayMode));
-        el.classList.toggle('wbgt-off-season', displayMode === 'offseason');
+        el.classList.toggle('wbgt-off-season', false);
         el.classList.toggle('wbgt-unavailable', displayMode === 'unavailable');
     }
 
@@ -2491,7 +2777,7 @@
         const colors = colorsForDisplay(levelIdx, displayMode);
         const wrap = container.querySelector('.scene-strip-bg');
         container.classList.toggle('col-bg-dark-text', isDarkTextForDisplay(levelIdx, displayMode));
-        container.classList.toggle('wbgt-off-season', displayMode === 'offseason');
+        container.classList.toggle('wbgt-off-season', false);
         container.classList.toggle('wbgt-unavailable', displayMode === 'unavailable');
         container.style.backgroundColor = colors.bgColor;
         if (!wrap) return;
@@ -2537,11 +2823,13 @@
     function refreshForecast(slots, displayMode) {
         const mode = displayMode || 'normal';
         let levelIdx = -1;
-        if (mode === 'normal') {
+        if (mode === 'normal' || mode === 'wbgt') {
             const row = slots && slots[0];
             levelIdx = row && row.wbgt != null
                 ? (Number.isInteger(row.levelIdx) ? row.levelIdx : 0)
                 : 0;
+        } else if (mode === 'temperature' && global.AlertCubeCore && global.AlertCubeRuntime) {
+            levelIdx = global.AlertCubeCore.temperatureLevelIndex(global.AlertCubeRuntime.getCurrentTemp());
         }
         document.querySelectorAll('#scene4 .fc-track .fc-panel').forEach(function (panel) {
             if (panel.classList.contains('fc-logo-panel') || panel.getAttribute('data-fc') === 'logo') {
@@ -2597,6 +2885,10 @@
         if (!img || !cfg) return;
         if (cfg.logoSrc && img.getAttribute('src') !== cfg.logoSrc) img.src = cfg.logoSrc;
         if (cfg.logoAlt) img.alt = cfg.logoAlt;
+        document.querySelectorAll('.s2-logo-face-img, .fc-logo-face-img, .d5-logo-face-img').forEach(function (face) {
+            if (cfg.logoSrc && face.getAttribute('src') !== cfg.logoSrc) face.src = cfg.logoSrc;
+            if (cfg.logoAlt) face.alt = cfg.logoAlt;
+        });
     }
     function refreshLogoPanel(levelIdx, displayMode) {
         const panel = document.querySelector('.logo-panel');
@@ -2638,6 +2930,7 @@
         colorsForLevel,
         colorsForDisplay,
         isDarkTextLevel,
+        isDarkTextForDisplay,
         initHosts,
         initSignageLogo_,
         refreshAll,
@@ -2658,25 +2951,27 @@
 })(typeof window !== 'undefined' ? window : global);
 
 </script>
-<script src="./assets/jma-warning-kinds.js?v=20260907-nolev"></script>
-<script src="./assets/warning-hero.js?v=20260909-w256"></script>
+<link rel="stylesheet" href="./styles/white-hero.css?v=20260918-layout" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="./styles/color-hero.css?v=20260921-mid6" media="print" onload="this.media='all'">
+<script src="./scripts/jma-warning-kinds.js?v=20260918-layout"></script>
+<script src="./scripts/warning-hero.js?v=20260921-mid6"></script>
+<script src="./scripts/alert-cube-typhoon.js?v=20260923-nagoya-ty"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
-    /* demo=1: デモモード。未指定時は本番（実データ取得） */
-    const demoParam = query.get('demo');
-    const DEMO_SIGNAGE = demoParam === '1' || demoParam === 'all' || demoParam === 'full';
-    const DEMO_ALERT_ONLY = demoParam === 'alert' || query.get('only') === 'alert';  /* アラートのみ流すデモ */
-    const DEMO_RAINWARN_ONLY = demoParam === 'rainwarn' || query.get('only') === 'rainwarn';
-    const PREVIEW_WARN = query.get('preview'); /* white | color | demo */
-    const WBGT_ONLY = query.get('wbgtOnly') === '1';
+    /* 本番固定。クエリのデモ起動は無効 */
+    const DEMO_SIGNAGE = false;
+    const DEMO_ALERT_ONLY = false;
+    const DEMO_RAINWARN_ONLY = false;
+    const PREVIEW_WARN = null;
+    const WBGT_ONLY = false;
     const SITE_CFG = window.SignageConfig || {};
     /** 表示時刻は常に日本標準時（JST） */
     /** 表示・取得スケジュールは常に日本標準時 */
     const CLOCK_TZ = 'Asia/Tokyo';
-    /** 本番: 気象庁の発表中警報を表示。デモは ?demo=rainwarn&rainwarn=levels */
+    /** 本番: 気象庁の発表中警報を表示 */
     const NO_JMA_WARN = false;
-    /** 熱中症アラートシーンは出さない（環境省発表時も非表示） */
-    const NO_HEAT_ALERT = true;
+    /** 環境省が発表しているときだけ熱中症アラートを出す */
+    const NO_HEAT_ALERT = false;
     const RAIN_HERO_OFF = query.get('rainhero') === '0';
     const RAIN_WHITE_DESIGN = query.get('rainwhite') === '1';
     /* 3段デザイン案は確認ボードと同じく既定ON（?rainhero=0 で従来レイアウト） */
@@ -2692,29 +2987,25 @@
         const v = String(raw).toLowerCase();
         if (v === 'alert') return 'alert';
         if (v === 'rainwarn') return 'rainwarn';
+        if (v === 'schedule' || v === 'sch' || v === '6') return 'schedule';
         const map = { '1': 's1', '2': 's2', '3': 's4', '4': 's5', '5': 's3', s1: 's1', s2: 's2', s3: 's3', s4: 's4', s5: 's5' };
         return map[v] || null;
     }
     const SCENE_LABEL_BY_KEY = {
-        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', rainwarn: '大雨警報'
+        s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5', schedule: '工程表', rainwarn: '大雨警報'
     };
-    const DEMO_ONLY = normalizeOnlyParam_(query.get('only'));
-    const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
-    /* 640×128 ネイティブ: embed / native640=1 / LEDビューポート */
+    const DEMO_ONLY = null;
+    const DEMO_EMBED = false;
+    /* 512×128 4面ネイティブ */
     const NATIVE_640 = document.body.classList.contains('native-640')
-        || query.get('native640') === '1' || DEMO_EMBED;
+        || query.get('native640') === '1';
+    document.documentElement.classList.add('layout-512');
+    document.body.classList.add('layout-512');
     if (NATIVE_640) {
         document.documentElement.classList.add('native-640');
         document.documentElement.classList.remove('browser-preview');
         document.body.classList.add('native-640');
         document.body.classList.remove('browser-preview');
-        if (query.get('layout512') === '0') {
-            document.documentElement.classList.remove('layout-512');
-            document.body.classList.remove('layout-512');
-        } else {
-            document.documentElement.classList.add('layout-512');
-            document.body.classList.add('layout-512');
-        }
     }
     if (typeof window.fitSignagePreview_ === 'function') window.fitSignagePreview_();
     function shouldShowDemoBadge_() {
@@ -2737,25 +3028,8 @@
         if (!pair || pair.length < 2) return null;
         return { l1: pair[0], l2: pair[1] };
     }
-    const DEMO_T3_LANG_IDX = (function () {
-        const v = (query.get('t3lang') || '').toLowerCase();
-        const map = {
-            jp: 0, '0': 0,
-            en: 1, '1': 1,
-            id: 2, '2': 2,
-            fil: 3, ph: 3, tl: 3, '3': 3,
-            vn: 4, '4': 4
-        };
-        return map[v] != null ? map[v] : -1;
-    })();
-    const DEMO_LEVEL_FIXED = (function () {
-        const q = query.get('level');
-        if (q == null || q === '' || isNaN(Number(q))) return null;
-        const n = Number(q);
-        /* 表示レベル 1=ほぼ安全 … 5=危険 → 内部 index 0〜4 */
-        if (n >= 1 && n <= 5) return n - 1;
-        return null;
-    })();
+    const DEMO_T3_LANG_IDX = -1;
+    const DEMO_LEVEL_FIXED = null;
     const DEMO_SIGNAGE_ACTIVE = DEMO_SIGNAGE || !!DEMO_ONLY;
     /* フルデモ警報: 色付き3段のみ（白3段は本番の発表中専用） */
     const DEMO_RAIN_PASS_ORDER = ['hero'];
@@ -2808,8 +3082,17 @@
     }
     /* スクロール速度・待ち時間: デモも本番と同じ（確認ボード only= も同様） */
     /* 確認ボード用: ?rain=raining|approaching|watch|soon|1|0  ?wbgtOff=1  ?wbgtUnknown=1 */
-    const DEMO_WBGT_OFF = query.get('wbgtOff') === '1' || query.get('offseason') === '1';
-    const DEMO_WBGT_UNKNOWN = query.get('wbgtUnknown') === '1';
+    const PREVIEW_OFFSEASON = query.get('offseason') === '1' || query.get('wbgtOff') === '1';
+    const PREVIEW_TEMP_C = query.get('temp') != null && query.get('temp') !== '' ? Number(query.get('temp')) : null;
+    const PREVIEW_WBGT = query.get('wbgt') != null && query.get('wbgt') !== '' ? Number(query.get('wbgt')) : null;
+    if (window.AlertCubeRuntime && Number.isFinite(PREVIEW_TEMP_C)) {
+        window.AlertCubeRuntime.setCurrentTemp(PREVIEW_TEMP_C);
+    }
+    if (window.AlertCubeRuntime && Number.isFinite(PREVIEW_WBGT)) {
+        window.AlertCubeRuntime.setCurrentWbgt(PREVIEW_WBGT);
+    }
+    const DEMO_WBGT_OFF = PREVIEW_OFFSEASON;
+    const DEMO_WBGT_UNKNOWN = false;
     const RAIN_PREVIEW_MESSAGES = {
         raining: { level: 'raining', messageJp: '【降雨】付近で雨が降っています。傘をご用意ください。', leadMin: 0 },
         approaching: { level: 'approaching', messageJp: '【雨接近】30〜60分以内に雨の可能性。傘のご準備を。', leadMin: 35 },
@@ -2817,6 +3100,7 @@
         soon: { level: 'soon', messageJp: '【雨予報】30〜60分以内に雨の可能性。お出かけは傘を。', leadMin: 45 }
     };
     function applyRainPreviewFromParam_() {
+        return;
         const raw = (query.get('rain') || '').toLowerCase();
         if (!raw || raw === '0' || raw === 'none') {
             rainNowcastAlert = { level: 'none', messageJp: '', leadMin: null, updatedAt: new Date().toISOString() };
@@ -2836,21 +3120,18 @@
         const m = msg.match(/^【[^】]+】/);
         return m ? m[0] : '雨あり';
     }
-    const DEMO_PREVIEW = (function () {
-        const v = (query.get('preview') || '').toLowerCase();
-        if (v === '1' || v === 's1') return 's1';
-        if (v === '5' || v === '4' || v === 's3') return 's3';  /* シーン5 多言語WBGT（4=旧表示番号） */
-        return null;
-    })();
+    const DEMO_PREVIEW = null;
     const DEMO_LEVEL_ORDER = [0, 1, 2, 3, 4];
     const DEMO_WBGT_BY_LEVEL = [19.0, 22.0, 26.0, 29.0, 32.0];
     let demoLevelPointer = 0;
-    const MOE_WBGT_POINT = query.get('moePoint') || (SITE_CFG.moe && SITE_CFG.moe.point) || '51106';
-    const MOE_ALERT_AREA = query.get('alertArea') || (SITE_CFG.moe && SITE_CFG.moe.alertArea) || '愛知県';
+    const MOE_WBGT_POINT = query.get('moePoint') || (SITE_CFG.moe && SITE_CFG.moe.point) || '45261';
+    const MOE_ALERT_AREA = query.get('alertArea') || (SITE_CFG.moe && SITE_CFG.moe.alertArea) || '千葉県';
     function getSiteLocationLabel_() {
+        if (window.AlertCubeRuntime) return window.AlertCubeRuntime.locationLabel();
         return (SITE_CFG.site && SITE_CFG.site.locationLabel)
             || (SITE_CFG.jma && SITE_CFG.jma.forecastLabel)
-            || '名古屋市';
+            || (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel)
+            || '';
     }
     function applySiteLocationLabels_() {
         const label = getSiteLocationLabel_();
@@ -2859,7 +3140,7 @@
         });
     }
     const MOE_POINT_CFG = {
-        prefKey: 'aichi',
+        prefKey: 'tokyo',
         pointName: getSiteLocationLabel_()
     };
     const DEFAULT_MOE_GAS_URL = (SITE_CFG.moe && SITE_CFG.moe.gasUrl) || '';
@@ -2921,17 +3202,17 @@
         return base + sep + 'type=bundle';
     }
     const JMA_AMEDAS_POINT =
-        query.get('jmaPoint') || (SITE_CFG.jma && SITE_CFG.jma.amedasPoint) || '51106';
+        query.get('jmaPoint') || (SITE_CFG.jma && SITE_CFG.jma.amedasPoint) || '45261';
     const JMA_AMEDAS_SUPPLEMENT_POINT =
         query.get('jmaSupplementPoint') || (SITE_CFG.jma && SITE_CFG.jma.amedasSupplementPoint) || '';
     const JMA_FORECAST_AREA_CODE =
-        query.get('jmaArea') || (SITE_CFG.jma && SITE_CFG.jma.forecastArea) || '230000';
+        query.get('jmaArea') || (SITE_CFG.jma && SITE_CFG.jma.forecastArea) || '120000';
     const JMA_FETCH_HEADERS = { cache: 'no-store' };
     /* 気象庁 高解像度降水ナウキャスト（雨雲レーダー）— https://www.jma.go.jp/bosai/nowc/ */
     const JMA_NOWC_TARGET_TIMES_URL = 'https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N2.json';
     const JMA_NOWC_TILE_URL = 'https://www.jma.go.jp/bosai/jmatile/data/nowc/{basetime}/none/{validtime}/surf/hrpns/{z}/{x}/{y}.png';
-    const DEFAULT_GEO_LAT = (SITE_CFG.geo && SITE_CFG.geo.lat) || 35.16667;
-    const DEFAULT_GEO_LON = (SITE_CFG.geo && SITE_CFG.geo.lon) || 136.96500;
+    const DEFAULT_GEO_LAT = (SITE_CFG.geo && SITE_CFG.geo.lat) || 35.6900;
+    const DEFAULT_GEO_LON = (SITE_CFG.geo && SITE_CFG.geo.lon) || 139.7600;
     const RAIN_ALERT_LAT = parseFloat(query.get('rainLat') || DEFAULT_GEO_LAT);
     const RAIN_ALERT_LON = parseFloat(query.get('rainLon') || DEFAULT_GEO_LON);
     const RAIN_ALERT_ZOOM = 6;
@@ -2946,6 +3227,9 @@
     let lastAmedasRainNow = false;
     let lastAmedasObsTime = null;
     let pendingDisplayRefresh = false;
+    let pendingScene2Compact_ = false;
+    let lastS2MetaKey_ = '';
+    let scenePlayScrollX_ = 0;
     /** シーン切替直後のみ表示組み替えを許可（取得中は現在シーンを維持） */
     let sceneEntryRefreshAllowed_ = false;
     let mainLoopStarted_ = false;
@@ -2961,8 +3245,41 @@
     let pendingSignageBgMode_ = '';
     let pendingForecastSlotsRefresh_ = false;
     let lastAmedasSnapshot_ = null;
-    const SIGNAGE_STATE_CACHE_KEY = 'aichi_nagoya_4face_signage_state_v1';
+    let lastForecastSnap_ = null;
+    function signageStateCacheKey_() {
+        const city = (SITE_CFG.jma && SITE_CFG.jma.warnCity) || '';
+        if (window.AlertCubeRuntime) return window.AlertCubeRuntime.cacheKey(MOE_WBGT_POINT, city);
+        return 'alert_cube_state_v3_' + String(MOE_WBGT_POINT || '') + '_' + String(city);
+    }
     const SIGNAGE_STATE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+    const bootPerf_ = { t0: (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(), marks: {} };
+    function bootMark_(name) {
+        try {
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            bootPerf_.marks[name] = Math.round(now - bootPerf_.t0);
+        } catch (_) {}
+    }
+    function logBootPerf_(tag) {
+        try {
+            const nav = (typeof performance !== 'undefined' && performance.getEntriesByType)
+                ? performance.getEntriesByType('navigation')[0] : null;
+            const paints = (typeof performance !== 'undefined' && performance.getEntriesByType)
+                ? performance.getEntriesByType('paint') : [];
+            const fp = paints.filter(function (p) { return p.name === 'first-paint'; })[0];
+            const fcp = paints.filter(function (p) { return p.name === 'first-contentful-paint'; })[0];
+            console.log('[起動計測]' + (tag ? ' ' + tag : ''), {
+                marks: bootPerf_.marks,
+                nav: nav ? {
+                    html: Math.round(nav.responseEnd - nav.requestStart),
+                    domContentLoaded: Math.round(nav.domContentLoadedEventEnd),
+                    loadEvent: Math.round(nav.loadEventEnd),
+                    transferSize: nav.transferSize
+                } : null,
+                firstPaint: fp ? Math.round(fp.startTime) : null,
+                firstContentfulPaint: fcp ? Math.round(fcp.startTime) : null
+            });
+        } catch (_) {}
+    }
     const MOE_GAS_FETCH_TIMEOUT_MS = 12000;
     const MOE_JSONP_TIMEOUT_MS = 10000;
     /* 環境省WBGTの提供期間外（冬季など）は true。WBGT表示を全て隠す */
@@ -2995,10 +3312,10 @@
         vn: "Không có dữ liệu WBGT"
     };
     const levelNames = ['ほぼ安全', '注意', '警戒', '厳重警戒', '危険'];
-    /* 暑さ指数（WBGT）全7段階 — シーン4白下帯（現在レベル／発表中アラートのみ） */
+    /* 0-1は熱中症アラート文面。2-6が環境省WBGT5段階（紫は使わない） */
     const T3_WBGT_GUIDE_TIERS = [
-        { range: '35以上', color: '黒', title: '危険', guide: '記録的な暑さです。無理をせず、涼しい場所での休憩と水分・塩分補給を最優先にしてください。' },
-        { range: '33以上', color: '紫', title: '危険', guide: '危険な暑さです。こまめな休憩と水分・塩分補給を徹底し、体調の変化に注意してください。' },
+        { range: '35以上', color: '黒', title: '特別警戒', guide: '記録的な暑さです。無理をせず、涼しい場所での休憩と水分・塩分補給を最優先にしてください。' },
+        { range: '33以上', color: '紫', title: '熱中症警戒', guide: '危険な暑さです。こまめな休憩と水分・塩分補給を徹底し、体調の変化に注意してください。' },
         { range: '31以上', color: '赤', title: '危険', guide: '熱中症の危険性が非常に高い状態です。休憩の間隔を短くし、水分・塩分補給と体調確認を徹底してください。' },
         { range: '28～31未満', color: '橙', title: '厳重警戒', guide: '炎天下を避け、10～20分おきに水分や塩分を補給してください。負荷の高い作業は控えめにしましょう。' },
         { range: '25～28未満', color: '黄', title: '警戒', guide: '積極的に休憩を取り、水分や塩分の補給してください。負荷の高い作業では30分おきに休憩を入れましょう。' },
@@ -3064,12 +3381,49 @@
         }
         currentWbgtLevel = wbgtLevel(row.wbgt);
     }
-    function getSignageDisplayMode_() {
-        if (wbgtOffSeason) return 'offseason';
-        if (wbgtUnavailable) return 'unavailable';
-        return 'normal';
+    function highestLiveAlert_() {
+        function hasLv(map, lv) {
+            return !!(map && map[lv] && map[lv].length);
+        }
+        try {
+            if (typeof rainWarnLiveByLevel_ !== 'undefined') {
+                if (hasLv(rainWarnLiveByLevel_, 'special')) return 'special';
+                if (hasLv(rainWarnLiveByLevel_, 'danger')) return 'danger';
+                if (hasLv(rainWarnLiveByLevel_, 'warning')) return 'warning';
+            }
+            if (typeof rainWhiteQueue !== 'undefined' && rainWhiteQueue && rainWhiteQueue.length) {
+                const order = ['special', 'danger', 'warning', 'advisory'];
+                for (let i = 0; i < order.length; i++) {
+                    const lv = order[i];
+                    if (rainWhiteQueue.some(function (e) { return e && e.level === lv; })) return lv;
+                }
+            }
+            if (typeof rainWarnLiveByLevel_ !== 'undefined' && hasLv(rainWarnLiveByLevel_, 'advisory')) {
+                return 'advisory';
+            }
+            if (typeof heatAlertActive !== 'undefined' && heatAlertActive && heatAlertActive.length) {
+                if (heatAlertActive.indexOf('special') >= 0) return 'special';
+                if (heatAlertActive.indexOf('warning') >= 0) return 'heat';
+            }
+        } catch (_) {}
+        return '';
     }
-    /** 背景色用: unavailable/offseason 以外は getS1WbgtLevelForDisplay_ を使用 */
+    function isCalendarWbgtSeasonNow_() {
+        if (!window.AlertCubeCore || typeof window.AlertCubeCore.isCalendarWbgtSeason !== 'function') return true;
+        return window.AlertCubeCore.isCalendarWbgtSeason(jstPartsFromMs(getNowMs()), SITE_CFG.wbgt);
+    }
+    function getSignageDisplayMode_() {
+        /* 時刻・実況・WBGT・予報は環境省5段階（または期間外の気温色）。
+           紫（危険警報）や熱中症アラート色は防災シーン専用。 */
+        if (wbgtOffSeason && isCalendarWbgtSeasonNow_()) {
+            /* GASの誤った期間外応答では灰色に落とさない */
+            return 'wbgt';
+        }
+        if (window.AlertCubeRuntime && !window.AlertCubeRuntime.isWbgtMode()) return 'temperature';
+        if (wbgtOffSeason) return 'temperature';
+        if (wbgtUnavailable) return 'unavailable';
+        return 'wbgt';
+    }
     function levelFromLastGoodWbgtSlots_() {
         if (!lastGoodWbgtSlots_ || !hasFull4Slots(lastGoodWbgtSlots_)) return null;
         const row = lastGoodWbgtSlots_[0];
@@ -3077,31 +3431,41 @@
         return Number.isInteger(row.levelIdx) ? row.levelIdx : wbgtLevel(row.wbgt);
     }
     function getSignageBgLevel_() {
-        if (getSignageDisplayMode_() !== 'normal') return -1;
+        const mode = getSignageDisplayMode_();
+        if (mode && String(mode).indexOf('alert-') === 0) return -1;
+        if (mode === 'temperature') {
+            const temp = window.AlertCubeRuntime ? window.AlertCubeRuntime.getCurrentTemp() : null;
+            if (temp == null || !window.AlertCubeCore) return -1;
+            return window.AlertCubeCore.temperatureLevelIndex(temp);
+        }
         const lv = getS1WbgtLevelForDisplay_();
         if (lv >= 0) return lv;
         const stable = levelFromLastGoodWbgtSlots_();
-        return stable != null ? stable : -1;
+        return stable != null ? stable : 0;
     }
     function resolveSignageBgPaint_(mode, lv) {
-        if (mode === 'normal' && lv < 0) {
+        if (mode && String(mode).indexOf('alert-') === 0) return { mode: mode, lv: -1 };
+        if (mode === 'temperature') {
+            const tlv = (lv >= 0 ? lv : getSignageBgLevel_());
+            if (tlv >= 0) return { mode: 'temperature', lv: tlv };
             const stable = levelFromLastGoodWbgtSlots_();
-            if (stable != null) return { mode: 'normal', lv: stable };
-            if (lastSignageBgLv_ != null && lastSignageBgLv_ >= 0 && lastSignageBgMode_ === 'normal') {
-                return { mode: 'normal', lv: lastSignageBgLv_ };
-            }
-            if (!wbgtOffSeason) return { mode: 'normal', lv: 0 };
+            if (stable != null) return { mode: 'wbgt', lv: stable };
+            return { mode: 'wbgt', lv: 0 };
         }
-        return { mode: mode, lv: lv };
+        if ((mode === 'wbgt' || mode === 'normal') && lv < 0) {
+            const stable = levelFromLastGoodWbgtSlots_();
+            if (stable != null) return { mode: 'wbgt', lv: stable };
+            return { mode: 'wbgt', lv: 0 };
+        }
+        if (mode === 'unavailable') return { mode: 'unavailable', lv: -1 };
+        return { mode: (mode || 'wbgt'), lv: (lv >= 0 ? lv : 0) };
     }
-    /** WBGT非依存コンテンツなし — 取得不可・提供期間外は警報・アラートを出さない */
+    /** 警報・熱中症アラートは通年。WBGTの有無では止めない */
     function wbgtNormalDisplay_() {
-        return !wbgtOffSeason && !wbgtUnavailable;
+        return true;
     }
     function syncWbgtDependentAlerts_() {
-        if (wbgtNormalDisplay_()) return;
-        if (!heatAlertForced) applyHeatAlertLevel_('none');
-        if (!rainWarnForced && !whiteModeForced_() && !isProductionLiveWarn_()) applyRainWarnLevel_('none', null);
+        /* no-op: 警報は WBGT 提供期間外でも出す */
     }
     function getNowMs() {
         const ms = getSyncedUtcMs();
@@ -3199,22 +3563,12 @@
     function refreshSignageBg() {
         if (typeof SignageBg === 'undefined') return;
         const rawMode = getSignageDisplayMode_();
-        const rawLv = rawMode === 'normal' ? getSignageBgLevel_() : -1;
+        const rawLv = (rawMode === 'normal' || rawMode === 'wbgt' || rawMode === 'temperature') ? getSignageBgLevel_() : -1;
         const paint = resolveSignageBgPaint_(rawMode, rawLv);
         const mode = paint.mode;
         const lv = paint.lv;
         SignageBg.refreshAll(lv, mode);
         SignageBg.refreshTicker(lv, mode);
-        if (mode === 'offseason') {
-            SignageBg.refreshScene1(lv, mode);
-            if (typeof SignageBg.repaintStripHosts_ === 'function') SignageBg.repaintStripHosts_(lv, mode);
-            return;
-        }
-        if (mode === 'unavailable') {
-            SignageBg.refreshScene1(-1, mode);
-            if (typeof SignageBg.repaintStripHosts_ === 'function') SignageBg.repaintStripHosts_(-1, mode);
-            return;
-        }
         SignageBg.refreshScene1(lv, mode);
         SignageBg.refreshScene2(lv, mode);
         SignageBg.refreshScene5(lv, mode);
@@ -3222,7 +3576,7 @@
         applyD5ForecastTextColors_();
         const slots = (lastGoodWbgtSlots_ && hasFull4Slots(lastGoodWbgtSlots_))
             ? lastGoodWbgtSlots_
-            : (lastWbgtSlots || (DEMO_SIGNAGE_ACTIVE ? mockSlotsForDemoLevel(lv) : null));
+            : (lastWbgtSlots || null);
         if (slots) SignageBg.refreshForecast(slots, mode);
         if (typeof SignageBg.repaintStripHosts_ === 'function') SignageBg.repaintStripHosts_(lv, mode);
         lastSignageBgLv_ = lv;
@@ -3231,7 +3585,7 @@
     }
     function refreshSignageBgIfChanged_(force) {
         const rawMode = getSignageDisplayMode_();
-        const rawLv = rawMode === 'normal' ? getSignageBgLevel_() : -1;
+        const rawLv = (rawMode === 'normal' || rawMode === 'wbgt' || rawMode === 'temperature') ? getSignageBgLevel_() : -1;
         const paint = resolveSignageBgPaint_(rawMode, rawLv);
         const mode = paint.mode;
         const lv = paint.lv;
@@ -3260,8 +3614,9 @@
     function captureAmedasSnapshot_(obs, latest) {
         if (!obs) return;
         const when = latest instanceof Date ? latest : (latest ? new Date(latest) : null);
-        lastAmedasSnapshot_ = {
-            time: when && !isNaN(when.getTime()) ? when.toISOString() : null,
+        const prev = lastAmedasSnapshot_ || {};
+        const next = {
+            time: when && !isNaN(when.getTime()) ? when.toISOString() : (prev.time || null),
             temp: amedasFieldValue(obs.temp),
             humi: amedasFieldValue(obs.humidity),
             rain: amedasFieldValue(obs.precipitation10m),
@@ -3271,11 +3626,15 @@
             maxT: amedasFieldValue(obs.maxTemp),
             minT: amedasFieldValue(obs.minTemp),
             gust: amedasFieldValue(obs.gust),
-            icon: amedasToWeatherIcon(obs)
+            icon: lastForecastWeatherCodes_[0] || amedasToWeatherIcon(obs) || prev.icon
         };
+        Object.keys(next).forEach(function (k) {
+            if (next[k] == null && prev[k] != null) next[k] = prev[k];
+        });
+        lastAmedasSnapshot_ = next;
     }
     function applyAmedasSnapshot_(snap) {
-        if (!snap) return;
+        if (!snap || snap.temp == null) return;
         const obs = {
             temp: snap.temp != null ? [snap.temp] : null,
             humidity: snap.humi != null ? [snap.humi] : null,
@@ -3288,50 +3647,108 @@
             gust: snap.gust != null ? [snap.gust] : null
         };
         const when = snap.time ? new Date(snap.time) : null;
-        if (snap.icon) document.querySelectorAll('.weather-icon-use').forEach(function (el) { el.setAttribute('href', snap.icon); });
+        if (snap.icon) setWeatherIcons_('.weather-icon-use', snap.icon);
         applyJmaAmedasToDom(obs, when && !isNaN(when.getTime()) ? when : null);
     }
     function persistSignageStateCache_() {
         if (DEMO_SIGNAGE_ACTIVE) return;
+        if (PREVIEW_OFFSEASON || Number.isFinite(PREVIEW_WBGT) || Number.isFinite(PREVIEW_TEMP_C)) return;
         try {
-            localStorage.setItem(SIGNAGE_STATE_CACHE_KEY, JSON.stringify({
-                v: 1,
+            const savedAt = Date.now();
+            localStorage.setItem(signageStateCacheKey_(), JSON.stringify({
+                v: 2,
                 point: MOE_WBGT_POINT,
-                savedAt: Date.now(),
-                wbgtOffSeason: !!wbgtOffSeason,
-                slots: lastGoodWbgtSlots_,
-                level: currentWbgtLevel,
-                amedas: lastAmedasSnapshot_,
+                warnCity: (SITE_CFG.jma && SITE_CFG.jma.warnCity) || '',
+                savedAt: savedAt,
+                updatedAt: savedAt,
+                expiresAt: savedAt + SIGNAGE_STATE_CACHE_MAX_AGE_MS,
+                data: {
+                    wbgtOffSeason: !!wbgtOffSeason,
+                    seasonMode: window.AlertCubeRuntime ? window.AlertCubeRuntime.getSeasonMode() : '',
+                    tempC: window.AlertCubeRuntime ? window.AlertCubeRuntime.getCurrentTemp() : null,
+                    slots: lastGoodWbgtSlots_,
+                    level: currentWbgtLevel,
+                    amedas: lastAmedasSnapshot_,
+                    forecast: lastForecastSnap_,
+                    rainWhite: (rainWhiteQueue && rainWhiteQueue.length) ? rainWhiteQueue.slice(0, 24) : [],
+                    warnMeta: {
+                        cityName: rainWarnMeta.cityName || '',
+                        issuedAt: rainWarnMeta.issuedAt || '',
+                        updatedAt: rainWarnMeta.updatedAt || ''
+                    }
+                }
             }));
         } catch (_) {}
     }
     function restoreSignageStateCache_() {
         if (DEMO_SIGNAGE_ACTIVE) return false;
         try {
-            const raw = localStorage.getItem(SIGNAGE_STATE_CACHE_KEY);
+            const raw = localStorage.getItem(signageStateCacheKey_());
             if (!raw) return false;
             const data = JSON.parse(raw);
             if (!data || String(data.point) !== String(MOE_WBGT_POINT)) return false;
-            if (Date.now() - (data.savedAt || 0) > SIGNAGE_STATE_CACHE_MAX_AGE_MS) return false;
-            if (data.wbgtOffSeason) {
+            const ageBase = data.expiresAt != null ? data.expiresAt : ((data.savedAt || 0) + SIGNAGE_STATE_CACHE_MAX_AGE_MS);
+            if (Date.now() > ageBase) return false;
+            const body = data.data || data;
+            if (body.warnMeta) {
+                if (body.warnMeta.cityName) rainWarnMeta.cityName = body.warnMeta.cityName;
+                if (body.warnMeta.issuedAt) rainWarnMeta.issuedAt = body.warnMeta.issuedAt;
+                if (body.warnMeta.updatedAt) rainWarnMeta.updatedAt = body.warnMeta.updatedAt;
+            }
+            if (body.rainWhite && body.rainWhite.length) {
+                rainWhiteQueue = body.rainWhite.slice();
+                syncRainWarnActiveForWhite_();
+            }
+            if (body.forecast) {
+                lastForecastSnap_ = body.forecast;
+                applyForecastSnap_(body.forecast);
+            }
+            if (body.tempC != null && window.AlertCubeRuntime) {
+                window.AlertCubeRuntime.setCurrentTemp(body.tempC);
+            }
+            if ((body.seasonMode === 'TEMPERATURE_MODE' || body.wbgtOffSeason) && !isCalendarWbgtSeasonNow_()) {
                 wbgtOffSeason = true;
                 wbgtUnavailable = false;
                 currentWbgtLevel = -1;
+                if (window.AlertCubeRuntime) window.AlertCubeRuntime.setSeasonMode('TEMPERATURE_MODE');
+                if (body.amedas && body.amedas.temp != null) applyAmedasSnapshot_(body.amedas);
                 return true;
             }
-            if (data.slots && hasFull4Slots(data.slots)) {
-                lastGoodWbgtSlots_ = cloneWbgtSlots_(data.slots);
+            if (window.AlertCubeRuntime && body.seasonMode === 'WBGT_MODE') {
+                window.AlertCubeRuntime.setSeasonMode('WBGT_MODE');
+            }
+            if (body.slots && hasFull4Slots(body.slots)) {
+                lastGoodWbgtSlots_ = cloneWbgtSlots_(body.slots);
                 lastWbgtSlots = lastGoodWbgtSlots_;
                 wbgtOffSeason = false;
                 wbgtUnavailable = false;
+                if (window.AlertCubeRuntime && lastGoodWbgtSlots_[0]) {
+                    window.AlertCubeRuntime.setCurrentWbgt(lastGoodWbgtSlots_[0].wbgt);
+                }
                 syncWbgtLevelFromSlots(lastGoodWbgtSlots_);
                 syncWbgtSlotsToDomIfReady_();
-            } else if (Number.isInteger(data.level) && data.level >= 0) {
-                currentWbgtLevel = data.level;
+            } else if (Number.isInteger(body.level) && body.level >= 0) {
+                currentWbgtLevel = body.level;
             }
-            if (data.amedas) applyAmedasSnapshot_(data.amedas);
-            return !!(data.slots || data.wbgtOffSeason || Number.isInteger(data.level));
+            if (body.amedas && body.amedas.temp != null) applyAmedasSnapshot_(body.amedas);
+            return !!(body.slots || body.wbgtOffSeason || Number.isInteger(body.level) || body.amedas || body.forecast);
         } catch (_) { return false; }
+    }
+    function applyForecastSnap_(snap) {
+        if (!snap || !snap.days || !snap.days.length) return;
+        for (let day = 0; day < snap.days.length && day < 4; day++) {
+            const row = snap.days[day];
+            if (!row) continue;
+            if (row.temp != null) {
+                document.querySelectorAll('.d5-day-' + day + ' .d5-temp').forEach(function (el) {
+                    el.innerText = String(row.temp);
+                });
+            }
+            if (row.icon) {
+                setWeatherIcons_('.d5-day-' + day + ' .d5-weather-use', row.icon);
+            }
+        }
+        try { applyD5TodayFrame_(); applyD5ForecastTextColors_(); } catch (_) {}
     }
 
     const s1 = document.getElementById('scene1');
@@ -3370,10 +3787,6 @@
     /* 実データ連携までは ?heatalert=warning|special|both で表示確認できる。
        実データ無し（none）の通常運用ではアラートシーンを出さない。 */
     function parseHeatAlertParam_() {
-        const v = (query.get('heatalert') || '').toLowerCase();
-        if (v === 'warning') return ['warning'];
-        if (v === 'special') return ['special'];
-        if (v === 'both') return ['warning', 'special'];
         return [];
     }
     let heatAlertActive = NO_HEAT_ALERT ? [] : parseHeatAlertParam_();
@@ -3384,7 +3797,7 @@
     const HA_L1_MAX = 34;       /* 1段目 最大フォント（256幅に収まる範囲） */
     const HA_L2_RATIO = 0.58;   /* 2段目は1段目の約58% */
     const HA_SCROLL_PX = 1.2;   /* 文字スクロール速度 px/フレーム（ゆっくりめ） */
-    const HA_LAPS_BEFORE_SWITCH = 4; /* 256px×4周で次アラートへ */
+    const HA_LAPS_BEFORE_SWITCH = 2; /* 発表系は2周 */
     let haAnimId = null;
     let haFlow_ = null;
     /* 環境省 熱中症警戒アラートを GAS 経由で取得し level を更新 */
@@ -3564,7 +3977,7 @@
     /** デモ用: 注意報→警報 */
     const RAIN_AW_DEMO_ORDER = ['advisory', 'warning'];
     function rainWarnParamRaw_() {
-        return (query.get('rainwarn') || '').toLowerCase();
+        return '';
     }
     function isRainWarnAwParam_(v) {
         return v === 'aw' || v === 'advisory-warning' || v === 'notice' || v === 'l2l3' || v === 'l2-3';
@@ -3574,8 +3987,6 @@
         return v === 'hero' || v === 'osaka' || v === 'evac';
     }
     function rainWarnStatusLabel_() {
-        if (isProductionLiveWarn_()) return '発表中';
-        if (isWarnHeroDemo_() || isRainWarnCatalogDemo_() || DEMO_SIGNAGE || DEMO_RAINWARN_ONLY) return 'デモ';
         return '発表中';
     }
     function isRainWarnLevelDemo_() {
@@ -3631,37 +4042,44 @@
             line2: def ? def.line2 : ''
         };
     }
-    const JMA_WARN_AREA = query.get('warnArea') || (SITE_CFG.jma && SITE_CFG.jma.warnArea) || '230000';   /* 愛知県 */
-    const JMA_WARN_CITY = query.get('warnCity') || (SITE_CFG.jma && SITE_CFG.jma.warnCity) || '2310000';  /* 名古屋市 */
-    const JMA_WARN_CITY_LABELS = {
-        '2310000': '名古屋市',
-        '230000': '愛知県'
-    };
+    const JMA_WARN_AREA = query.get('warnArea') || (SITE_CFG.jma && SITE_CFG.jma.warnArea) || '';
+    const JMA_WARN_CITY = query.get('warnCity') || (SITE_CFG.jma && SITE_CFG.jma.warnCity) || '';
+    const JMA_WARN_CITY_LABELS = {};
+    if (JMA_WARN_CITY && SITE_CFG.jma && SITE_CFG.jma.warnCityLabel) {
+        JMA_WARN_CITY_LABELS[String(JMA_WARN_CITY)] = SITE_CFG.jma.warnCityLabel;
+    }
+    if (JMA_WARN_AREA && SITE_CFG.jma && SITE_CFG.jma.warnCityLabel) {
+        JMA_WARN_CITY_LABELS[String(JMA_WARN_AREA)] = SITE_CFG.jma.warnCityLabel;
+    }
     function municipalityLabel_(name, code) {
         const n = String(name || '').trim();
         const c = String(code || '');
-        if (c === '2310000') return '名古屋市';
+        const configured = (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel) || getSiteLocationLabel_() || '';
+        if (c && c === String(JMA_WARN_CITY)) return configured;
         const city = n.match(/^(.*?市)/);
         if (city && (/区/.test(n) || /市.+区/.test(n))) {
-            /* 名古屋市中区 など → 名古屋市表示 */
-            if (n.indexOf('名古屋市') === 0) return '名古屋市';
             const ku = n.match(/([^市]+区)$/);
             if (ku) return ku[1];
             return city[1];
         }
+        if (/区$/.test(n) && n.indexOf('県') < 0) return n;
         if (/[市町村]$/.test(n) && n.indexOf('県') < 0) return n;
-        return JMA_WARN_CITY_LABELS[c]
-            || (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel)
-            || '名古屋市';
+        return JMA_WARN_CITY_LABELS[c] || configured || n;
     }
     function getJmaWarnPlaceLabel_() {
         return municipalityLabel_(rainWarnMeta.cityName, JMA_WARN_CITY);
     }
     function jmaWarnMatchCodes_() {
         const city = String(JMA_WARN_CITY || '');
-        const area = String(JMA_WARN_AREA || '');
         const extra = {
-            '2310000': ['230000']
+            '1310100': ['130010'],
+            '4520100': ['450010', '450011', '450012', '4520400', '4520700', '4538200', '4538300'],
+            '1242734': [
+                '120020',
+                '1221000', '1221300', '1223900', '1224000',
+                '1240361', '1240964', '1241046',
+                '1242161', '1242253', '1242311', '1242471', '1242651'
+            ]
         };
         const out = [];
         function add(c) {
@@ -3669,9 +4087,9 @@
             c = String(c);
             if (out.indexOf(c) < 0) out.push(c);
         }
+        /* 名古屋市は市町村コードのみ。県コードを混ぜると他市の警報が残る */
         add(city);
         (extra[city] || []).forEach(add);
-        add(area);
         return out;
     }
     function jmaWarnAreaMatches_(area) {
@@ -3694,16 +4112,37 @@
             w.class10Items || []
         );
     }
-    /** r8 は報ごと配列。旧 areaTypes 形式はそのまま通す */
+    /** 気象警報・注意報と土砂災害警戒情報は別報。同じ系統は最新報だけを使う */
+    function jmaR8RecordFamily_(rec) {
+        const type = String((rec && rec.dataTypeCode) || '');
+        const offices = ((rec && rec.offices) || []).map(function (o) {
+            return String((o && o.name) || '') + String((o && o.type) || '');
+        }).join(' ');
+        if (type === 'VPWW56' || /砂防/.test(offices)) return 'landslide';
+        if (/指定河川|洪水予報/.test(offices + String((rec && rec.headlineText) || ''))) return 'flood';
+        return 'weather';
+    }
+    /** r8 は報ごと配列。古い発表を混ぜると解除済みが残る。旧 areaTypes 形式はそのまま通す */
     function normalizeJmaWarningPayload_(raw) {
         if (!raw) return null;
         if (!Array.isArray(raw) && raw.areaTypes) return raw;
         const records = Array.isArray(raw) ? raw : [raw];
+        const latestByFamily = {};
+        records.forEach(function (rec) {
+            if (!rec || typeof rec !== 'object') return;
+            const fam = jmaR8RecordFamily_(rec);
+            const dt = rec.reportDatetime || rec.controlDatetime || '';
+            const prev = latestByFamily[fam];
+            if (!prev || dt > (prev.reportDatetime || prev.controlDatetime || '')) {
+                latestByFamily[fam] = rec;
+            }
+        });
+        const selected = Object.keys(latestByFamily).map(function (k) { return latestByFamily[k]; });
         const byArea = {};
         let latestDt = '';
         let headline = '';
         let headlineDt = '';
-        records.forEach(function (rec) {
+        selected.forEach(function (rec) {
             if (!rec || typeof rec !== 'object') return;
             const dt = rec.reportDatetime || '';
             if (dt && (!latestDt || dt > latestDt)) latestDt = dt;
@@ -3743,7 +4182,7 @@
             areaTypes: [{ areas: areas }]
         };
     }
-    /** 最も狭い対象（名古屋市など）だけを使う。親地域と混ぜない＝解除後に残らない */
+    /** 最も狭い対象（市区町村）だけを使う。親地域と混ぜない＝解除後に残らない */
     function jmaWarnAreasForPreferredCode_(warnJson) {
         if (!warnJson || !warnJson.areaTypes) return [];
         const codes = jmaWarnMatchCodes_();
@@ -3760,7 +4199,7 @@
         return [];
     }
     let rainWarnMeta = {
-        cityName: (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel) || '名古屋市',
+        cityName: (SITE_CFG.jma && SITE_CFG.jma.warnCityLabel) || getSiteLocationLabel_() || '',
         issuedAt: '',
         updatedAt: ''
     };
@@ -4313,17 +4752,21 @@
     function applyRainWarnMeta_(payload, warnJson) {
         const cityFromJma = warnJson
             ? (jmaAreaNameFromWarnJson_(warnJson, JMA_WARN_CITY)
-                || jmaAreaNameFromWarnJson_(warnJson, '2310000'))
+                || jmaAreaNameFromWarnJson_(warnJson, JMA_WARN_CITY)
+                || jmaAreaNameFromWarnJson_(warnJson, JMA_WARN_AREA))
             : '';
         rainWarnMeta.cityName = municipalityLabel_(
             cityFromJma || (payload && payload.cityName) || '',
-            cityFromJma ? JMA_WARN_CITY : JMA_WARN_CITY
+            JMA_WARN_CITY
         );
         rainWarnMeta.issuedAt = (warnJson && warnJson.reportDatetime)
             || rainWarnMeta.issuedAt
             || '';
-        rainWarnMeta.updatedAt = (payload && payload.updatedAt)
-            || new Date().toISOString();
+        /* 更新は気象庁の発表時刻。ページ取得時刻は出さない */
+        rainWarnMeta.updatedAt = (warnJson && warnJson.reportDatetime)
+            || (payload && payload.updatedAt)
+            || rainWarnMeta.issuedAt
+            || '';
         updateRainWarnWhiteChrome_();
     }
     function updateRainWarnWhiteChrome_(force) {
@@ -4338,6 +4781,7 @@
         else rebuildRainWarnWhiteFootTrack_(entries);
     }
     function parseWarnKindParam_() {
+        return [];
         const v = (query.get('warntype') || query.get('warnkind') || '').toLowerCase();
         const rw = (query.get('rainwarn') || '').toLowerCase();
         if (isRainWarnAllLevels_()) return [];
@@ -4395,6 +4839,7 @@
         return false;
     }
     function parseRainWarnParam_() {
+        return [];
         const v = rainWarnParamRaw_();
         if (v === 'early' || v === '1') return ['early'];
         if (v === 'advisory' || v === '2') return ['advisory'];
@@ -4616,7 +5061,7 @@
     const RA_L1_MAX = 34;
     const RA_L2_RATIO = 0.58;
     const RA_SCROLL_PX = 1.2;
-    const RA_LAPS_BEFORE_SWITCH = 4;
+    const RA_LAPS_BEFORE_SWITCH = 2; /* 発表系は2周 */
     let liveWhitePlay_ = false;
     let liveWhiteShownKey_ = '';
     const LIVE_WARN_POLL_MS = 30000;
@@ -4670,9 +5115,9 @@
         }, LIVE_WARN_POLL_MS);
     }
     function rainWarnDemoLaps_() {
-        if (liveWhitePlay_) return 3;
+        if (liveWhitePlay_) return 2;
         if (isRainWarnCatalogDemo_()) return 1;
-        if (isProductionLiveWarn_()) return 3;
+        if (isProductionLiveWarn_()) return 2;
         return RA_LAPS_BEFORE_SWITCH;
     }
     let raAnimId = null;
@@ -4682,6 +5127,7 @@
         return i >= 0 ? i + 1 : 0;
     }
     let rainWarnLiveByLevel_ = { advisory: [], warning: [], danger: [], special: [] };
+    let lastLiveWarnContentKey_ = '';
     function isProductionLiveWarn_() {
         return !NO_JMA_WARN && !DEMO_RAINWARN_ONLY && !DEMO_SIGNAGE
             && !isRainWarnCatalogDemo_() && parseRainWarnParam_().length === 0;
@@ -4709,6 +5155,20 @@
             rainWarnKindActive = first ? rainWarnLiveByLevel_[first].slice() : ['rain'];
             syncLiveWhiteTickerFromQueue_();
             syncLiveColorTickerFromQueue_();
+            const nextKey = normalizeWarnContentKey_(liveWarnContentKey_());
+            const appeared = nextKey && nextKey !== lastLiveWarnContentKey_;
+            const disappeared = lastLiveWarnContentKey_ && !nextKey;
+            lastLiveWarnContentKey_ = nextKey;
+            if (window.AlertCubeRuntime) {
+                window.AlertCubeRuntime.mergeDisaster(true, nextKey ? [{ key: nextKey }] : []);
+            }
+            const inDisaster = (warnPhase_ > 0 && warnPhase_ < 5)
+                || (window.AlertCubeRuntime && window.AlertCubeRuntime.isDisasterInterrupt());
+            if (appeared && mainLoopStarted_ && !inDisaster) {
+                interruptWithDisaster_();
+            } else if (disappeared && window.AlertCubeRuntime && window.AlertCubeRuntime.isDisasterInterrupt()) {
+                restoreAfterDisaster_();
+            }
         }
         if (!(liveWhitePlay_ && raFlow_)) queueDisplayRefresh_();
     }
@@ -4761,6 +5221,15 @@
     function isWhiteScatterKind_(level, kind) {
         return isWhitePlainKind_(level, kind) || isWhiteLevelKind_(level, kind);
     }
+    /** 本番白ヒーロー: 雷・暴風・波浪などと、レベル付き4種（大雨・氾濫・土砂・高潮）を同じ帯で流す */
+    function isWhiteLiveKind_(level, kind) {
+        return isWhiteScatterKind_(level, kind);
+    }
+    function isWhiteLivePlayItem_(e) {
+        if (!e) return false;
+        if (isWhitePlayItem_(e)) return isWhiteLiveKind_(e.level, e.kind) || !e.kind;
+        return isWhiteLiveKind_(e.level, e.kind);
+    }
     function toWhitePlayItem_(e) {
         const name = (e && e.name) || jmaKindName_(e.level, e.kind);
         const hasLevel = isWhiteLevelKind_(e.level, e.kind);
@@ -4796,7 +5265,7 @@
         const seen = {};
         const out = [];
         (entries || []).forEach(function (e) {
-            if (!e || !isWhiteScatterKind_(e.level, e.kind)) return;
+            if (!e || !isWhiteLiveKind_(e.level, e.kind)) return;
             const key = e.level + '|' + e.kind;
             if (seen[key]) return;
             seen[key] = true;
@@ -4844,8 +5313,7 @@
     function getLiveWhiteEntries_() {
         if (rainWhiteQueue.length) {
             return rainWhiteQueue.filter(function (e) {
-                if (isWhitePlayItem_(e)) return true;
-                return isWhiteScatterKind_(e.level, e.kind);
+                return isWhiteLivePlayItem_(e);
             });
         }
         const out = [];
@@ -4854,7 +5322,7 @@
             const order = JMA_CATALOG_KIND_ORDER[lv] || [];
             order.forEach(function (kind) {
                 if (kinds.indexOf(kind) < 0) return;
-                if (!isWhiteScatterKind_(lv, kind)) return;
+                if (!isWhiteLiveKind_(lv, kind)) return;
                 out.push(toWhitePlayItem_({ level: lv, kind: kind, name: jmaKindName_(lv, kind) }));
             });
         });
@@ -4862,7 +5330,7 @@
     }
     /* signage-512.html playWhite。replaceChildren / append(a,b) は使わない */
     const WHITE_SPEED = 56;
-    const WHITE_LIVE_LAPS = 3; /* 発表中の白3段は3周 */
+    const WHITE_LIVE_LAPS = 2; /* 発表中の白3段は2周 */
     let whitePlayGen_ = 0;
     let whiteRafId_ = 0;
     let whiteHoldId_ = 0;
@@ -4897,7 +5365,7 @@
     function makeWhiteTopSeg_(issuedAt, isDemo, updatedAt) {
         const seg = document.createElement('div');
         seg.className = 'white-top-seg';
-        seg.style.cssText = 'display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;height:40px;padding:0 4px;gap:8px;flex:0 0 auto;white-space:nowrap;box-sizing:border-box';
+        seg.style.cssText = 'display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;height:40px;padding:0 16px 0 8px;gap:8px;flex:0 0 auto;white-space:nowrap;box-sizing:border-box';
         const area = document.createElement('span');
         area.className = 'white-area';
         area.style.cssText = 'flex:0 0 auto;font-size:15px;font-weight:900;color:#0854a8;letter-spacing:0.3px;white-space:nowrap';
@@ -5125,6 +5593,10 @@
                     lastTs = 0;
                     whiteRafId_ = requestAnimationFrame(step);
                 }, SCENE_SCROLL_HOLD_MS);
+                setTimeout(function () {
+                    if (gen !== whitePlayGen_) return;
+                    if (whiteRafId_ || whiteHoldId_) finishWhite_();
+                }, 45000);
             });
         });
     }
@@ -5190,9 +5662,8 @@
             applyRainWarnLevel_(parseJmaRainWarnLevel_(warnJson, null), kinds, warnJson);
             if (warnJson) applyRainWarnMeta_(null, warnJson);
         } catch (e) {
-            console.warn('[白ベース警報] 気象庁取得失敗:', e.message || e);
-            rainWhiteQueue = [];
-            syncRainWarnActiveForWhite_();
+            console.warn('[白ベース警報] 気象庁取得失敗（直前の発表を維持）:', e.message || e);
+            if (window.AlertCubeRuntime) window.AlertCubeRuntime.mergeDisaster(false);
         }
     }
     function parseJmaRainWarnLevel_(warnJson, probJson) {
@@ -5252,8 +5723,10 @@
             applyRainWarnLiveEntries_(parseJmaActiveWhiteEntries_(warnJson));
             console.log('[警報] 気象庁', rainWhiteQueue.length + '件',
                 rainWhiteQueue.map(function (e) { return e.name || (e.level + '/' + e.kind); }).join('・') || '発表なし');
+            persistSignageStateCache_();
         } catch (e) {
             console.warn('[警報] 気象庁取得失敗（直前の発表を維持）:', e.message || e);
+            if (window.AlertCubeRuntime) window.AlertCubeRuntime.mergeDisaster(false);
         }
     }
     function sizeRainWarnWhiteMidText_() {
@@ -5610,7 +6083,7 @@
     }
     function startWarnHeroOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         const items = getWarnHeroDemoItems_();
         if (!items.length || !sceneWarnHero) return;
         sceneWarnHero.style.display = 'block';
@@ -5626,7 +6099,7 @@
     }
     async function startWhiteWarnPreview_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         if (!sceneWarn || !heroWhite) return;
         sceneWarn.style.display = sceneDisplayMode(sceneWarn);
         sceneWarn.classList.add('active');
@@ -5645,7 +6118,7 @@
     }
     async function startColorWarnPreview_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
         startLiveWarnPoll_();
         if (!sceneWarnHero) return;
@@ -5659,7 +6132,7 @@
             if (onEnd) onEnd();
             return;
         }
-        transitionToScene(sceneWarnHero, function () {
+        function startHero_() {
             try {
                 playWarnHero_(items, function () {
                     stopWarnHero_();
@@ -5671,7 +6144,12 @@
                 stopWarnHero_();
                 if (onEnd) onEnd();
             }
-        });
+        }
+        if (getActiveScene() === sceneWarnHero) {
+            startHero_();
+            return;
+        }
+        transitionToScene(sceneWarnHero, startHero_);
     }
     function continueWarnAfterCurrent_() {
         if (warnPhase_ === 1) {
@@ -5681,22 +6159,22 @@
             return;
         }
         if (warnPhase_ === 2) {
-            liveWhitePlay_ = false;
+            liveEvacPlay_ = false;
             warnPhase_ = 3;
             runWarnPhase_();
             return;
         }
         if (warnPhase_ === 3) {
-            liveEvacPlay_ = false;
-            goToClock_();
-            return;
-        }
-        if (warnPhase_ === 4) {
-            warnPhase_ = 1;
+            liveWhitePlay_ = false;
+            warnPhase_ = 4;
             runWarnPhase_();
             return;
         }
-        if (warnPhase_ <= 0) gotoAfterRainWarnOrScene1_();
+        if (warnPhase_ === 4) {
+            goToClock_();
+            return;
+        }
+        if (warnPhase_ <= 0) playLiveThenClock_();
     }
     async function runWarnPhase_() {
         if (warnPhase_ === 1) {
@@ -5708,7 +6186,7 @@
             if (liveColor.length && sceneWarnHero && window.WarningHero) {
                 liveColorPlay_ = true;
                 liveColorShownKey_ = liveColorEntryKey_(liveColor);
-                playWarnHeroThenContinue_(liveColor, 3, function () {
+                playWarnHeroThenContinue_(liveColor, 2, function () {
                     if (warnPhase_ !== 1) return;
                     liveColorPlay_ = false;
                     warnPhase_ = 2;
@@ -5719,6 +6197,21 @@
             warnPhase_ = 2;
         }
         if (warnPhase_ === 2) {
+            const liveEvac = getWarnHeroEvacItems_();
+            if (liveEvac.length && sceneWarnHero && window.WarningHero) {
+                liveEvacPlay_ = true;
+                liveEvacShownKey_ = liveColorEntryKey_(liveEvac);
+                playWarnHeroThenContinue_(liveEvac, 2, function () {
+                    if (warnPhase_ !== 2) return;
+                    liveEvacPlay_ = false;
+                    warnPhase_ = 3;
+                    runWarnPhase_();
+                });
+                return;
+            }
+            warnPhase_ = 3;
+        }
+        if (warnPhase_ === 3) {
             const liveWhite = getLiveWhiteEntries_();
             if (liveWhite.length && sceneWarn) {
                 liveWhitePlay_ = true;
@@ -5726,55 +6219,183 @@
                 liveWhiteShownKey_ = liveWhiteEntryKey_(liveWhite);
                 transitionToScene(sceneWarn, function () {
                     playWhite(function () {
-                        if (warnPhase_ !== 2) return;
+                        if (warnPhase_ !== 3) return;
                         liveWhitePlay_ = false;
-                        warnPhase_ = 3;
+                        warnPhase_ = 4;
                         runWarnPhase_();
                     }, liveWhite);
                 });
                 return;
             }
-            warnPhase_ = 3;
+            warnPhase_ = 4;
         }
-        if (warnPhase_ === 3) {
-            const liveEvac = getWarnHeroEvacItems_();
-            if (liveEvac.length && sceneWarnHero && window.WarningHero) {
-                liveEvacPlay_ = true;
-                liveEvacShownKey_ = liveColorEntryKey_(liveEvac);
-                playWarnHeroThenContinue_(liveEvac, 3, function () {
-                    if (warnPhase_ !== 3) return;
-                    liveEvacPlay_ = false;
-                    goToClock_();
+        if (warnPhase_ === 4) {
+            const tyItems = typhoonWhiteEntries_();
+            if (tyItems.length && sceneWarn) {
+                transitionToScene(sceneWarn, function () {
+                    playWhite(function () {
+                        if (warnPhase_ !== 4) return;
+                        goToClock_();
+                    }, tyItems);
                 });
                 return;
             }
             goToClock_();
             return;
         }
-        if (warnPhase_ === 4) {
-            const demoHero = getWarnHeroDemoItems_();
-            if (demoHero.length && sceneWarnHero && window.WarningHero) {
-                liveColorPlay_ = false;
-                liveEvacPlay_ = false;
-                playWarnHeroThenContinue_(demoHero, 1, function () {
-                    if (warnPhase_ !== 4) return;
-                    warnPhase_ = 1;
-                    runWarnPhase_();
-                });
-                return;
-            }
-            warnPhase_ = 1;
-            runWarnPhase_();
+        goToClock_();
+    }
+    function typhoonWhiteEntries_() {
+        const last = window.AlertCubeTyphoon && window.AlertCubeTyphoon.last && window.AlertCubeTyphoon.last();
+        if (!last || last.fetchOk === false || !last.items || !last.items.length) return [];
+        return last.items.map(function (it) {
+            const name = (it && (it.label || it.name))
+                || (it && it.number ? ('台風第' + it.number + '号') : '台風情報');
+            const severe = !!(it && it.severe);
+            const wide = String(name).length > 5;
+            return {
+                level: severe ? 'warning' : 'advisory',
+                kind: 'typhoon',
+                name: name,
+                cls: severe ? 'warning' : 'advisory',
+                hasLevel: false,
+                lv: 0,
+                hazard: '',
+                unitW: wide ? 256 : 128,
+                levelLabel: severe ? '警報' : '注意報',
+                mid: name,
+                text: (it && it.text) || '',
+                issuedAt: (it && it.issuedAt) || ''
+            };
+        });
+    }
+    function hasTyphoonToPlay_() {
+        return typhoonWhiteEntries_().length > 0;
+    }
+    function playTyphoonThenClock_() {
+        if (!hasTyphoonToPlay_()) {
+            playHeatThenClock_();
             return;
         }
-        goToClock_();
+        warnPhase_ = 4;
+        runWarnPhase_();
+    }
+    function normalizeWarnContentKey_(key) {
+        const seen = {};
+        return String(key || '').split('|').filter(function (part) {
+            if (!part) return false;
+            const n = part.replace(/^w:/, '');
+            if (seen[n]) return false;
+            seen[n] = true;
+            return true;
+        }).sort().join('|');
+    }
+    function liveWarnContentKey_() {
+        const parts = [];
+        ['special', 'danger', 'warning', 'advisory'].forEach(function (lv) {
+            (rainWarnLiveByLevel_[lv] || []).forEach(function (kind) {
+                parts.push(lv + ':' + kind);
+            });
+        });
+        (rainWhiteQueue || []).forEach(function (e) {
+            if (e && e.level && e.kind) parts.push('w:' + e.level + ':' + e.kind);
+        });
+        return parts.sort().join('|');
+    }
+    function hasLiveJmaWarn_() {
+        if (!isProductionLiveWarn_()) return false;
+        if (rainWhiteQueue && rainWhiteQueue.length) return true;
+        if (typeof getWarnHeroLiveItems_ === 'function' && getWarnHeroLiveItems_().length) return true;
+        if (typeof getWarnHeroEvacItems_ === 'function' && getWarnHeroEvacItems_().length) return true;
+        return ['special', 'danger', 'warning', 'advisory'].some(function (lv) {
+            return !!(rainWarnLiveByLevel_[lv] && rainWarnLiveByLevel_[lv].length);
+        });
+    }
+    function hasHeatAlertToPlay_() {
+        return !NO_HEAT_ALERT && !!(heatAlertActive && heatAlertActive.length && sceneAlert);
+    }
+    function playHeatThenClock_() {
+        if (!hasHeatAlertToPlay_()) {
+            gotoSceneScheduleOrNext_();
+            return;
+        }
+        prepHeatAlert_(0);
+        transitionToScene(sceneAlert, function () { playSceneAlert(0); });
+    }
+    function captureCurrentPlayback_() {
+        if (!window.AlertCubeRuntime) return;
+        const el = getActiveScene();
+        if (!el || window.AlertCubeCore.isDisasterSceneId(el.id)) return;
+        const useSceneScroll = el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneSchedule';
+        window.AlertCubeRuntime.capturePlayback({
+            sceneId: el.id,
+            capturedAt: Date.now(),
+            langIdx: typeof t3LangIdx_ === 'number' ? t3LangIdx_ : 0,
+            scrollX: useSceneScroll ? scenePlayScrollX_ : (typeof globalScrollX_ === 'number' ? globalScrollX_ : 0)
+        });
+    }
+    function resumeSavedPlayback_(saved) {
+        const map = {
+            scene1: [s1, playScene1],
+            scene2: [s2, playScene2],
+            scene3: [s3, playScene3],
+            scene4: [s4, playScene4],
+            scene5: [s5, playScene5],
+            sceneSchedule: [sceneSchedule, playSceneSchedule]
+        };
+        const pair = saved && map[saved.sceneId];
+        if (!pair || !pair[0]) {
+            playHeatThenClock_();
+            return;
+        }
+        if (saved.sceneId === 'scene3' && typeof t3LangIdx_ === 'number') t3LangIdx_ = saved.langIdx || 0;
+        const current = getActiveScene();
+        if (current === pair[0]) return;
+        transitionToScene(pair[0], function () { pair[1](saved); });
+    }
+    function reevaluateAmbientBackground_() {
+        refreshSignageBgIfChanged_(true);
+    }
+    function interruptWithDisaster_() {
+        captureCurrentPlayback_();
+        if (window.AlertCubeRuntime) window.AlertCubeRuntime.setDisasterInterrupt(true);
+        playLiveThenClock_();
+    }
+    function restoreAfterDisaster_() {
+        resetWarnPhase_();
+        stopWhiteHero_();
+        stopWarnHero_();
+        if (window.AlertCubeRuntime) window.AlertCubeRuntime.setDisasterInterrupt(false);
+        reevaluateAmbientBackground_();
+        const saved = window.AlertCubeRuntime ? window.AlertCubeRuntime.takePlayback() : null;
+        if (saved) {
+            resumeSavedPlayback_(saved);
+            return;
+        }
+        playHeatThenClock_();
+    }
+    function startMainLoopHead_() {
+        if (hasLiveJmaWarn_()) {
+            playLiveThenClock_();
+            return;
+        }
+        if (hasTyphoonToPlay_()) {
+            playTyphoonThenClock_();
+            return;
+        }
+        playHeatThenClock_();
     }
     function goToClock_() {
         resetWarnPhase_();
         stopWhiteHero_();
         stopWarnHero_();
-        if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
-        transitionToScene(s1, playScene1);
+        if (window.AlertCubeRuntime && window.AlertCubeRuntime.peekPlayback()) {
+            restoreAfterDisaster_();
+            return;
+        }
+        if (window.AlertCubeRuntime) window.AlertCubeRuntime.setDisasterInterrupt(false);
+        reevaluateAmbientBackground_();
+        playHeatThenClock_();
     }
     function playLiveThenClock_() {
         if (warnPhase_ > 0 && warnPhase_ < 4) return;
@@ -5783,8 +6404,7 @@
     }
     function gotoAfterRainWarnOrScene1_() {
         if (warnPhase_ > 0) return;
-        warnPhase_ = 4;
-        runWarnPhase_();
+        playLiveThenClock_();
     }
     function playSceneRainWarn(startIdx) {
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
@@ -6055,7 +6675,7 @@
     let scene1AdvanceToken = 0;
     let s1Flow_ = null;
     const SCENE2_WEATHER_COUNT = 9;
-    const SCENE2_PANEL_COUNT = 9; /* 気象9（4面・末尾ロゴなし） */
+    const SCENE2_PANEL_COUNT = ((window.SIGNAGE_CONFIG || {}).logoSrc) ? 10 : 9; /* 気象9。ロゴがあるときだけ末尾+1 */
     const SCENE2_LAPS = 2;
     const SCENE2_SCROLL_PX = 0.8;
     const SCENE2_META_LAP_PX = FOOT_BAR_LAP_PX;
@@ -6065,7 +6685,7 @@
     let scene2MetaLapPx = FOOT_BAR_LAP_PX;
     const JMA_LATEST_TIME_URL = 'https://www.jma.go.jp/bosai/amedas/data/latest_time.txt';
     const JMA_FORECAST_URL = `https://www.jma.go.jp/bosai/forecast/data/forecast/${JMA_FORECAST_AREA_CODE}.json`;
-    const SCENE4_PANEL_COUNT = 4; /* WBGT4（4面・末尾ロゴなし） */
+    const SCENE4_PANEL_COUNT = ((window.SIGNAGE_CONFIG || {}).logoSrc) ? 5 : 4; /* WBGT4。ロゴがあるときだけ末尾+1 */
     const SCENE4_LAPS = 2;
     const SCENE4_SCROLL_PX = 0.8;
     const SCENE4_LV_LAP_PX = FOOT_BAR_LAP_PX;
@@ -6076,7 +6696,7 @@
     const SCENE4_LV_SETS = 3;
     const SCENE4_LV_SPEED_PX = 0.6;
     const SCENE5_DAY_COUNT = 4;
-    const SCENE5_PANEL_COUNT = 4; /* 今日〜明々後日（4面・末尾ロゴなし） */
+    const SCENE5_PANEL_COUNT = ((window.SIGNAGE_CONFIG || {}).logoSrc) ? 5 : 4; /* 今日〜明々後日。ロゴがあるときだけ末尾+1 */
     const SCENE5_LAPS = 2;
     const SCENE5_SCROLL_PX = 0.8;
     let scene5SetWidth = SCENE5_PANEL_COUNT * 128;
@@ -6139,14 +6759,18 @@
         if (!lapPx || lapPx <= 0) return;
         globalScrollX_ = Math.round(globalScrollX_ / lapPx) * lapPx;
     }
-    /** 1セット分のスクロール量（末尾ロゴなし） */
+    /** 末尾ロゴが右端に来るまでの移動量（1周・左端がロゴにならない） */
     function trailingLogoPassPx_(setWidth) {
-        return Math.max(128, setWidth || 512);
+        const viewW = 512;
+        if (!setWidth || setWidth <= viewW) return Math.max(128, setWidth || viewW);
+        return setWidth - viewW;
     }
-    /** N周ぶんの総移動量（セット幅ぴったりで周回） */
+    /** N周して末尾ロゴが右端に来る総移動量 */
     function trailingLogoScrollTotal_(setWidth, laps) {
+        const viewW = 512;
         const n = Math.max(1, laps || 1);
-        return Math.max(128, setWidth || 512) * n;
+        if (!setWidth || setWidth <= viewW) return Math.max(128, setWidth || viewW) * n;
+        return n * setWidth - viewW;
     }
     function snapTrackToContentStart_(el, lapPx) {
         snapGlobalScrollToLapStart_(lapPx);
@@ -6215,6 +6839,8 @@
         if (scene2AnimId) { cancelAnimationFrame(scene2AnimId); scene2AnimId = null; }
         if (scene4AnimId) { cancelAnimationFrame(scene4AnimId); scene4AnimId = null; }
         if (scene5AnimId) { cancelAnimationFrame(scene5AnimId); scene5AnimId = null; }
+        if (sceneScheduleAnimId) { cancelAnimationFrame(sceneScheduleAnimId); sceneScheduleAnimId = null; }
+        if (sceneScheduleHoldTimerId) { clearTimeout(sceneScheduleHoldTimerId); sceneScheduleHoldTimerId = null; }
         if (tickerAnimId) { cancelAnimationFrame(tickerAnimId); tickerAnimId = null; }
         if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
         if (raAnimId) { cancelAnimationFrame(raAnimId); raAnimId = null; }
@@ -6399,6 +7025,8 @@
         if (el.querySelector('.clock-h') && !el.querySelector('.clock-colon-wrap')) return;
         el.innerHTML = '<span class="clock-h">--</span><span class="clock-colon" aria-hidden="true">:</span><span class="clock-m">--</span>';
     }
+    let lastClockPaint_ = { d: '', h: '', m: '' };
+    let clockFitDone_ = false;
     function updateClock() {
         let ms = getSyncedUtcMs();
         if (ms == null) {
@@ -6410,6 +7038,11 @@
         const d = clockDateFormatter.format(new Date(Math.floor(ms)));
         const h = pad2Clock_(jp.hour);
         const m = pad2Clock_(jp.minute);
+        if (lastClockPaint_.d === d && lastClockPaint_.h === h && lastClockPaint_.m === m) return;
+        const dateChanged = lastClockPaint_.d !== d;
+        lastClockPaint_.d = d;
+        lastClockPaint_.h = h;
+        lastClockPaint_.m = m;
         document.querySelectorAll('.clock-hm').forEach(function (el) {
             ensureClockHmStructure_(el);
             const hh = el.querySelector('.clock-h');
@@ -6417,9 +7050,14 @@
             if (hh) hh.textContent = h;
             if (mm) mm.textContent = m;
         });
-        document.querySelectorAll('#scene1 .s1-bar-label').forEach(function (el) { el.innerText = d; });
-        fitS1DateFontSize_();
-        fitClockHmFontSize_();
+        if (dateChanged) {
+            document.querySelectorAll('#scene1 .s1-bar-label').forEach(function (el) { el.textContent = d; });
+            fitS1DateFontSize_();
+        }
+        if (!clockFitDone_) {
+            fitClockHmFontSize_();
+            clockFitDone_ = true;
+        }
     }
     function startClockTicker() {
         if (clockIntervalId != null) { clearTimeout(clockIntervalId); clockIntervalId = null; }
@@ -6439,9 +7077,6 @@
             clockIntervalId = setTimeout(tick, Math.max(50, 1000 - (base % 1000)));
         }
         tick();
-        clockBackupIntervalId = setInterval(function () {
-            try { updateClock(); } catch (err) { console.warn('Clock backup:', err); }
-        }, 1000);
     }
     function degToCompassJa(deg) {
         if (!Number.isFinite(deg)) return '--';
@@ -6449,7 +7084,10 @@
         return dirs[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
     }
     function calcWbgt(t, h) { return null; }
-    function wbgtLevel(w) { return w >= 31 ? 4 : w >= 28 ? 3 : w >= 25 ? 2 : w >= 21 ? 1 : 0; }
+    function wbgtLevel(w) {
+        if (window.AlertCubeCore) return window.AlertCubeCore.wbgtLevelIndex(w);
+        return w >= 31 ? 4 : w >= 28 ? 3 : w >= 25 ? 2 : w >= 21 ? 1 : 0;
+    }
     function hasFull4Slots(slots) {
         return Array.isArray(slots) && slots.length >= 4 && slots[0] != null && slots[0].wbgt != null;
     }
@@ -6581,6 +7219,7 @@
         scene4SetWidth = SCENE4_PANEL_COUNT * 128;
         fcConveyor.style.width = `${scene4SetWidth * 2}px`;
         scene4FcLvLapPx = scene4SetWidth;
+        applyContentEndLogoSrc_();
     }
     function normalizeWbgtCelsius(raw) {
         if (raw === null || raw === undefined || raw === '') return null;
@@ -6790,22 +7429,15 @@
         }
         return false;
     }
-    /* 提供期間外: WBGTレベルを無効化し、WBGT表示を全て隠す（該当シーンはループでスキップ） */
+    /* 提供期間外: WBGTモードを止め、気温モードへ切替（取得失敗では呼ばない） */
     function applyWbgtOffSeason_() {
-        /* 直前の実測がある間は提供期間外の灰色へ落とさない（誤検知・欠測の一時応答対策） */
-        if (lastGoodWbgtSlots_ && hasFull4Slots(lastGoodWbgtSlots_)) {
-            console.warn('[WBGT] off-season応答だが直前値があるため維持');
-            applyWbgtInSeason_();
-            keepLastGoodWbgtDisplay_('off-season応答');
-            return;
-        }
         wbgtOffSeason = true;
         wbgtUnavailable = false;
         clearWbgtUnavailableGrace_();
-        lastGoodWbgtSlots_ = null;
         currentWbgtLevel = -1;
-        lastWbgtSlots = null;
-        syncWbgtDependentAlerts_();
+        if (window.AlertCubeRuntime) {
+            window.AlertCubeRuntime.applyApiSeasonFlag(false, PREVIEW_OFFSEASON, jstPartsFromMs(getNowMs()));
+        }
         document.querySelectorAll('#scene4 .fc-scroll-wrap, #scene4 .fc-lv-bar').forEach(function (el) {
             el.style.display = 'none';
         });
@@ -6819,7 +7451,13 @@
     }
     function applyWbgtInSeason_() {
         wbgtOffSeason = false;
+        if (window.AlertCubeRuntime) {
+            window.AlertCubeRuntime.applyApiSeasonFlag(true, false, jstPartsFromMs(getNowMs()));
+        }
         document.querySelectorAll('#scene4 .fc-scroll-wrap, #scene4 .fc-lv-bar').forEach(function (el) {
+            el.style.display = '';
+        });
+        document.querySelectorAll('#scene1 .s1-wbgt-bar').forEach(function (el) {
             el.style.display = '';
         });
     }
@@ -6843,27 +7481,38 @@
         refreshS1WbgtFootBar_(false);
         buildFcLvTrack(false);
         setS1FootBarVisible_(hasS1WbgtFootMessage_());
+        bootMark_('flushInitialDisplay');
     }
-    /** 起動直後: キャッシュ／初期色をすぐ描画（画面を隠さない＝青画面にしない） */
+    /** 起動直後: シェル＋キャッシュを即描画（API完了を待たない） */
     function paintBootSplash_() {
+        bootMark_('paintBootSplash');
         if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
-        if (s1) {
-            s1.classList.remove('active');
-            s1.style.display = 'none';
-        }
         syncWbgtSlotsToDomIfReady_();
         if (typeof SignageBg !== 'undefined') refreshSignageBg();
         refreshS1WbgtFootBar_(false);
         setS1FootBarVisible_(hasS1WbgtFootMessage_());
+        /* 真っ青の空きキャンバスを出さず、時計シーンを即表示 */
+        if (s1) {
+            [s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(function (el) {
+                if (el) hideSceneEl(el);
+            });
+            s1.style.display = sceneDisplayMode(s1);
+            s1.classList.add('active');
+            s1.style.transform = 'translateX(0px)';
+            playingSceneEl_ = s1;
+        }
+        const bootWx = lastForecastWeatherCodes_[0]
+            || (lastAmedasSnapshot_ && lastAmedasSnapshot_.icon)
+            || '#icon-sunny';
+        setWeatherIcons_('.weather-icon-cell', bootWx);
     }
     function queueDisplayRefresh_() {
         pendingDisplayRefresh = true;
+        if (mainLoopStarted_ && shouldDeferDisplayRefresh_()) return;
         if (s3 && s3.classList.contains('active')) {
             syncScene3Display_(true);
-            return;
         }
-        if (mainLoopStarted_ && shouldDeferDisplayRefresh_()) return;
     }
     function queueOrRefreshS1FootBar_() {
         if (shouldDeferDisplayRefresh_()) {
@@ -6873,10 +7522,11 @@
         refreshS1WbgtFootBar_(false);
     }
     function flushDisplayRefresh_(force) {
-        if (!pendingDisplayRefresh && !force) return;
+        if (!pendingDisplayRefresh && !force && !pendingScene2Compact_) return;
         if (!force && shouldDeferDisplayRefresh_()) return;
         pendingDisplayRefresh = false;
         flushPendingForecastSlots_();
+        if (pendingScene2Compact_) compactScene2Panels();
         refreshS1WbgtFootBar_(false);
         if (lastAmedasObsTime) buildScene2MetaTrack(lastAmedasObsTime);
         buildTicker();
@@ -6917,21 +7567,29 @@
             jobs.push((async function () {
                 const sWbgt = performance.now();
                 try {
-                    const wbgtSlots = await fetchWbgtData_();
+                    const wbgtSlots = PREVIEW_OFFSEASON ? 'offseason' : await fetchWbgtData_();
                     timings['WBGT(GAS)'] = Math.round(performance.now() - sWbgt);
-                    if (wbgtSlots === 'offseason') {
-                        if (lastGoodWbgtSlots_ && hasFull4Slots(lastGoodWbgtSlots_)) {
-                            console.log('[WBGT] off-season応答 — 更新中は直前値を維持');
-                            applyWbgtInSeason_();
-                            syncWbgtSlotsToDomIfReady_();
-                            moeOk = true;
+                    if (PREVIEW_OFFSEASON) {
+                        applyWbgtOffSeason_();
+                        moeOk = true;
+                    } else if (wbgtSlots === 'offseason') {
+                        if (isCalendarWbgtSeasonNow_()) {
+                            console.warn('[WBGT] GASは期間外だがカレンダーは提供期間内のため維持');
+                            applyWbgtSlotsToDom(null);
+                            moeOk = false;
                         } else {
                             applyWbgtOffSeason_();
                             moeOk = true;
                         }
-                    } else {
+                    } else if (wbgtSlots) {
                         applyWbgtInSeason_();
+                        if (wbgtSlots[0] && window.AlertCubeRuntime) {
+                            window.AlertCubeRuntime.setCurrentWbgt(wbgtSlots[0].wbgt);
+                        }
                         moeOk = applyWbgtSlotsToDom(wbgtSlots);
+                    } else {
+                        applyWbgtSlotsToDom(null);
+                        moeOk = false;
                     }
                     if (!NO_HEAT_ALERT) {
                         const sAlert = performance.now();
@@ -6963,6 +7621,16 @@
                     const sWarn = performance.now();
                     await updateRainWarnFromGas_();
                     timings['大雨警報'] = Math.round(performance.now() - sWarn);
+                    try {
+                        const sTy = performance.now();
+                        if (window.AlertCubeTyphoon) await window.AlertCubeTyphoon.load(SITE_CFG);
+                        timings['台風'] = Math.round(performance.now() - sTy);
+                        if (mainLoopStarted_ && s1 && s1.classList.contains('active') && !scene1AnimId && !scene1SafetyTimerId && !scene1HoldTimerId) {
+                            playScene1();
+                        }
+                    } catch (tyErr) {
+                        console.warn('[台風] 取得失敗（直前を維持）', tyErr && tyErr.message);
+                    }
                     jmaOk = true;
                 } catch (error) {
                     console.error('JMA fetch error:', error);
@@ -7038,7 +7706,7 @@
     }
     async function fetchWbgtFromMoeApi() {
         if (!MOE_WBGT_API_URL) {
-            console.error('[WBGT] moe.gasUrl 未設定 — assets/site-config.js を確認してください');
+            console.error('[WBGT] moe.gasUrl 未設定 — config/site-config.js を確認してください');
             return null;
         }
         const bases = [MOE_WBGT_API_URL, MOE_WBGT_BACKUP_URL].filter((u, i, a) => u && a.indexOf(u) === i);
@@ -7079,22 +7747,191 @@
         }
         if (!NO_HEAT_ALERT && !alertApplied) await updateHeatAlertFromGas_();
         if (sawOffSeason) {
+            if (isCalendarWbgtSeasonNow_()) {
+                console.warn('[WBGT] 地点データなし（提供期間内のため期間外にしない）');
+                return null;
+            }
             console.log('[WBGT] 全地点でデータなし（WBGT非表示）');
             return 'offseason';
         }
-        console.warn('[WBGT] 取得失敗: GAS URL と assets/site-config.js の moe.gasUrl を確認してください');
+        console.warn('[WBGT] 取得失敗: GAS URL と config/site-config.js の moe.gasUrl を確認してください');
         return null;
     }
     function setTextAll(selector, text) {
         document.querySelectorAll(selector).forEach(el => { el.innerText = text; });
     }
+    /* TELOPS 3桁 → https://www.jma.go.jp/bosai/forecast/img/100.svg
+       細分区域は SignageConfig.jma.forecastDetail（未指定は weatherCodes のある先頭区域） */
+    const JMA_WX_ICON_BASE = 'https://www.jma.go.jp/bosai/forecast/img/';
+    /* 予報コード → 気象庁アイコンファイル（無い番号は実在SVGへ寄せる。昼アイコン） */
+    const JMA_TELOPS_ICON_FILE_ = {
+        '103': '102', '105': '104', '106': '102', '107': '102', '108': '102',
+        '111': '110', '113': '112', '114': '112', '116': '115', '117': '115',
+        '118': '112', '119': '112', '120': '102', '121': '102', '122': '112',
+        '123': '100', '124': '100', '125': '112', '126': '112', '127': '112',
+        '128': '112', '130': '100', '131': '100', '132': '101', '140': '102',
+        '160': '104', '170': '104', '181': '115',
+        '203': '202', '205': '204', '206': '202', '207': '202', '208': '202',
+        '209': '200', '211': '210', '213': '212', '214': '212', '216': '215',
+        '217': '215', '218': '212', '219': '212', '220': '202', '221': '202',
+        '222': '212', '223': '201', '224': '212', '225': '212', '226': '212',
+        '228': '215', '229': '215', '230': '215', '231': '200', '240': '202',
+        '250': '204', '260': '204', '270': '204', '281': '215',
+        '304': '300', '306': '300', '309': '303', '315': '314', '316': '311',
+        '317': '313', '320': '311', '321': '313', '322': '303', '323': '311',
+        '324': '311', '325': '311', '326': '314', '327': '314', '328': '300',
+        '329': '300', '340': '400', '350': '300', '361': '411', '371': '413',
+        '405': '400', '407': '406', '409': '403',
+        '420': '411', '421': '413', '422': '414', '423': '414', '425': '400',
+        '426': '400', '427': '400', '450': '400'
+    };
+    let lastForecastWeatherCodes_ = [null, null, null, null];
+    function padTelopsCode_(code) {
+        const s = String(code == null ? '' : code).trim();
+        if (!/^\d{1,3}$/.test(s)) return '';
+        return s.padStart(3, '0');
+    }
+    function jmaIconFile_(code) {
+        const c = padTelopsCode_(code);
+        if (!c) return '';
+        return JMA_TELOPS_ICON_FILE_[c] || c;
+    }
+    function jmaWeatherIconUrl_(code) {
+        const file = jmaIconFile_(code);
+        return file ? ('images/jma-icons/' + file + '.svg') : '';
+    }
     function weatherCodeToIconHref(code) {
-        const wc = Number(code);
-        if (!Number.isFinite(wc)) return '#icon-sunny';
-        const head = Math.floor(wc / 100);
-        if (head >= 3) return '#icon-rainy';
-        if (head === 2) return '#icon-cloudy';
-        return '#icon-sunny';
+        return padTelopsCode_(code) || '100';
+    }
+    function fallbackTelopsFromSymbol_(href) {
+        if (href === '#icon-rainy') return '300';
+        if (href === '#icon-cloudy') return '200';
+        return '100';
+    }
+    function resolveWeatherIconUrl_(codeOrHref) {
+        const raw = String(codeOrHref == null ? '' : codeOrHref);
+        if (raw.indexOf('/bosai/forecast/img/') >= 0) return raw;
+        if (raw.indexOf('jma-icons/') >= 0) return raw;
+        const fromCode = jmaWeatherIconUrl_(raw);
+        if (fromCode) return fromCode;
+        return jmaWeatherIconUrl_(fallbackTelopsFromSymbol_(raw));
+    }
+    function jmaWeatherIconRemoteUrl_(codeOrHref) {
+        const raw = String(codeOrHref == null ? '' : codeOrHref);
+        if (raw.indexOf('/bosai/forecast/img/') >= 0) return raw;
+        const fromUrl = raw.match(/(\d{3})\.svg/i);
+        const code = fromUrl ? fromUrl[1] : (raw.indexOf('#icon-') === 0 ? fallbackTelopsFromSymbol_(raw) : raw);
+        const file = jmaIconFile_(code);
+        return file ? (JMA_WX_ICON_BASE + file + '.svg') : '';
+    }
+    function findWeatherCell_(node) {
+        if (!node) return null;
+        if (node.classList && node.classList.contains('weather-icon-cell')) return node;
+        if (node.closest) {
+            const cell = node.closest('.weather-icon-cell');
+            if (cell) return cell;
+        }
+        if (node.tagName === 'IMG' && node.parentElement) return node.parentElement;
+        const svg = node.tagName === 'svg' ? node : (node.closest && node.closest('svg.weather-svg'));
+        if (svg && svg.parentElement) return svg.parentElement;
+        if (node.parentElement) return node.parentElement;
+        return null;
+    }
+    function ensureWeatherImg_(node) {
+        if (!node) return null;
+        if (node.tagName === 'IMG') return node;
+        const cell = findWeatherCell_(node);
+        if (!cell) return null;
+        let img = cell.querySelector('img.jma-wx-icon');
+        if (img) return img;
+        const isD5 = !!(node.classList && node.classList.contains('d5-weather-use'))
+            || !!(cell.querySelector && cell.querySelector('.d5-weather-use'));
+        const useClass = isD5 ? 'd5-weather-use' : 'weather-icon-use';
+        img = document.createElement('img');
+        img.className = 'weather-svg jma-wx-icon ' + useClass;
+        img.alt = '';
+        img.decoding = 'async';
+        const svg = cell.querySelector('svg.weather-svg');
+        if (svg) cell.replaceChild(img, svg);
+        else cell.appendChild(img);
+        return img;
+    }
+    function setWeatherIconNode_(node, codeOrHref) {
+        const img = ensureWeatherImg_(node);
+        if (!img) return;
+        const url = resolveWeatherIconUrl_(codeOrHref);
+        const remote = jmaWeatherIconRemoteUrl_(codeOrHref);
+        const fallback = jmaWeatherIconUrl_('100');
+        img.style.display = '';
+        img.onerror = function () {
+            if (remote && img.getAttribute('src') !== remote) {
+                img.src = remote;
+                return;
+            }
+            if (fallback && img.getAttribute('src') !== fallback) {
+                img.onerror = null;
+                img.src = fallback;
+            }
+        };
+        if (url && img.getAttribute('src') !== url) img.src = url;
+    }
+    function setWeatherIcons_(selector, codeOrHref) {
+        document.querySelectorAll(selector).forEach(function (el) {
+            setWeatherIconNode_(el, codeOrHref);
+        });
+    }
+    function forecastDayOffset_(iso, todayYmd) {
+        const p = jstPartsFromMs(new Date(iso).getTime());
+        const ymd = p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0');
+        const a = Date.parse(todayYmd + 'T12:00:00+09:00');
+        const b = Date.parse(ymd + 'T12:00:00+09:00');
+        if (!Number.isFinite(a) || !Number.isFinite(b)) return -1;
+        return Math.round((b - a) / 86400000);
+    }
+    function pickForecastWeatherArea_(areas, needKey) {
+        if (!Array.isArray(areas) || !areas.length) return null;
+        const detail = SITE_CFG.jma && SITE_CFG.jma.forecastDetail;
+        function usable_(a) {
+            if (!a) return false;
+            if (needKey === 'tempsMax') return !!(a.tempsMax && a.tempsMax.length);
+            if (needKey === 'temps') return !!(a.temps && a.temps.length);
+            return Array.isArray(a.weatherCodes) && a.weatherCodes.length;
+        }
+        if (detail) {
+            const hit = areas.find(function (a) {
+                return a.area && String(a.area.code) === String(detail) && usable_(a);
+            });
+            if (hit) return hit;
+        }
+        return areas.find(usable_) || areas[0];
+    }
+    function extractForecastWeatherCodes_(forecastJson) {
+        const codes = [null, null, null, null];
+        const now = getNowMs();
+        const tp = jstPartsFromMs(now);
+        const todayYmd = tp.year + '-' + String(tp.month).padStart(2, '0') + '-' + String(tp.day).padStart(2, '0');
+        function absorb(report) {
+            if (!report || !Array.isArray(report.timeSeries)) return;
+            report.timeSeries.forEach(function (block) {
+                const area = pickForecastWeatherArea_(block.areas);
+                const defines = block.timeDefines || [];
+                if (!area || !Array.isArray(area.weatherCodes)) return;
+                defines.forEach(function (td, i) {
+                    const code = padTelopsCode_(area.weatherCodes[i]);
+                    if (!code) return;
+                    const off = forecastDayOffset_(td, todayYmd);
+                    if (off >= 0 && off < 4 && !codes[off]) codes[off] = code;
+                });
+                for (let d = 0; d < 4; d++) {
+                    if (!codes[d]) codes[d] = padTelopsCode_(area.weatherCodes[d]) || null;
+                }
+            });
+        }
+        if (Array.isArray(forecastJson)) {
+            absorb(forecastJson[0]);
+            absorb(forecastJson[1]);
+        }
+        return codes;
     }
     function amedasFieldValue(field) {
         if (!Array.isArray(field) || field.length < 1) return null;
@@ -7141,6 +7978,33 @@
         const dirs = ['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
         return dirs[Math.round(Number(code)) % 16];
     }
+    function parseJmaLatestStamp_(text) {
+        const m = String(text || '').match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+        if (!m) return null;
+        return {
+            ymd: m[1] + m[2] + m[3],
+            hhmm: m[4] + m[5],
+            hour: Number(m[4]),
+            minute: Number(m[5])
+        };
+    }
+    function shiftJmaStamp_(stamp, minusMin) {
+        if (!stamp) return null;
+        const utc = Date.UTC(
+            Number(stamp.ymd.slice(0, 4)),
+            Number(stamp.ymd.slice(4, 6)) - 1,
+            Number(stamp.ymd.slice(6, 8)),
+            stamp.hour,
+            stamp.minute
+        ) - minusMin * 60000;
+        const dt = new Date(utc);
+        const ymd = String(dt.getUTCFullYear())
+            + String(dt.getUTCMonth() + 1).padStart(2, '0')
+            + String(dt.getUTCDate()).padStart(2, '0');
+        const hh = String(dt.getUTCHours()).padStart(2, '0');
+        const mm = String(dt.getUTCMinutes()).padStart(2, '0');
+        return { ymd: ymd, hhmm: hh + mm, hour: Number(hh), minute: Number(mm) };
+    }
     async function fetchJmaLatestTime_() {
         const res = await fetch(JMA_LATEST_TIME_URL, JMA_FETCH_HEADERS);
         if (!res.ok) throw new Error('JMA latest_time HTTP ' + res.status);
@@ -7149,6 +8013,7 @@
         if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(iso)) iso = iso.replace(/\.\d+$/, '') + '+09:00';
         const dt = new Date(iso);
         if (!Number.isFinite(dt.getTime())) throw new Error('JMA latest_time parse');
+        dt._jmaText = text;
         return dt;
     }
     function pickPointBlockObs_(data, exactKey) {
@@ -7227,6 +8092,36 @@
         }
         throw lastErr || new Error('JMA amedas point failed ' + pt);
     }
+    function amedasHasPressure_(obs) {
+        return amedasFieldValue(obs && obs.normalPressure) != null
+            || amedasFieldValue(obs && obs.pressure) != null;
+    }
+    async function fillPressureFromMap_(obs, ymd, hhmm) {
+        if (amedasHasPressure_(obs)) return obs;
+        try {
+            const res = await fetch(
+                'https://www.jma.go.jp/bosai/amedas/data/map/' + ymd + hhmm + '00.json',
+                JMA_FETCH_HEADERS
+            );
+            if (!res.ok) return obs;
+            const data = await res.json();
+            const pref = obs && obs.prefNumber;
+            let samePref = null;
+            let any = null;
+            Object.keys(data).forEach(function (id) {
+                const row = data[id];
+                if (!row || !amedasHasPressure_(row)) return;
+                if (!any) any = row;
+                if (pref != null && row.prefNumber === pref && !samePref) samePref = row;
+            });
+            const pick = samePref || any;
+            if (!pick) return obs;
+            console.log('[JMA] 気圧を近傍地点から補完');
+            return mergeAmedasObs_(obs, pick);
+        } catch (_) {
+            return obs;
+        }
+    }
     async function enrichAmedasObs_(obs, ymd, hhmm, exactKey, blockH) {
         let out = obs;
         if (!amedasObsNeedsPointSupplement_(out)) return out;
@@ -7236,31 +8131,25 @@
         } catch (supErr) {
             console.warn('[JMA] 主地点補完(point)失敗:', supErr.message || supErr);
         }
-        if (!amedasObsNeedsPointSupplement_(out) || !JMA_AMEDAS_SUPPLEMENT_POINT
-            || String(JMA_AMEDAS_SUPPLEMENT_POINT) === String(JMA_AMEDAS_POINT)) {
-            return out;
+        if (JMA_AMEDAS_SUPPLEMENT_POINT
+            && String(JMA_AMEDAS_SUPPLEMENT_POINT) !== String(JMA_AMEDAS_POINT)
+            && amedasObsNeedsPointSupplement_(out)) {
+            try {
+                const remote = await fetchJmaAmedasObsForPoint_(JMA_AMEDAS_SUPPLEMENT_POINT, ymd, hhmm, exactKey, blockH);
+                out = mergeAmedasObs_(out, remote);
+                console.log('[JMA] 近傍地点補完', JMA_AMEDAS_SUPPLEMENT_POINT, '→ 主地点', JMA_AMEDAS_POINT);
+            } catch (remoteErr) {
+                console.warn('[JMA] 近傍地点補完失敗:', remoteErr.message || remoteErr);
+            }
         }
-        try {
-            const remote = await fetchJmaAmedasObsForPoint_(JMA_AMEDAS_SUPPLEMENT_POINT, ymd, hhmm, exactKey, blockH);
-            out = mergeAmedasObs_(out, remote);
-            console.log('[JMA] 近傍地点補完', JMA_AMEDAS_SUPPLEMENT_POINT, '→ 主地点', JMA_AMEDAS_POINT);
-        } catch (remoteErr) {
-            console.warn('[JMA] 近傍地点補完失敗:', remoteErr.message || remoteErr);
-        }
+        if (!amedasHasPressure_(out)) out = await fillPressureFromMap_(out, ymd, hhmm);
         return out;
     }
-    async function fetchJmaAmedasObservation_() {
-        const latest = await fetchJmaLatestTime_();
-        const fmt = new Intl.DateTimeFormat('en-CA', {
-            timeZone: CLOCK_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', hour12: false
-        });
-        const p = Object.fromEntries(fmt.formatToParts(latest).map(x => [x.type, x.value]));
-        const ymd = `${p.year}${p.month}${p.day}`;
-        const hhmm = `${p.hour}${p.minute}`;
-        const exactKey = `${ymd}${hhmm}00`;
-        const blockH = String(Math.floor(Number(p.hour) / 3) * 3).padStart(2, '0');
-        /* 気象庁の地点JSON(point)を最優先で使い、項目不足時のみ map を使う */
+    async function fetchJmaAmedasAtStamp_(latest, stamp) {
+        const ymd = stamp.ymd;
+        const hhmm = stamp.hhmm;
+        const exactKey = ymd + hhmm + '00';
+        const blockH = String(Math.floor(stamp.hour / 3) * 3).padStart(2, '0');
         const urls = [
             { kind: 'point-block', url: `https://www.jma.go.jp/bosai/amedas/data/point/${JMA_AMEDAS_POINT}/${ymd}_${blockH}.json`, exactKey },
             { kind: 'point', url: `https://www.jma.go.jp/bosai/amedas/data/point/${JMA_AMEDAS_POINT}/${ymd}${hhmm}.json` },
@@ -7291,6 +8180,20 @@
         }
         throw lastErr || new Error('JMA amedas failed');
     }
+    async function fetchJmaAmedasObservation_() {
+        const latest = await fetchJmaLatestTime_();
+        const stamp = parseJmaLatestStamp_(latest._jmaText);
+        if (!stamp) throw new Error('JMA latest_time stamp');
+        let lastErr = null;
+        const offsets = [0, 10, 20, 30];
+        for (let i = 0; i < offsets.length; i++) {
+            const s = shiftJmaStamp_(stamp, offsets[i]);
+            try {
+                return await fetchJmaAmedasAtStamp_(latest, s);
+            } catch (e) { lastErr = e; }
+        }
+        throw lastErr || new Error('JMA amedas failed');
+    }
     async function fetchJmaForecast_() {
         const res = await fetch(JMA_FORECAST_URL, JMA_FETCH_HEADERS);
         if (!res.ok) throw new Error('JMA forecast HTTP ' + res.status);
@@ -7305,9 +8208,9 @@
             });
         }
     }
-    /** 今日枠線: ほぼ安全(0)・厳重警戒(3)・危険(4)は白、注意(1)・警戒(2)は黒 */
+    /** 今日枠線: 黄の警戒・水色の注意は黒。それ以外は白 */
     function isD5TodayFrameWhite_(levelIdx) {
-        return levelIdx === 0 || levelIdx === 3 || levelIdx === 4;
+        return levelIdx !== 1 && levelIdx !== 2;
     }
     function ensureD5TodayFrame_(panel) {
         if (!panel || panel.querySelector('.d5-today-frame')) return;
@@ -7318,20 +8221,20 @@
     }
     function applyD5TodayFrame_() {
         const mode = getSignageDisplayMode_();
-        const lv = mode === 'normal' ? getSignageBgLevel_() : -1;
+        const lv = (mode === 'normal' || mode === 'wbgt' || mode === 'temperature') ? getSignageBgLevel_() : -1;
         const white = lv >= 0 && isD5TodayFrameWhite_(lv);
         document.querySelectorAll('#scene5 .d5-panel.d5-today-focus').forEach(function (panel) {
             ensureD5TodayFrame_(panel);
             panel.classList.toggle('d5-today-frame-white', white);
         });
     }
-    /** 全列: 注意・警戒は黒、それ以外は白（「/」・気温・日付ラベル） */
+    /** 全列: 黄の警戒・水色の注意は黒。それ以外は白（「/」・気温・日付ラベル） */
     function applyD5ForecastTextColors_() {
         const mode = getSignageDisplayMode_();
-        const bgLv = mode === 'normal' ? getSignageBgLevel_() : -1;
+        const bgLv = (mode === 'normal' || mode === 'wbgt' || mode === 'temperature') ? getSignageBgLevel_() : -1;
         const dark = (typeof SignageBg !== 'undefined' && SignageBg.isDarkTextForDisplay)
             ? SignageBg.isDarkTextForDisplay(bgLv, mode)
-            : (mode === 'normal' && (bgLv === 1 || bgLv === 2));
+            : ((mode === 'normal' || mode === 'wbgt') && (bgLv === 1 || bgLv === 2));
         const c = dark ? '#000000' : '#ebebeb';
         document.querySelectorAll('#scene5 .d5-panel:not(.d5-today-focus):not(.d5-logo-panel)').forEach(function (panel) {
             panel.classList.toggle('col-bg-dark-text', dark);
@@ -7346,6 +8249,7 @@
         if (!d5Conveyor) return;
         scene5SetWidth = SCENE5_PANEL_COUNT * 128;
         d5Conveyor.style.width = `${scene5SetWidth * 2}px`;
+        applyContentEndLogoSrc_();
     }
     function fitD5PanelText_() {
         const maxW = 120;
@@ -7359,46 +8263,44 @@
             }
         });
         document.querySelectorAll('#scene5 .d5-weather-row').forEach(function (row) {
-            const icon = row.querySelector('.weather-svg');
             const sep = row.querySelector('.d5-sep');
             const wrap = row.querySelector('.s2-val');
             const num = wrap && wrap.querySelector('.d5-temp');
             if (!num) return;
-            let iconSz = 58;
-            let sepSz = 38;
-            let numSz = 52;
-            let unitSz = 24;
+            let sepSz = 22;
+            let numSz = 34;
+            let unitSz = 16;
             const apply = function () {
-                if (icon) { icon.style.width = iconSz + 'px'; icon.style.height = iconSz + 'px'; }
                 if (sep) sep.style.fontSize = sepSz + 'px';
                 num.style.fontSize = numSz + 'px';
                 const unit = wrap.querySelector('.s2-unit');
                 if (unit) unit.style.fontSize = unitSz + 'px';
             };
             const overflows = function () {
-                return row.scrollWidth > maxW || row.scrollHeight > maxH;
+                const icon = row.querySelector('.weather-icon-cell');
+                const iconW = icon ? icon.offsetWidth : 54;
+                const textW = (sep ? sep.offsetWidth : 0) + (wrap ? wrap.offsetWidth : 0);
+                return (iconW + 1 + textW) > 122;
             };
             apply();
-            let growGuard = 24;
+            let growGuard = 16;
             while (growGuard-- > 0) {
-                const prev = { iconSz: iconSz, sepSz: sepSz, numSz: numSz, unitSz: unitSz };
-                if (numSz < 56) numSz += 1;
-                else if (iconSz < 62) iconSz += 1;
-                else if (sepSz < 42) sepSz += 1;
-                else if (unitSz < 26) unitSz += 1;
+                const prev = { sepSz: sepSz, numSz: numSz, unitSz: unitSz };
+                if (numSz < 38) numSz += 1;
+                else if (unitSz < 18) unitSz += 1;
+                else if (sepSz < 24) sepSz += 1;
                 else break;
                 apply();
                 if (overflows()) {
-                    iconSz = prev.iconSz; sepSz = prev.sepSz; numSz = prev.numSz; unitSz = prev.unitSz;
+                    sepSz = prev.sepSz; numSz = prev.numSz; unitSz = prev.unitSz;
                     apply();
                     break;
                 }
             }
-            let guard = 60;
+            let guard = 40;
             while (guard-- > 0 && overflows()) {
                 if (numSz > 30) { numSz -= 1; apply(); continue; }
-                if (iconSz > 38) { iconSz -= 2; apply(); continue; }
-                if (sepSz > 26) { sepSz -= 1; apply(); continue; }
+                if (sepSz > 24) { sepSz -= 1; apply(); continue; }
                 if (unitSz > 16) { unitSz -= 1; apply(); continue; }
                 break;
             }
@@ -7407,29 +8309,40 @@
     function applyJmaDailyForecastToDom(forecastJson, todayMaxTemp, todayLiveIcon) {
         const weekly = Array.isArray(forecastJson) ? forecastJson[1] : null;
         const series = weekly && weekly.timeSeries;
-        if (!Array.isArray(series)) return;
         let tempsMax = null;
-        let weatherCodes = null;
-        for (const block of series) {
-            const area = block.areas && block.areas[0];
-            if (!area) continue;
-            if (area.tempsMax) tempsMax = area.tempsMax;
-            if (area.weatherCodes && !weatherCodes) weatherCodes = area.weatherCodes;
+        if (Array.isArray(series)) {
+            for (const block of series) {
+                const area = pickForecastWeatherArea_(block.areas, 'tempsMax') || (block.areas && block.areas[0]);
+                if (!area) continue;
+                if (area.tempsMax) tempsMax = area.tempsMax;
+            }
         }
+        lastForecastWeatherCodes_ = extractForecastWeatherCodes_(forecastJson);
         applyD5BarLabels_();
         for (let day = 0; day < SCENE5_DAY_COUNT; day++) {
             const idx = D5_FORECAST_INDICES[day];
             let temp = tempsMax && tempsMax[idx] !== '' ? Number(tempsMax[idx]) : null;
             if (day === 0 && todayMaxTemp != null && Number.isFinite(todayMaxTemp)) temp = todayMaxTemp;
-            let icon = weatherCodeToIconHref(weatherCodes ? weatherCodes[idx] : null);
-            if (day === 0 && todayLiveIcon) icon = todayLiveIcon;
+            let icon = lastForecastWeatherCodes_[day] || null;
+            if (!icon && day === 0 && todayLiveIcon) icon = todayLiveIcon;
+            if (!icon) icon = weatherCodeToIconHref(null);
             const tempStr = temp != null && Number.isFinite(temp) ? String(Math.round(temp)) : '--';
             document.querySelectorAll(`.d5-day-${day} .d5-temp`).forEach(el => { el.innerText = tempStr; });
-            document.querySelectorAll(`.d5-day-${day} .d5-weather-use`).forEach(el => el.setAttribute('href', icon));
+            setWeatherIcons_(`.d5-day-${day} .d5-weather-use`, icon);
+            if (!lastForecastSnap_ || !lastForecastSnap_.days) lastForecastSnap_ = { days: [] };
+            lastForecastSnap_.days[day] = {
+                temp: tempStr,
+                icon: resolveWeatherIconUrl_(icon) || String(icon || '')
+            };
         }
+        if (lastForecastWeatherCodes_[0]) {
+            setWeatherIcons_('.weather-icon-use', lastForecastWeatherCodes_[0]);
+        }
+        if (lastForecastSnap_) lastForecastSnap_.savedAt = Date.now();
         applyD5TodayFrame_();
         applyD5ForecastTextColors_();
         fitD5PanelText_();
+        persistSignageStateCache_();
     }
     function formatScene2ObsClock_(date) {
         const d = date instanceof Date ? date : new Date(date);
@@ -7453,8 +8366,16 @@
         weather: '', temp: '気温', rain: '降水', wdir: '風向', wind: '風速',
         humi: '湿度', pres: '気圧', tmaxmin: '高低', gust: '瞬間'
     };
-    /* 本体9面と同じ順（末尾ロゴなし） */
-    const SCENE2_PANEL_ORDER = ['weather', 'temp', 'rain', 'wdir', 'wind', 'humi', 'pres', 'tmaxmin', 'gust'];
+    /* 本体: 気象9面 + 末尾ロゴ。白帯も同じ並びに空枠を入れる */
+    const SCENE2_PANEL_ORDER = ['weather', 'temp', 'rain', 'wdir', 'wind', 'humi', 'pres', 'tmaxmin', 'gust', 'logo'];
+    function scene2UseLogoFace_() {
+        return !!((window.SIGNAGE_CONFIG || {}).logoSrc);
+    }
+    function scene2VisibleTypes_() {
+        const types = SCENE2_META_ORDER.slice();
+        if (scene2UseLogoFace_()) types.push('logo');
+        return types;
+    }
     function scene2FootTextForType_(type, obs) {
         switch (type) {
             case 'rain': return obs.time;
@@ -7479,7 +8400,7 @@
             escapeS1Html(txt) + '</span></div>';
     }
     function buildScene2MetaSetHtml(obs) {
-        const slots = SCENE2_PANEL_ORDER.map(function (type) {
+        const slots = scene2VisibleTypes_().map(function (type) {
             return buildScene2MetaSlotHtml_(type, obs);
         }).join('');
         return '<div class="s2-meta-set s2-meta-set-panels">' + slots + '</div>';
@@ -7488,17 +8409,25 @@
         if (!s2MetaTrack) return;
         const when = latest || lastAmedasObsTime || (getSyncedUtcMs() != null ? new Date(getSyncedUtcMs()) : new Date());
         const obs = formatScene2ObsClock_(when);
+        const key = String(obs.stamp || '') + '\t' + scene2VisibleTypes_().join(',');
+        if (key === lastS2MetaKey_ && s2MetaTrack.querySelector('.s2-meta-set-panels')) {
+            applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
+            return;
+        }
+        lastS2MetaKey_ = key;
         s2MetaTrack.innerHTML = buildScene2MetaSetHtml(obs) + buildScene2MetaSetHtml(obs);
         const set = s2MetaTrack.querySelector('.s2-meta-set-panels');
-        const setW = set ? set.offsetWidth : (SCENE2_PANEL_ORDER.length * 128);
-        scene2MetaLapPx = Math.max(scene2SetWidth || setW, setW);
+        const n = scene2VisibleTypes_().length;
+        const setW = set ? set.offsetWidth : (n * 128);
+        scene2MetaLapPx = scene2SetWidth || setW;
         applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
     }
     function applyJmaAmedasToDom(obs, latest) {
         if (latest) lastAmedasObsTime = latest instanceof Date ? latest : new Date(latest);
-        const icon = amedasToWeatherIcon(obs);
-        document.querySelectorAll('.weather-icon-use').forEach(el => el.setAttribute('href', icon));
+        const icon = lastForecastWeatherCodes_[0] || amedasToWeatherIcon(obs);
+        setWeatherIcons_('.weather-icon-use', icon);
         const temp = amedasFieldValue(obs.temp);
+        if (window.AlertCubeRuntime && temp != null) window.AlertCubeRuntime.setCurrentTemp(temp);
         const humi = amedasFieldValue(obs.humidity);
         const p10 = amedasFieldValue(obs.precipitation10m);
         const p1h = amedasFieldValue(obs.precipitation1h);
@@ -7509,13 +8438,12 @@
         const minT = amedasFieldValue(obs.minTemp);
         const gust = amedasFieldValue(obs.gust);
 
-        setTextAll('.temp-val', temp != null ? String(Math.round(Number(temp))) : '');
-            setTextAll('.humi-val', humi != null ? String(Math.round(Number(humi))) : '');
-        setTextAll('.rain-val', p10 != null ? Number(p10).toFixed(1) : '');
-        setTextAll('.pres-val', pres != null ? String(Math.round(Number(pres))) : '');
-        const windDirTxt = wdir != null ? jmaWindDirFromCode(wdir) : '';
-        setTextAll('.dir-val', windDirTxt);
-        setTextAll('.wind-val', wind != null ? Number(wind).toFixed(1) : '');
+        if (temp != null) setTextAll('.temp-val', String(Math.round(Number(temp))));
+        if (humi != null) setTextAll('.humi-val', String(Math.round(Number(humi))));
+        if (p10 != null) setTextAll('.rain-val', Number(p10).toFixed(1));
+        if (pres != null) setTextAll('.pres-val', String(Math.round(Number(pres))));
+        if (wdir != null) setTextAll('.dir-val', jmaWindDirFromCode(wdir));
+        if (wind != null) setTextAll('.wind-val', Number(wind).toFixed(1));
 
         const maxTxt = maxT != null ? Math.round(Number(maxT)) : null;
         const minTxt = minT != null ? Math.round(Number(minT)) : null;
@@ -7524,6 +8452,9 @@
         setTextAll('.gust-val', gust != null ? Number(gust).toFixed(1) : '');
 
         lastAmedasRainNow = (p10 != null && Number(p10) > 0) || (p1h != null && Number(p1h) > 0);
+        if (window.AlertCubeRuntime && !window.AlertCubeRuntime.isWbgtMode()) {
+            refreshSignageBgIfChanged_(false);
+        }
 
         if (shouldDeferDisplayRefresh_()) {
             queueDisplayRefresh_();
@@ -7598,29 +8529,72 @@
             }
         });
     }
-    /* 4面: 気象9項目のみ（末尾ロゴなし） */
+    function applyContentEndLogoSrc_() {
+        const cfg = window.SIGNAGE_CONFIG || {};
+        const src = cfg.logoSrc || '';
+        const alt = cfg.logoAlt || (window.AlertCubeRuntime && window.AlertCubeRuntime.customerName()) || '';
+        document.querySelectorAll('.s2-logo-face-img, .fc-logo-face-img, .d5-logo-face-img').forEach(function (face) {
+            if (src && face.getAttribute('src') !== src) face.src = src;
+            face.alt = alt;
+        });
+    }
+    /* 気象庁アメダス: 9項目のあと128×128ロゴ1枚（10分ごと更新） */
     function scene2LogoPanelHtml_() {
-        return '';
+        const cfg = window.SIGNAGE_CONFIG || {};
+        const src = cfg.logoSrc || '';
+        return '<div class="s2-panel s2-logo-panel" data-s2="logo">'
+            + '<div class="s2-body"><img class="s2-logo-face-img" src="' + src
+            + '" alt="' + (cfg.logoAlt || (window.AlertCubeRuntime && window.AlertCubeRuntime.customerName()) || '') + '" decoding="sync"></div></div>';
     }
     function isScene2LogoPanel_(p) {
         return !!(p && (p.classList.contains('s2-logo-panel') || p.getAttribute('data-s2') === 'logo'));
     }
+    function scene2PanelHasValue_(p) {
+        if (!p || isScene2LogoPanel_(p)) return true;
+        const type = p.getAttribute('data-s2') || '';
+        if (type === 'weather') return true;
+        if (type === 'tmaxmin') {
+            const hi = p.querySelector('.tmaxmax-val');
+            const lo = p.querySelector('.tmin-val');
+            const ht = hi ? String(hi.textContent || '').trim() : '';
+            const lt = lo ? String(lo.textContent || '').trim() : '';
+            return (ht && ht !== '--') || (lt && lt !== '--');
+        }
+        const num = p.querySelector('.s2-num, .dir-val');
+        return !!(num && String(num.textContent || '').trim());
+    }
     function compactScene2Panels() {
+        if (shouldDeferDisplayRefresh_()) {
+            pendingScene2Compact_ = true;
+            queueDisplayRefresh_();
+            return;
+        }
+        pendingScene2Compact_ = false;
         if (!conveyor) return;
+        if (lastAmedasSnapshot_ && lastAmedasSnapshot_.temp != null) applyAmedasSnapshot_(lastAmedasSnapshot_);
         const weather = Array.from(conveyor.children).filter(function (p) {
             return !isScene2LogoPanel_(p);
         });
         const nWeather = Math.max(1, Math.floor(weather.length / 2) || SCENE2_WEATHER_COUNT);
-        const setWeather = weather.slice(0, nWeather);
+        let setWeather = weather.slice(0, nWeather).filter(scene2PanelHasValue_);
+        if (!setWeather.length) setWeather = weather.slice(0, nWeather);
         let setHtml = '';
         setWeather.forEach(function (p) { setHtml += p.outerHTML; });
-        setHtml += scene2LogoPanelHtml_();
+        const cfgLogo = scene2UseLogoFace_() && (window.SIGNAGE_CONFIG || {}).logoSrc;
+        if (cfgLogo) setHtml += scene2LogoPanelHtml_();
         conveyor.innerHTML = setHtml + setHtml;
-        scene2SetWidth = nWeather * 128;
+        scene2SetWidth = (setWeather.length + (cfgLogo ? 1 : 0)) * 128;
         conveyor.style.width = (scene2SetWidth * 2) + 'px';
         scene2MetaLapPx = scene2SetWidth;
+        applyContentEndLogoSrc_();
         if (typeof SignageBg !== 'undefined' && SignageBg.initHosts) SignageBg.initHosts();
+        if (lastAmedasSnapshot_ && lastAmedasSnapshot_.temp != null) applyAmedasSnapshot_(lastAmedasSnapshot_);
+        refreshSignageBgIfChanged_(true);
         buildScene2MetaTrack(lastAmedasObsTime);
+        const wx = lastForecastWeatherCodes_[0]
+            || (lastAmedasSnapshot_ && lastAmedasSnapshot_.icon)
+            || '#icon-sunny';
+        setWeatherIcons_('#scene2 .weather-icon-cell', wx);
     }
     async function fetchWeatherAndWbgt(opts) {
         const plan = Object.assign(
@@ -7882,7 +8856,7 @@
         return String(cfg.footLogoSrc || cfg.logoSrc || '').trim();
     }
     function buildS1FootBrandHtml_() {
-        const name = getS1SiteFootName_() || '名古屋市';
+        const name = getS1SiteFootName_() || (window.AlertCubeRuntime && window.AlertCubeRuntime.customerName()) || '';
         return '<span class="s1-foot-co-txt">' + escapeS1Html(name) + '</span>';
     }
     function buildS1SiteLogoHtml_() {
@@ -7891,7 +8865,7 @@
         return `<span class="s1-wbgt-logo-wrap"><img class="s1-wbgt-logo" src="${escapeS1Html(logoSrc)}" alt="" decoding="async"></span>`;
     }
     function buildS1FootBannerSvgHtml_(siteName) {
-        const name = siteName || '名古屋市';
+        const name = siteName || (window.AlertCubeRuntime && window.AlertCubeRuntime.customerName()) || '';
         const alt = escapeS1Html(name);
         const cfg = (typeof window !== 'undefined' && window.SIGNAGE_CONFIG) || {};
         const logoSrc = escapeS1Html(cfg.footLogoSrc || cfg.logoSrc || '');
@@ -7908,7 +8882,7 @@
             return `<div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="${escapeS1Html(bannerSrc)}" alt="${alt}" decoding="async"></div>`;
         }
         const logoHtml = buildS1SiteLogoHtml_();
-        const labelHtml = `<span class="s1-foot-co-txt">${escapeS1Html(siteName || '名古屋市')}</span>`;
+        const labelHtml = `<span class="s1-foot-co-txt">${escapeS1Html(siteName || (window.AlertCubeRuntime && window.AlertCubeRuntime.customerName()) || '')}</span>`;
         return `<div class="s1-wbgt-slot s1-wbgt-site-slot"><span class="s1-wbgt-site-inner">${logoHtml}${labelHtml}</span></div>`;
     }
     function ensureS1WbgtBarVisible_() {
@@ -7942,7 +8916,12 @@
         const banner = getS1FootBannerSrc_();
         if (banner) {
             slots.push('<div class="s1-wbgt-slot s1-wbgt-site-slot"><img class="s1-wbgt-banner" src="'
-                + escapeS1Html(banner) + '" alt="名古屋市" decoding="async"></div>');
+                + escapeS1Html(banner) + '" alt="" decoding="async"></div>');
+        }
+        const mark = getS1FootMarkSrc_();
+        if (mark && !banner) {
+            slots.push('<div class="s1-wbgt-slot s1-wbgt-site-slot s1-wbgt-logo-slot"><img class="s1-foot-eneos" src="'
+                + escapeS1Html(mark) + '" alt="" decoding="async"></div>');
         }
         const name = String(getS1SiteFootName_() || '').trim();
         if (name) {
@@ -7962,7 +8941,7 @@
         return '<div class="s1-wbgt-set s1-wbgt-set-scroll">' + once + once + '</div>';
     }
     function s1FootContentKey_(text) {
-        return [getS1FootBannerSrc_(), getS1SiteFootName_(), String(text || '')].join('\t');
+        return [getS1FootBannerSrc_(), getS1FootMarkSrc_(), getS1SiteFootName_(), String(text || '')].join('\t');
     }
     function getFcLvText() {
         return getFootSourceText_();
@@ -7973,11 +8952,12 @@
         }
         return `<span class="fc-lv-msg">${buildEvenCharSpans(text, 'fc-lv-ch')}</span>`;
     }
-    /* 白帯: 256ずつ出典（4面・ロゴ列なし） */
+    /* 白帯: 256ずつ出典 + ロゴ下128は空（本体コンベアと同じ周期） */
     function buildFcLvSetHtml(text) {
         const msg = '<span class="fc-lv-msg-compact">' + escapeS1Html(text) + '</span>';
         const src = '<div class="fc-lv-slot fc-lv-slot-src">' + msg + '</div>';
-        return '<div class="fc-lv-set fc-lv-set-sync">' + src + src + '</div>';
+        const logo = '<div class="fc-lv-slot fc-lv-slot-logo" aria-hidden="true"></div>';
+        return '<div class="fc-lv-set fc-lv-set-sync">' + src + src + logo + '</div>';
     }
     function buildFcLvTrack(clearTimers) {
         if (!fcLvTrack) return;
@@ -7985,7 +8965,7 @@
         const key = '256x2:' + text;
         if (key === lastFcLvText_ && fcLvTrack.querySelector('.fc-lv-set-sync')) {
             if (clearTimers) clearScene4Timers();
-            scene4FcLvLapPx = scene4SetWidth || (256 * 2);
+            scene4FcLvLapPx = scene4SetWidth || (256 * 2 + 128);
             applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
             return;
         }
@@ -7993,7 +8973,7 @@
         if (clearTimers) clearScene4Timers();
         fcLvTrack.innerHTML = buildFcLvSetHtml(text) + buildFcLvSetHtml(text);
         const setEl = fcLvTrack.querySelector('.fc-lv-set-sync');
-        const setW = setEl ? setEl.offsetWidth : (256 * 2);
+        const setW = setEl ? setEl.offsetWidth : (256 * 2 + 128);
         scene4FcLvLapPx = Math.max(scene4SetWidth || setW, setW);
         applyGlobalScroll_(fcLvTrack, scene4FcLvLapPx);
     }
@@ -8073,7 +9053,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarn' || el.id === 'sceneWarnHero') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneSchedule' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarn' || el.id === 'sceneWarnHero') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         return 'flex';
     }
@@ -8094,21 +9074,21 @@
         return all.length ? all[all.length - 1] : null;
     }
     function transitionToScene(nextEl, onComplete) {
-        clearSceneEndHoldTimer_();
-        clearSceneSlideAnim_();
-        clearOutgoingSceneAnims_();
         if (!nextEl) { if (onComplete) onComplete(); return; }
         const current = (playingSceneEl_ && playingSceneEl_ !== nextEl && playingSceneEl_.classList.contains('active'))
             ? playingSceneEl_
             : getActiveScene();
-        document.querySelectorAll('.content-area .scene.active').forEach(function (el) {
-            if (el !== nextEl && el !== current) hideSceneEl(el);
-        });
         if (current === nextEl) {
             playingSceneEl_ = nextEl;
             if (onComplete) onComplete();
             return;
         }
+        clearSceneEndHoldTimer_();
+        clearSceneSlideAnim_();
+        clearOutgoingSceneAnims_();
+        document.querySelectorAll('.content-area .scene.active').forEach(function (el) {
+            if (el !== nextEl && el !== current) hideSceneEl(el);
+        });
         playingSceneEl_ = nextEl;
         nextEl.style.display = sceneDisplayMode(nextEl);
         nextEl.classList.add('active');
@@ -8172,12 +9152,7 @@
     /* シーン3（多言語WBGT）の後 → シーン1 */
     function gotoAfterScene3Tail_() {
         if (WBGT_ONLY) { finishMainLoopToS1_(); return; }
-        if (!NO_HEAT_ALERT && wbgtNormalDisplay_() && heatAlertActive.length && sceneAlert) {
-            prepHeatAlert_(0);
-            transitionToScene(sceneAlert, () => playSceneAlert(0));
-            return;
-        }
-        gotoAfterRainWarnOrScene1_();
+        startMainLoopHead_();
     }
     function gotoAfterScene3_() {
         gotoAfterScene3Tail_();
@@ -8232,7 +9207,7 @@
         if (haAnimId) { cancelAnimationFrame(haAnimId); haAnimId = null; }
         if (!heatAlertActive.length) {
             if (DEMO_ALERT_ONLY) return;
-            gotoAfterRainWarnOrScene1_();
+            gotoSceneScheduleOrNext_();
             return;
         }
         const idx = startIdx || 0;
@@ -8242,20 +9217,20 @@
             scheduleDemoStep_(function () {
                 const next = idx + 1;
                 if (next < heatAlertActive.length) playSceneAlert(next);
-                else gotoAfterRainWarnOrScene1_();
+                else gotoSceneScheduleOrNext_();
             });
             return;
         }
         if (!setHeatAlert_(idx)) {
             if (DEMO_ALERT_ONLY) return;
-            gotoAfterRainWarnOrScene1_();
+            gotoSceneScheduleOrNext_();
             return;
         }
         stepLogo90(420, true);
         const tracks = document.querySelectorAll('#sceneAlert .ha-track');
         if (!tracks.length) {
             if (DEMO_ALERT_ONLY) return;
-            gotoAfterRainWarnOrScene1_();
+            gotoSceneScheduleOrNext_();
             return;
         }
         haFlow_ = {
@@ -8282,7 +9257,7 @@
                             return;
                         } else {
                             haAnimId = null; haFlow_ = null;
-                            gotoAfterRainWarnOrScene1_();
+                            gotoSceneScheduleOrNext_();
                             return;
                         }
                     }
@@ -8830,7 +9805,7 @@
         }
         t3Flow_ = {
             x: wrapScrollX_(globalScrollX_, T3_UNIT_W),
-            langIdx: 0,
+            langIdx: (typeof t3LangIdx_ === 'number' ? t3LangIdx_ : 0),
             laps: 0
         };
         applyT3TrackX_(tracks, t3Flow_.x);
@@ -8938,7 +9913,7 @@
         if (!s3) { gotoAfterScene3_(); return; }
         transitionToScene(s3, playScene3);
     }
-    function playScene2() {
+    function playScene2(saved) {
         applyDisplayRefreshAtSceneEntry_();
         applyPendingSignageBgAtScene_();
         compactScene2Panels();
@@ -8955,15 +9930,19 @@
             gotoSceneAfterScene2_();
             return;
         }
+        const resumeX = (saved && typeof saved.scrollX === 'number' && saved.scrollX > 0 && saved.scrollX < scene2ScrollTotal)
+            ? saved.scrollX : 0;
         snapTrackToContentStart_(conveyor, scene2SetWidth);
-        let totalScrolled = 0;
-        applyScrollX_(s2MetaTrack, 0);
-        applyScrollX_(conveyor, 0);
+        let totalScrolled = resumeX;
+        scenePlayScrollX_ = totalScrolled;
+        applyScrollX_(s2MetaTrack, wrapScrollX_(-totalScrolled, scene2MetaLapPx));
+        applyScrollX_(conveyor, wrapScrollX_(-totalScrolled, scene2SetWidth));
         conveyor.style.transition = 'none';
         function animateScene2() {
             const speed = getScrollSpeedPx_();
             advanceGlobalScroll_(speed);
             totalScrolled += speed;
+            scenePlayScrollX_ = totalScrolled;
             applyScrollX_(conveyor, wrapScrollX_(-totalScrolled, scene2SetWidth));
             applyScrollX_(s2MetaTrack, wrapScrollX_(-totalScrolled, scene2MetaLapPx));
             if (totalScrolled >= scene2ScrollTotal) {
@@ -8978,10 +9957,13 @@
             scene2AnimId = requestAnimationFrame(animateScene2);
         }
         runSceneScrollAfterHold_(function () {
-            snapTrackToContentStart_(conveyor, scene2SetWidth);
-            totalScrolled = 0;
-            applyScrollX_(conveyor, 0);
-            applyScrollX_(s2MetaTrack, 0);
+            if (!resumeX) {
+                snapTrackToContentStart_(conveyor, scene2SetWidth);
+                totalScrolled = 0;
+                scenePlayScrollX_ = 0;
+                applyScrollX_(conveyor, 0);
+                applyScrollX_(s2MetaTrack, 0);
+            }
             scene2AnimId = requestAnimationFrame(animateScene2);
         });
     }
@@ -8990,7 +9972,7 @@
         if (demoOnlyLoop_('s4', playScene4)) return;
         gotoSceneAfterScene4_();
     }
-    function playScene4() {
+    function playScene4(saved) {
         applyDisplayRefreshAtSceneEntry_();
         clearScene4Timers();
         if (wbgtOffSeason) {
@@ -9018,15 +10000,19 @@
             setTimeout(finishScene4, 500);
             return;
         }
+        const resumeX = (saved && typeof saved.scrollX === 'number' && saved.scrollX > 0 && saved.scrollX < scene4ScrollTotal)
+            ? saved.scrollX : 0;
         snapTrackToContentStart_(fcConveyor, scene4SetWidth);
-        let totalScrolled = 0;
-        applyScrollX_(fcLvTrack, 0);
-        applyScrollX_(fcConveyor, 0);
+        let totalScrolled = resumeX;
+        scenePlayScrollX_ = totalScrolled;
+        applyScrollX_(fcLvTrack, wrapScrollX_(-totalScrolled, scene4FcLvLapPx));
+        applyScrollX_(fcConveyor, wrapScrollX_(-totalScrolled, scene4SetWidth));
         fcConveyor.style.transition = 'none';
         function animateScene4() {
             const speed = getScrollSpeedPx_();
             advanceGlobalScroll_(speed);
             totalScrolled += speed;
+            scenePlayScrollX_ = totalScrolled;
             applyScrollX_(fcConveyor, wrapScrollX_(-totalScrolled, scene4SetWidth));
             applyScrollX_(fcLvTrack, wrapScrollX_(-totalScrolled, scene4FcLvLapPx));
             if (totalScrolled >= scene4ScrollTotal) {
@@ -9040,14 +10026,17 @@
             scene4AnimId = requestAnimationFrame(animateScene4);
         }
         runSceneScrollAfterHold_(function () {
-            snapTrackToContentStart_(fcConveyor, scene4SetWidth);
-            totalScrolled = 0;
-            applyScrollX_(fcConveyor, 0);
-            applyScrollX_(fcLvTrack, 0);
+            if (!resumeX) {
+                snapTrackToContentStart_(fcConveyor, scene4SetWidth);
+                totalScrolled = 0;
+                scenePlayScrollX_ = 0;
+                applyScrollX_(fcConveyor, 0);
+                applyScrollX_(fcLvTrack, 0);
+            }
             scene4AnimId = requestAnimationFrame(animateScene4);
         });
     }
-    function playScene5() {
+    function playScene5(saved) {
         if (!s5 || !d5Conveyor) { gotoSceneAfterScene5_(); return; }
         if (scene5AnimId) cancelAnimationFrame(scene5AnimId);
         applyDisplayRefreshAtSceneEntry_();
@@ -9066,14 +10055,18 @@
             gotoSceneAfterScene5_();
             return;
         }
+        const resumeX = (saved && typeof saved.scrollX === 'number' && saved.scrollX > 0 && saved.scrollX < scene5ScrollTotal)
+            ? saved.scrollX : 0;
         snapTrackToContentStart_(d5Conveyor, scene5SetWidth);
-        let totalScrolled = 0;
-        applyScrollX_(d5Conveyor, 0);
+        let totalScrolled = resumeX;
+        scenePlayScrollX_ = totalScrolled;
+        applyScrollX_(d5Conveyor, wrapScrollX_(-totalScrolled, scene5SetWidth));
         d5Conveyor.style.transition = 'none';
         function animateScene5() {
             const speed = getScrollSpeedPx_();
             advanceGlobalScroll_(speed);
             totalScrolled += speed;
+            scenePlayScrollX_ = totalScrolled;
             applyScrollX_(d5Conveyor, wrapScrollX_(-totalScrolled, scene5SetWidth));
             if (totalScrolled >= scene5ScrollTotal) {
                 scene5AnimId = null;
@@ -9086,14 +10079,404 @@
             scene5AnimId = requestAnimationFrame(animateScene5);
         }
         runSceneScrollAfterHold_(function () {
-            snapTrackToContentStart_(d5Conveyor, scene5SetWidth);
-            totalScrolled = 0;
-            applyScrollX_(d5Conveyor, 0);
+            if (!resumeX) {
+                snapTrackToContentStart_(d5Conveyor, scene5SetWidth);
+                totalScrolled = 0;
+                scenePlayScrollX_ = 0;
+                applyScrollX_(d5Conveyor, 0);
+            }
             fitD5PanelText_();
             scene5AnimId = requestAnimationFrame(animateScene5);
         });
     }
-    function mockSlotsForDemoLevel(levelIdx) {
+
+    const sceneSchedule = document.getElementById('sceneSchedule');
+    const schTrack = document.getElementById('sch-track');
+    const SCENE_SCHEDULE_PANEL_COUNT = 4;
+    const SCENE_SCHEDULE_LAPS = 2;
+    let sceneScheduleSetWidth = SCENE_SCHEDULE_PANEL_COUNT * 128;
+    let sceneScheduleAnimId = null;
+    let sceneScheduleHoldTimerId = null;
+    let scheduleScrollX_ = 0;
+    function isScheduleEnabled_() {
+        const scfg = (SITE_CFG && SITE_CFG.schedule) || {};
+        return scfg.enabled !== false && Array.isArray(scfg.items) && scfg.items.length > 0 && !!sceneSchedule;
+    }
+    function gotoSceneScheduleOrNext_() {
+        if (isScheduleEnabled_()) {
+            transitionToScene(sceneSchedule, playSceneSchedule);
+            return;
+        }
+        transitionToScene(s1, playScene1);
+    }
+    function gotoAfterScheduleToClock_() {
+        document.body.classList.remove('sch-only');
+        const content = document.querySelector('.content-area');
+        if (content) {
+            content.style.backgroundColor = '';
+            const strip = content.querySelector('.scene-strip-bg');
+            if (strip) strip.style.display = '';
+        }
+        transitionToScene(s1, playScene1);
+    }
+    /* ===== 工程表（ループ先頭） ===== */
+    const SCH_DOW = ['日', '月', '火', '水', '木', '金', '土'];
+    /* 曜日色（LED向け・高彩度）: 日赤 / 月青 / 火橙 / 水黄 / 木緑 / 金 / 土紺 */
+    const SCH_COLOR_SUN = '#FF2D2D';
+    const SCH_COLOR_SAT = '#1E6AFF';
+    const SCH_DOW_COLOR = [
+      SCH_COLOR_SUN, '#2E8CFF', '#FF5A00', '#FFE000', '#00D45A', '#FFD200', SCH_COLOR_SAT
+    ];
+    const SCH_EQUINOX_ = {
+      2025: { spr: 20, aut: 23 }, 2026: { spr: 20, aut: 23 },
+      2027: { spr: 21, aut: 23 }, 2028: { spr: 20, aut: 22 }
+    };
+    function schNthMonday_(y, mo, n) {
+      const firstDow = jstDowIndex_(y, mo, 1);
+      return 1 + ((1 - firstDow + 7) % 7) + (n - 1) * 7;
+    }
+    function schJpHolidaySet_(y) {
+      const set = {};
+      function add(mo, d) { set[y + '-' + mo + '-' + d] = true; }
+      const eq = SCH_EQUINOX_[y] || {
+        spr: Math.floor(20.8431 + 0.242194 * (y - 1851) - Math.floor((y - 1851) / 4)),
+        aut: Math.floor(23.2488 + 0.242194 * (y - 1851) - Math.floor((y - 1851) / 4))
+      };
+      add(1, 1);
+      add(1, schNthMonday_(y, 1, 2));
+      add(2, 11);
+      add(2, 23);
+      add(3, eq.spr);
+      add(4, 29);
+      add(5, 3); add(5, 4); add(5, 5);
+      add(7, schNthMonday_(y, 7, 3));
+      add(8, 11);
+      add(9, schNthMonday_(y, 9, 3));
+      add(9, eq.aut);
+      add(10, schNthMonday_(y, 10, 2));
+      add(11, 3);
+      add(11, 23);
+      for (let mo = 1; mo <= 12; mo++) {
+        const dim = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+        for (let d = 2; d < dim; d++) {
+          const k = y + '-' + mo + '-' + d;
+          if (!set[k] && set[y + '-' + mo + '-' + (d - 1)] && set[y + '-' + mo + '-' + (d + 1)]) {
+            const dow = jstDowIndex_(y, mo, d);
+            if (dow !== 0 && dow !== 6) set[k] = true;
+          }
+        }
+      }
+      Object.keys(set).forEach(function (key) {
+        const p = key.split('-');
+        const mo = Number(p[1]);
+        const d = Number(p[2]);
+        if (jstDowIndex_(y, mo, d) !== 0) return;
+        let n = jstAddDays(y, mo, d, 1);
+        while (set[n.year + '-' + n.month + '-' + n.day]) n = jstAddDays(n.year, n.month, n.day, 1);
+        set[n.year + '-' + n.month + '-' + n.day] = true;
+      });
+      return set;
+    }
+    function schIsHoliday_(y, mo, d) {
+      if (!schIsHoliday_._map) schIsHoliday_._map = {};
+      if (!schIsHoliday_._map[y]) schIsHoliday_._map[y] = schJpHolidaySet_(y);
+      return !!schIsHoliday_._map[y][y + '-' + mo + '-' + d];
+    }
+    function schDayColor_(y, mo, d, dow) {
+      if (dow === 0 || schIsHoliday_(y, mo, d)) return SCH_COLOR_SUN;
+      if (dow === 6) return SCH_COLOR_SAT;
+      return SCH_DOW_COLOR[dow];
+    }
+    function getScheduleItems_() {
+        const cfg = (SITE_CFG && SITE_CFG.schedule) || {};
+        const items = Array.isArray(cfg.items) ? cfg.items : [];
+        const filtered = items.filter(function (row) { return row && (row.work || row.label); });
+        if (filtered.length) return filtered;
+        return [{ work: '足場組立' }, { work: '外装工事' }, { work: '内装工事' }, { work: '仕上げ' }];
+    }
+    function jstDowIndex_(y, mo, d) {
+        const ms = jstMsFromParts(y, mo, d, 12, 0, 0);
+        const name = new Intl.DateTimeFormat('en-US', { timeZone: CLOCK_TZ, weekday: 'short' }).format(new Date(ms));
+        return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[name] || 0;
+    }
+    function mondayOf_(y, mo, d) {
+        const back = (jstDowIndex_(y, mo, d) + 6) % 7;
+        return jstAddDays(y, mo, d, -back);
+    }
+    function buildScheduleDays_() {
+        const cfg = (SITE_CFG && SITE_CFG.schedule) || {};
+        const items = getScheduleItems_();
+        const now = jstPartsFromMs(getNowMs());
+        let origin;
+        if (cfg.startDate && /^\d{4}-\d{2}-\d{2}$/.test(String(cfg.startDate))) {
+            const bits = String(cfg.startDate).split('-');
+            origin = mondayOf_(Number(bits[0]), Number(bits[1]), Number(bits[2]));
+        } else {
+            origin = mondayOf_(now.year, now.month, now.day);
+        }
+        const todayKey = now.year + '-' + now.month + '-' + now.day;
+        const days = [];
+        for (let w = 0; w < items.length; w++) {
+            const row = items[w] || {};
+            const work = row.work != null ? String(row.work) : (row.label != null ? String(row.label) : '');
+            const sub = row.sub != null ? String(row.sub) : '';
+            for (let i = 0; i < 7; i++) {
+                const p = jstAddDays(origin.year, origin.month, origin.day, w * 7 + i);
+                const dow = jstDowIndex_(p.year, p.month, p.day);
+                days.push({
+                    year: p.year,
+                    month: p.month,
+                    day: p.day,
+                    dow: dow,
+                    youbi: SCH_DOW[dow],
+                    color: schDayColor_(p.year, p.month, p.day, dow),
+                    work: work,
+                    sub: sub,
+                    isToday: (p.year + '-' + p.month + '-' + p.day) === todayKey
+                });
+            }
+        }
+        return days;
+    }
+    function schYmdPad_(y, mo, d) {
+        return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+    function schActiveWarnChip_() {
+        let level = null;
+        if (rainWhiteQueue && rainWhiteQueue.length) {
+            level = highestWhiteLevel_(rainWhiteQueue);
+        } else if (rainWarnActive && rainWarnActive.length) {
+            for (let i = 0; i < RAIN_WHITE_LEVEL_ORDER.length; i++) {
+                if (rainWarnActive.indexOf(RAIN_WHITE_LEVEL_ORDER[i]) >= 0) {
+                    level = RAIN_WHITE_LEVEL_ORDER[i];
+                    break;
+                }
+            }
+        }
+        if (!level || level === 'early') return null;
+        const chip = RAIN_WHITE_LEVEL_CHIP[level];
+        if (!chip) return null;
+        let label = chip.label;
+        if (rainWhiteQueue && rainWhiteQueue.length === 1 && rainWhiteQueue[0] && rainWhiteQueue[0].name) {
+            const n = String(rainWhiteQueue[0].name);
+            if (n.length <= 6) label = n;
+        }
+        return { level: level, label: label };
+    }
+    function makeScheduleDayEl_(day) {
+        const el = document.createElement('div');
+        el.className = 'sch-day' + (day.isToday ? ' sch-today' : '');
+        el.setAttribute('data-sch-ymd', schYmdPad_(day.year, day.month, day.day));
+        const warn = schActiveWarnChip_();
+        const subHtml = day.sub ? '<div class="sch-sub">(' + escapeS1Html(day.sub) + ')</div>' : '';
+        const warnHtml = warn
+            ? '<div class="sch-warn is-on is-' + warn.level + '">' + escapeS1Html(warn.label) + '</div>'
+            : '<div class="sch-warn" aria-hidden="true"></div>';
+        el.innerHTML = '<div class="sch-date" style="background:' + day.color + '">'
+            + '<span class="sch-date-txt">' + day.year + '年' + day.month + '月' + day.day + '日</span></div>'
+            + '<div class="sch-body">'
+            + '<div class="sch-mid">'
+            + '<div class="sch-youbi" style="color:' + day.color + '">' + day.youbi + '</div>'
+            + '</div>'
+            + '<div class="sch-workbox"><div class="sch-work">' + escapeS1Html(day.work) + '</div>'
+            + subHtml + warnHtml + '</div>'
+            + '</div>';
+        return el;
+    }
+    function fitScheduleText_() {
+        document.querySelectorAll('#sceneSchedule .sch-day').forEach(function (panel) {
+            const work = panel.querySelector('.sch-work');
+            const date = panel.querySelector('.sch-date');
+            const warn = panel.querySelector('.sch-warn.is-on');
+            if (work) {
+                let size = 14;
+                work.style.fontSize = size + 'px';
+                while (size > 10 && work.scrollWidth > 124) {
+                    size -= 1;
+                    work.style.fontSize = size + 'px';
+                }
+            }
+            if (date) {
+                const txt = date.querySelector('.sch-date-txt') || date;
+                const maxW = 128;
+                const size = Math.max(28, date.clientHeight - 2);
+                date.style.fontSize = size + 'px';
+                date.style.letterSpacing = '-1.8px';
+                date.style.lineHeight = '1';
+                txt.style.transform = 'none';
+                const tw = txt.scrollWidth || date.scrollWidth;
+                if (tw > maxW) {
+                    txt.style.transform = 'scaleX(' + (maxW / tw).toFixed(4) + ')';
+                }
+            }
+            if (warn) {
+                let size = 12;
+                warn.style.fontSize = size + 'px';
+                while (size > 9 && warn.scrollWidth > 120) {
+                    size -= 1;
+                    warn.style.fontSize = size + 'px';
+                }
+            }
+        });
+    }
+    function refreshScheduleWeatherWarn_() {
+        if (!schTrack || !schTrack.children.length) return;
+        const warn = schActiveWarnChip_();
+        document.querySelectorAll('#sceneSchedule .sch-day').forEach(function (panel) {
+            let warnEl = panel.querySelector('.sch-warn');
+            if (!warnEl) return;
+            warnEl.className = 'sch-warn';
+            if (warn) {
+                warnEl.classList.add('is-on', 'is-' + warn.level);
+                warnEl.textContent = warn.label;
+                warnEl.removeAttribute('aria-hidden');
+            } else {
+                warnEl.textContent = '';
+                warnEl.setAttribute('aria-hidden', 'true');
+            }
+        });
+        fitScheduleText_();
+    }
+    function applyScheduleToDom_() {
+        if (!schTrack) return;
+        const days = buildScheduleDays_();
+        schTrack.innerHTML = '';
+        if (!days.length) {
+            sceneScheduleSetWidth = 512;
+            return;
+        }
+        const frag = document.createDocumentFragment();
+        for (let pass = 0; pass < 2; pass++) {
+            days.forEach(function (day) { frag.appendChild(makeScheduleDayEl_(day)); });
+        }
+        schTrack.appendChild(frag);
+        sceneScheduleSetWidth = days.length * 128;
+        schTrack.style.width = (sceneScheduleSetWidth * 2) + 'px';
+        scheduleScrollX_ = 0;
+        applyScrollX_(schTrack, 0);
+        fitScheduleText_();
+    }
+    function prepareScheduleSceneChrome_() {
+        document.body.classList.add('sch-only');
+        const content = document.querySelector('.content-area');
+        if (content) {
+            content.style.backgroundColor = '#000000';
+            const strip = content.querySelector('.scene-strip-bg');
+            if (strip) strip.style.display = 'none';
+        }
+        if (sceneSchedule) {
+            sceneSchedule.style.display = 'block';
+            sceneSchedule.style.background = '#000000';
+            sceneSchedule.style.zIndex = '5';
+            sceneSchedule.classList.add('active');
+        }
+    }
+    function playSceneSchedule() {
+        prepareScheduleSceneChrome_();
+        if (!sceneSchedule || !schTrack) {
+            if (DEMO_ONLY === 'schedule') return;
+            gotoAfterScheduleToClock_();
+            return;
+        }
+        if (!isScheduleEnabled_() && DEMO_ONLY !== 'schedule') {
+            gotoAfterScheduleToClock_();
+            return;
+        }
+        if (sceneScheduleAnimId) { cancelAnimationFrame(sceneScheduleAnimId); sceneScheduleAnimId = null; }
+        if (sceneScheduleHoldTimerId) { clearTimeout(sceneScheduleHoldTimerId); sceneScheduleHoldTimerId = null; }
+        try { applyScheduleToDom_(); } catch (err) { console.error('[schedule]', err); }
+        if (DEMO_ONLY !== 'schedule') {
+            applyDisplayRefreshAtSceneEntry_();
+            applyPendingSignageBgAtScene_();
+            if (typeof SignageBg !== 'undefined' && SignageBg.refreshSchedule) {
+                SignageBg.refreshSchedule(getSignageBgLevel_(), getSignageDisplayMode_());
+            }
+        }
+        stepLogo90(420, true);
+        if (isFullDemoStep_()) {
+            if (DEMO_ONLY === 'schedule') return;
+            scheduleDemoStep_(gotoAfterScheduleToClock_);
+            return;
+        }
+        const scheduleScrollTotal = sceneScheduleSetWidth * SCENE_SCHEDULE_LAPS;
+        if (!sceneScheduleSetWidth || sceneScheduleSetWidth <= 0) {
+            if (DEMO_ONLY === 'schedule') return;
+            gotoAfterScheduleToClock_();
+            return;
+        }
+        let totalScrolled = 0;
+        scheduleScrollX_ = 0;
+        applyScrollX_(schTrack, 0);
+        schTrack.style.transition = 'none';
+        function animateSceneSchedule() {
+            const speed = getScrollSpeedPx_();
+            scheduleScrollX_ -= speed;
+            totalScrolled += speed;
+            applyScrollX_(schTrack, wrapScrollX_(scheduleScrollX_, sceneScheduleSetWidth));
+            if (totalScrolled >= scheduleScrollTotal) {
+                sceneScheduleAnimId = null;
+                stopLogoSpinInterval();
+                if (demoOnlyLoop_('schedule', playSceneSchedule)) return;
+                runAfterSceneEndHold_(gotoAfterScheduleToClock_);
+                return;
+            }
+            sceneScheduleAnimId = requestAnimationFrame(animateSceneSchedule);
+        }
+        runSceneScrollAfterHold_(function () {
+            sceneScheduleAnimId = requestAnimationFrame(animateSceneSchedule);
+        });
+    }
+
+    function applyGreetingToDom_() {
+        const cfg = (SITE_CFG && SITE_CFG.greeting) || {};
+        const title = cfg.title != null ? String(cfg.title) : '近隣の皆様へ';
+        const lines = Array.isArray(cfg.lines) ? cfg.lines : [];
+        const foot = cfg.foot != null ? String(cfg.foot) : 'ご理解・ご協力をお願いいたします';
+        document.querySelectorAll('#sceneGreeting .ng-title').forEach(function (el) { el.textContent = title; });
+        document.querySelectorAll('#sceneGreeting .ng-line-0').forEach(function (el) {
+            el.textContent = lines[0] != null ? String(lines[0]) : '';
+            el.style.display = lines[0] ? '' : 'none';
+        });
+        document.querySelectorAll('#sceneGreeting .ng-line-1').forEach(function (el) {
+            el.textContent = lines[1] != null ? String(lines[1]) : '';
+            el.style.display = lines[1] ? '' : 'none';
+        });
+        document.querySelectorAll('#sceneGreeting .ng-foot-txt').forEach(function (el) { el.textContent = foot; });
+        applyGreetingTextColors_();
+        fitGreetingText_();
+    }
+    function applyGreetingTextColors_() {
+        const mode = getSignageDisplayMode_();
+        const bgLv = (mode === 'normal' || mode === 'wbgt' || mode === 'temperature') ? getSignageBgLevel_() : -1;
+        const dark = (typeof SignageBg !== 'undefined' && SignageBg.isDarkTextForDisplay)
+            ? SignageBg.isDarkTextForDisplay(bgLv, mode)
+            : ((mode === 'normal' || mode === 'wbgt') && (bgLv === 1 || bgLv === 2));
+        const c = dark ? '#000000' : '#ebebeb';
+        if (sceneGreeting) sceneGreeting.classList.toggle('col-bg-dark-text', dark);
+        document.querySelectorAll('#sceneGreeting .ng-title, #sceneGreeting .ng-line').forEach(function (n) {
+            n.style.color = c;
+        });
+    }
+    function fitGreetingText_() {
+        document.querySelectorAll('#sceneGreeting .ng-line').forEach(function (el) {
+            let size = 26;
+            el.style.fontSize = size + 'px';
+            while (size > 16 && el.scrollWidth > 488) {
+                size -= 1;
+                el.style.fontSize = size + 'px';
+            }
+        });
+        document.querySelectorAll('#sceneGreeting .ng-title').forEach(function (el) {
+            let size = 22;
+            el.style.fontSize = size + 'px';
+            while (size > 14 && el.scrollWidth > 500) {
+                size -= 1;
+                el.style.fontSize = size + 'px';
+            }
+        });
+    }
+
+        function mockSlotsForDemoLevel(levelIdx) {
         const w = DEMO_WBGT_BY_LEVEL[levelIdx];
         return [
             { wbgt: w, levelIdx, hour: '現在' },
@@ -9104,8 +10487,8 @@
     }
     function applyDemoWeatherStatic() {
         applyRainPreviewFromParam_();
-        document.querySelectorAll('.weather-icon-use').forEach(el => el.setAttribute('href', '#icon-sunny'));
-        document.querySelectorAll('.d5-weather-use').forEach(el => el.setAttribute('href', '#icon-sunny'));
+        setWeatherIcons_('.weather-icon-use', '100');
+        setWeatherIcons_('.d5-weather-use', '100');
         setTextAll('.temp-val', '30');
         setTextAll('.humi-val', '65');
         setTextAll('.rain-val', '0.0');
@@ -9195,7 +10578,7 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         if (!el) return;
         playingSceneEl_ = el;
         el.style.display = sceneDisplayMode(el);
@@ -9222,6 +10605,7 @@
                 case 's3': showOnlyScene_(s3, playScene3); break;
                 case 's4': showOnlyScene_(s4, playScene4); break;
                 case 's5': showOnlyScene_(s5, playScene5); break;
+                case 'schedule': showOnlyScene_(sceneSchedule, playSceneSchedule); break;
                 default: break;
             }
         }
@@ -9230,7 +10614,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -9257,108 +10641,90 @@
         clearDemoStepTimer_();
         resetLogoRotation();
         resetWarnPhase_();
-        playLiveThenClock_();
+        startMainLoopHead_();
     }
 
-    window.onload = async function() {
-        bootDisplayHold_ = true;
-        restoreSignageStateCache_();
+    let bootStarted_ = false;
+    async function bootSignageMain_() {
+        if (bootStarted_) return;
+        bootStarted_ = true;
+        bootMark_('bootStart');
+        /* API完了まで表示を止めない（Stale-While-Revalidate） */
+        bootDisplayHold_ = false;
+        const skipCache = PREVIEW_OFFSEASON || Number.isFinite(PREVIEW_WBGT) || Number.isFinite(PREVIEW_TEMP_C);
+        const hadCache = skipCache ? false : restoreSignageStateCache_();
+        bootMark_(hadCache ? 'cacheHit' : 'cacheMiss');
         if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         applySiteLocationLabels_();
+        if (PREVIEW_OFFSEASON) {
+            lastGoodWbgtSlots_ = null;
+            lastWbgtSlots = null;
+            applyWbgtOffSeason_();
+        } else if (window.AlertCubeRuntime && !hadCache) {
+            window.AlertCubeRuntime.applyApiSeasonFlag(null, false, jstPartsFromMs(Date.now()));
+            if (!window.AlertCubeRuntime.isWbgtMode()) applyWbgtOffSeason_();
+        }
+        if (window.AlertCubeRuntime) window.AlertCubeRuntime.applyFixedShell();
+        if (Number.isFinite(PREVIEW_WBGT)) currentWbgtLevel = wbgtLevel(PREVIEW_WBGT);
         paintBootSplash_();
-        const logoEl = document.getElementById('signage-logo');
-        const logoCfg = window.SIGNAGE_CONFIG;
-        if (logoEl && logoCfg && logoCfg.logoSrc) {
-            if (logoEl.getAttribute('src') !== logoCfg.logoSrc) logoEl.src = logoCfg.logoSrc;
-            logoEl.alt = logoCfg.logoAlt || '';
-        }
-        if (false && DEMO_ALERT_ONLY && !NO_HEAT_ALERT) {
-            bootDisplayHold_ = false;
-            setTimeout(startAlertOnlyDemo_, 300);
-            return;
-        }
-        if (PREVIEW_WARN === 'white') {
-            bootDisplayHold_ = false;
-            setTimeout(startWhiteWarnPreview_, 300);
-            return;
-        }
-        if (PREVIEW_WARN === 'color') {
-            bootDisplayHold_ = false;
-            setTimeout(startColorWarnPreview_, 300);
-            return;
-        }
-        if (PREVIEW_WARN === 'demo' || DEMO_RAINWARN_ONLY) {
-            bootDisplayHold_ = false;
-            setTimeout(startRainWarnOnlyDemo_, 300);
-            return;
-        }
-        if (DEMO_SIGNAGE_ACTIVE) {
-            bootDisplayHold_ = false;
-            applySyncedUtcMs(Date.now(), 'demo-local');
-            updateClock();
-            startClockTicker();
-            syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
-            setInterval(function () {
-                syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
-            }, CLOCK_SYNC_INTERVAL_MS);
-            applyDemoWeatherStatic();
-            if (DEMO_PREVIEW === 's1' || DEMO_PREVIEW === 's3') {
-                startPreviewDemo_(DEMO_PREVIEW);
-                return;
-            }
-            if (DEMO_ONLY && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rainwarn') {
-                setTimeout(startSingleSceneDemo_, 200);
-                return;
-            }
-            applyDemoLevel(DEMO_LEVEL_FIXED != null ? DEMO_LEVEL_FIXED : DEMO_LEVEL_ORDER[0]);
-            setTimeout(startSequence, 500);
-            return;
-        }
-        /* 時計はデータ取得より先に開始（取得完了待ちでずれない／止まらない） */
+        bootMark_('shellReady');
         applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
         startClockTicker();
-        setInterval(function () {
-            syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
-        }, CLOCK_SYNC_INTERVAL_MS);
-        syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
-        try {
-            await Promise.race([
-                runScheduledFetch({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] }),
-                new Promise(function (resolve) { setTimeout(resolve, 3500); })
-            ]);
-            try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
+        mainLoopStarted_ = true;
+        requestAnimationFrame(function () {
             flushInitialDisplay_();
-            mainLoopStarted_ = true;
-            startLiveWarnPoll_();
-            scheduleDataRefresh();
-            playLiveThenClock_();
-        } catch (err) {
-            console.error('Init:', err);
-            bootDisplayHold_ = false;
-            if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'local-fallback');
-            updateClock();
-            refreshSignageBgIfChanged_(true);
-            if (s1) {
-                s1.classList.remove('active');
-                s1.style.display = 'none';
-            }
-            startClockTicker();
-            mainLoopStarted_ = true;
-            startLiveWarnPoll_();
-            scheduleDataRefresh();
-            try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
-            playLiveThenClock_();
-        } finally {
-            bootDisplayHold_ = false;
-        }
-        document.addEventListener('visibilitychange', function() {
+            applyContentEndLogoSrc_();
+            setTimeout(function () {
+                try {
+                    startSequence();
+                    bootMark_('loopStarted');
+                    logBootPerf_('shell+loop');
+                } catch (err) {
+                    console.error('Init loop:', err);
+                    gotoSceneScheduleOrNext_();
+                }
+            }, hadCache ? 0 : 40);
+            requestAnimationFrame(function () {
+                startLiveWarnPoll_();
+                scheduleDataRefresh();
+                setInterval(function () {
+                    syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
+                }, CLOCK_SYNC_INTERVAL_MS);
+                syncTimeFromNetwork().then(function () { updateClock(); }).catch(function () {});
+                Promise.allSettled([
+                    runScheduledFetch({ jma: true, moe: true, nowc: true, forecast: true, labels: ['起動'] })
+                ]).then(function () {
+                    bootMark_('fetchSettled');
+                    persistSignageStateCache_();
+                    logBootPerf_('fetchDone');
+                }).catch(function (err) {
+                    console.error('Init fetch:', err);
+                    bootMark_('fetchError');
+                    logBootPerf_('fetchError');
+                });
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('./sw.js?v=20260921-mid6').catch(function () {});
+                }
+            });
+        });
+        document.addEventListener('visibilitychange', function () {
             if (document.visibilityState === 'visible') {
                 syncTimeFromNetwork().then(function () { updateClock(); startClockTicker(); }).catch(function () { startClockTicker(); });
                 startBackgroundFetch_({ jma: true, moe: true, nowc: true, forecast: true, labels: ['復帰'] });
             }
         });
-    };
+    }
+    /* 画像・フォント完了の window.onload を待たず、DOM準備で起動 */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { bootSignageMain_(); });
+    } else {
+        bootSignageMain_();
+    }
+    window.addEventListener('load', function () {
+        bootMark_('windowLoad');
+        logBootPerf_('windowLoad');
+    });
 
 
 </script>
