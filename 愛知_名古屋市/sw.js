@@ -1,10 +1,10 @@
 /* 固定素材キャッシュ。HTMLはネット優先、?v= 付きはキャッシュ優先 */
-var CACHE_NAME = 'alert-cube-v20-20260923-nagoya';
+var CACHE_NAME = 'alert-cube-v20-20260923-nagoya-tymap';
 var PRECACHE = [
   './config/site-config.js?v=20260923-nagoya',
   './scripts/alert-cube-core.js?v=20260918-layout',
   './scripts/alert-cube-runtime.js?v=20260918-layout',
-  './scripts/alert-cube-typhoon.js?v=20260923-nagoya-ty',
+  './scripts/alert-cube-typhoon.js?v=20260923-nagoya-ty2',
   './scripts/jma-warning-kinds.js?v=20260918-layout',
   './scripts/warning-hero.js?v=20260921-mid6',
   './styles/white-hero.css?v=20260918-layout',

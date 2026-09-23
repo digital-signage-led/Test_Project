@@ -60,13 +60,13 @@
 
   function categoryLabel_(cat, no, nameJp) {
     var c = String(cat || '').toUpperCase();
-    var named = nameJp ? '「' + nameJp + '」' : '';
+    var named = nameJp ? ' ' + nameJp : '';
     if (c === 'TY' || c === 'STS' || c === 'TS') {
-      return (no ? '台風第' + no + '号' : '台風') + named;
+      return (no ? '台風' + no + '号' : '台風') + named;
     }
     if (c === 'TD') return '熱帯低気圧' + named;
-    if (c === 'LOW') return (no ? '台風第' + no + '号（温帯低気圧）' : '温帯低気圧') + named;
-    return (no ? '台風第' + no + '号' : '台風情報') + named;
+    if (c === 'LOW') return (no ? '台風' + no + '号' : '温帯低気圧') + named;
+    return (no ? '台風' + no + '号' : '台風情報') + named;
   }
 
   function isSevere_(cat) {

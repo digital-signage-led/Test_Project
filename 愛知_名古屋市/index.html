@@ -2,7 +2,7 @@
 <!-- alert-cube-v2 / 通年気象・防災サイネージ（現場は config/site-config.js） -->
 <!-- 本番 512×128（名古屋市・社名ロゴなし。面数・地点は現場設定） -->
 <!-- 本番: index.html + config/scripts/styles/images。WBGT期間は環境省5段階、期間外は気温9段階。防災は通年監視・発表時のみ -->
-<!-- build 20260923-nagoya-v20 -->
+<!-- build 20260923-nagoya-tymap -->
 <html lang="ja" class="native-640 layout-512">
 <head>
     <meta charset="UTF-8">
@@ -1448,6 +1448,20 @@
         .ha-pair.ha-special .ha-line { background: #FFFFFF; }
         .ha-pair.ha-special .ha-l1 { color: #FF5A5A; }
         .ha-pair.ha-special .ha-l2 { color: #FFFFFF; }
+        /* --- 防災情報・台風（128×128×4面・マップ全面） --- */
+        #sceneTyphoon.active { display: block; z-index: 3; }
+        .ty-faces {
+            width: 512px; height: 128px; display: flex; flex-direction: row;
+            background: #000000;
+        }
+        .ty-face {
+            width: 128px; height: 128px; flex: 0 0 128px; box-sizing: border-box;
+            padding: 0; overflow: hidden; position: relative;
+        }
+        .ty-svg {
+            width: 128px; height: 128px; display: block;
+            background: #8ec8ea;
+        }
         /* --- 大雨警報（256×128×2・熱中症アラートと同型） --- */
         #sceneRainWarn.active { display: block; z-index: 3; }
         #sceneWarn.active { display: block; z-index: 3; }
@@ -2390,6 +2404,14 @@
 
 <div class="canvas">
     <div class="content-area">
+    <div class="scene" id="sceneTyphoon">
+        <div class="ty-faces" id="ty-faces">
+            <div class="ty-face"><svg class="ty-svg" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg></div>
+            <div class="ty-face"><svg class="ty-svg" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg></div>
+            <div class="ty-face"><svg class="ty-svg" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg></div>
+            <div class="ty-face"><svg class="ty-svg" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg></div>
+        </div>
+    </div>
     <div class="scene" id="sceneRainWarn">
         <div class="ra-pair ra-advisory" id="ra-pair">
             <div class="ra-mid-band-wrap" aria-hidden="true"><div class="ra-mid-band-unit"></div><div class="ra-mid-band-unit"></div></div>
@@ -2955,13 +2977,14 @@
 <link rel="stylesheet" href="./styles/color-hero.css?v=20260921-mid6" media="print" onload="this.media='all'">
 <script src="./scripts/jma-warning-kinds.js?v=20260918-layout"></script>
 <script src="./scripts/warning-hero.js?v=20260921-mid6"></script>
-<script src="./scripts/alert-cube-typhoon.js?v=20260923-nagoya-ty"></script>
+<script src="./scripts/alert-cube-typhoon.js?v=20260923-nagoya-ty2"></script>
 <script>
     const query = new URLSearchParams(window.location.search);
     /* 本番固定。クエリのデモ起動は無効 */
     const DEMO_SIGNAGE = false;
     const DEMO_ALERT_ONLY = false;
     const DEMO_RAINWARN_ONLY = false;
+    const DEMO_TYPHOON_ONLY = query.get('only') === 'typhoon';
     const PREVIEW_WARN = null;
     const WBGT_ONLY = false;
     const SITE_CFG = window.SignageConfig || {};
@@ -2972,6 +2995,7 @@
     const NO_JMA_WARN = false;
     /** 環境省が発表しているときだけ熱中症アラートを出す */
     const NO_HEAT_ALERT = false;
+    const NO_TYPHOON = query.get('typhoon') === '0';
     const RAIN_HERO_OFF = query.get('rainhero') === '0';
     const RAIN_WHITE_DESIGN = query.get('rainwhite') === '1';
     /* 3段デザイン案は確認ボードと同じく既定ON（?rainhero=0 で従来レイアウト） */
@@ -3765,12 +3789,1268 @@
     const sceneRainWarn = document.getElementById('sceneRainWarn');
     const sceneWarn = document.getElementById('sceneWarn');
     const sceneWarnHero = document.getElementById('sceneWarnHero');
+    const sceneTyphoon = document.getElementById('sceneTyphoon');
     const whiteTopTrack = document.getElementById('whiteTopTrack');
     const whiteMidTrack = document.getElementById('midTrack');
     const whiteBotTrack = document.getElementById('whiteBotTrack');
     const heroWhite = document.getElementById('hero');
     const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
+
+    function siteCfg_() {
+        return window.SignageConfig || SITE_CFG || {};
+    }
+    let typhoonOnDone_ = null;
+    function tyFinishToNext_() {
+        const fn = typhoonOnDone_;
+        typhoonOnDone_ = null;
+        if (fn) { fn(); return; }
+        if (s2) transitionToScene(s2, playScene2);
+    }
+
+    /* ===== 防災情報・台風（会場付近に接近・通過見込みのときだけ表示） ===== */
+    const JMA_TYPHOON_LIST_URL = 'https://www.jma.go.jp/bosai/typhoon/data/targetTc.json';
+    const JMA_TYPHOON_SPEC_URL = function (id) { return 'https://www.jma.go.jp/bosai/typhoon/data/' + id + '/specifications.json'; };
+    const JMA_TYPHOON_FORECAST_URL = function (id) { return 'https://www.jma.go.jp/bosai/typhoon/data/' + id + '/forecast.json'; };
+    const DEMO_TYPHOON_SLIDES_ = [
+        { l1: '防災情報　台風情報', l2: '台風第25号 ドゥージェン' },
+        { l1: '19日(土) 03:00　12時間後', l2: '父島の南西約190km' },
+        { l1: '中心気圧 970hPa', l2: '最大風速 30m/s　瞬間 45m/s' },
+        { l1: '進行方向 西', l2: '移動速度 15km/h' }
+    ];
+    /* 中心がこの距離以内、または暴風域の外縁がこの距離以内なら「通りそう／影響あり」 */
+    const TY_APPROACH_KM = 800;
+    const TY_GALE_EDGE_KM = 350;
+    const TY_UNIT_W = 256;
+    const TY_ICON_W = 44;
+    const TY_L1_MAX = 42;
+    const TY_L2_RATIO = 0.72;
+    const TY_LAPS_BEFORE_SWITCH = 4;
+    let tyAnimId = null;
+    let tyFlow_ = null;
+    
+    /* デモ用フォールバック（取得失敗時）。通常は気象庁実況を描画 */
+    const DEMO_TYPHOON_MAP_ = {
+        points: [
+            { lat: 32.6, lon: 138.8, now: true, day: '', hour: '', label: '', circleKm: 0, galeKm: 650, stormKm: 185 },
+            { lat: 33.8, lon: 140.2, now: false, day: '', hour: '', label: '', circleKm: 55, galeKm: 0, stormKm: 0 },
+            { lat: 35.2, lon: 141.8, now: false, day: '', hour: '', label: '', circleKm: 85, galeKm: 0, stormKm: 0 },
+            { lat: 36.6, lon: 143.4, now: false, day: '', hour: '', label: '', circleKm: 120, galeKm: 0, stormKm: 0 },
+            { lat: 38.2, lon: 145.0, now: false, day: '', hour: '', label: '', circleKm: 165, galeKm: 0, stormKm: 0 },
+            { lat: 39.6, lon: 146.4, now: false, day: '', hour: '', label: '', circleKm: 210, galeKm: 0, stormKm: 0 }
+        ],
+        site: { lat: 34.605184, lon: 135.470949 },
+        past: [
+            { lat: 26.0, lon: 140.8 },
+            { lat: 28.1, lon: 137.9 },
+            { lat: 30.0, lon: 137.6 },
+            { lat: 31.8, lon: 138.0 },
+            { lat: 32.6, lon: 138.8 }
+        ]
+    };
+    let typhoonMapModel_ = null;
+    let typhoonMapModels_ = [];
+    let typhoonMapIndex_ = 0;
+    let tyHoldTimerId = null;
+    let tyMapStepIdx_ = 0;
+    const TY_MAP_HOLD_MS = 9000;
+    const TY_MAP_STEP_MS = 2400;
+    const TY_EDGE_HOLD_MS = 1000;
+    const TY_OCEAN_ = '#8ec8ea';
+    const TY_LAND_FILL_ = '#8f9a5c';
+    const TY_LAND_STROKE_ = '#6f7a45';
+    const TY_NEAR_FILL_ = '#738052';
+    const TY_NEAR_STROKE_ = '#5e6a42';
+    const TY_JP_LAND_N_ = 16;
+    /* Natural Earth 50m ベースの日本地図（一から再生成） lon,lat */
+    const TY_LANDS_ = [
+        /* 北海道 n=38 */
+        [[143.82,44.12],[144.72,43.93],[145.37,44.33],[145.13,43.87],[145.14,43.66],[145.34,43.3],[145.83,43.39],[144.92,43],[143.97,42.88],[143.43,42.42],[143.24,42],[141.85,42.58],[141.41,42.55],[140.99,42.34],[140.71,42.56],[140.48,42.56],[140.33,42.29],[141.15,41.81],[140.66,41.82],[140.38,41.52],[140.09,41.43],[140,41.58],[140.11,41.91],[139.84,42.28],[139.86,42.58],[140.43,42.95],[140.39,43.3],[141.14,43.18],[141.37,43.28],[141.4,43.64],[141.76,44.48],[141.78,44.72],[141.58,45.16],[141.67,45.4],[141.98,45.48],[142.88,44.67],[143.76,44.13],[143.82,44.12]],
+        /* 本州 n=69 */
+        [[141.23,41.37],[141.46,41.4],[141.43,40.72],[141.8,40.29],[141.98,39.43],[141.47,38.4],[140.96,38.15],[141,37.11],[140.57,36.23],[140.87,35.72],[140.46,35.51],[140.35,35.18],[139.84,34.91],[139.83,35.3],[140.1,35.59],[139.83,35.66],[139.68,35.15],[139.25,35.28],[138.84,34.62],[138.9,35.03],[138.72,35.12],[138.19,34.6],[137.06,34.58],[137.28,34.77],[136.87,34.73],[136.8,35.05],[136.53,34.68],[136.85,34.32],[136.33,34.18],[135.7,33.49],[135.13,34.01],[135.1,34.29],[135.42,34.62],[134.74,34.77],[133.14,34.3],[132.31,34.32],[132.15,33.84],[131.74,34.05],[130.92,33.98],[131,34.39],[131.35,34.41],[132.92,35.51],[135.17,35.75],[135.33,35.53],[135.9,35.61],[136.1,35.77],[136.07,36.12],[136.7,36.74],[136.84,37.38],[137.32,37.52],[136.9,37.12],[137.25,36.75],[138.32,37.22],[139.36,38.1],[139.8,38.88],[140.06,39.62],[139.74,39.92],[140.01,40.26],[139.97,40.67],[140.28,40.85],[140.39,41.23],[140.63,41.2],[140.75,40.83],[141.18,40.92],[141.2,41.24],[140.8,41.14],[140.89,41.48],[141.11,41.46],[141.23,41.37]],
+        /* 四国 n=28 */
+        [[134.36,34.26],[134.64,34.23],[134.67,33.85],[134.74,33.82],[134.38,33.61],[134.18,33.25],[133.96,33.45],[133.63,33.51],[133.29,33.36],[132.87,32.75],[132.64,32.76],[132.71,32.9],[132.5,32.92],[132.43,33.06],[132.51,33.29],[132.41,33.33],[132.41,33.43],[132.03,33.34],[132.64,33.69],[132.78,33.99],[132.94,34.1],[133.13,33.93],[133.47,33.97],[133.63,34.07],[133.6,34.24],[133.95,34.35],[134.22,34.32],[134.36,34.26]],
+        /* 九州 n=29 */
+        [[131.17,33.6],[131.7,33.6],[131.54,33.27],[131.9,33.25],[132,32.88],[131.66,32.47],[131.34,31.4],[131.07,31.44],[131.1,31.26],[130.69,31.02],[130.8,31.67],[130.66,31.72],[130.59,31.18],[130.2,31.29],[130.32,31.6],[130.19,32.09],[130.64,32.62],[130.24,33.18],[130.18,32.85],[130.34,32.7],[130.05,32.77],[129.77,32.57],[129.68,33.06],[129.99,32.85],[129.61,33.34],[129.84,33.32],[130.72,33.93],[131.06,33.67],[131.17,33.6]],
+        /* 佐渡 n=9 */
+        [[138.34,37.82],[138.23,37.83],[138.32,37.97],[138.25,38.08],[138.5,38.32],[138.45,38.08],[138.58,38.07],[138.5,37.9],[138.34,37.82]],
+        /* 淡路 n=6 */
+        [[134.93,34.29],[134.82,34.2],[134.67,34.29],[134.96,34.54],[134.91,34.4],[134.93,34.29]],
+        /* 対馬 n=8 */
+        [[129.39,34.35],[129.37,34.31],[129.27,34.37],[129.33,34.61],[129.45,34.69],[129.48,34.54],[129.38,34.42],[129.39,34.35]],
+        /* 種子島 n=6 */
+        [[130.96,30.4],[130.87,30.39],[130.87,30.44],[131.04,30.82],[130.99,30.53],[130.96,30.4]],
+        /* 屋久島 n=6 */
+        [[130.62,30.26],[130.45,30.26],[130.39,30.39],[130.5,30.47],[130.67,30.37],[130.62,30.26]],
+        /* 奄美大島 n=7 */
+        [[129.45,28.21],[129.37,28.13],[129.16,28.25],[129.69,28.52],[129.71,28.47],[129.44,28.25],[129.45,28.21]],
+        /* 沖縄本島 n=13 */
+        [[128.26,26.65],[127.87,26.44],[127.9,26.33],[127.79,26.26],[127.8,26.15],[127.65,26.09],[127.73,26.43],[127.95,26.59],[127.91,26.69],[128.1,26.67],[128.25,26.88],[128.31,26.72],[128.26,26.65]],
+        /* 宮古島 n=7 */
+        [[125.44,24.74],[125.36,24.72],[125.27,24.73],[125.28,24.87],[125.33,24.8],[125.4,24.78],[125.44,24.74]],
+        /* 石垣島 n=6 */
+        [[124.29,24.52],[124.19,24.34],[124.08,24.44],[124.21,24.46],[124.32,24.57],[124.29,24.52]],
+        /* 西表島 n=6 */
+        [[123.89,24.28],[123.68,24.32],[123.77,24.41],[123.93,24.36],[123.93,24.32],[123.89,24.28]],
+        /* 八丈島 n=6 */
+        [[139.84,33.06],[139.82,33.05],[139.78,33.08],[139.78,33.13],[139.87,33.09],[139.84,33.06]],
+        /* 大島 n=6 */
+        [[139.46,34.73],[139.45,34.68],[139.37,34.72],[139.37,34.78],[139.43,34.78],[139.46,34.73]],
+        /* 韓国 n=22 */
+        [[126.63,37.78],[127.09,38.28],[128.04,38.31],[128.37,38.62],[129.42,37.06],[129.42,35.5],[129.08,35.12],[128.51,35.1],[128.44,34.87],[127.71,34.95],[127.32,34.46],[127.25,34.76],[126.53,34.31],[126.26,34.67],[126.59,34.82],[126.29,35.15],[126.75,35.87],[126.49,36.69],[126.16,36.77],[126.98,36.94],[126.62,37.76],[126.63,37.78]],
+        /* 北朝鮮 n=24 */
+        [[128.37,38.62],[127.09,38.28],[126.63,37.78],[125.77,37.99],[125.36,37.72],[124.69,38.13],[125.55,38.69],[125.17,38.81],[125.36,39.53],[124.64,39.62],[124.39,40.1],[126.9,41.78],[128.15,41.39],[128.05,41.99],[129.7,42.45],[129.9,43],[130.53,42.54],[130.69,42.3],[129.69,41.59],[129.71,40.86],[127.57,39.78],[127.39,39.21],[128.33,38.68],[128.37,38.62]],
+        /* 台湾 n=15 */
+        [[121.01,22.62],[120.84,21.93],[120.74,21.96],[120.58,22.36],[120.32,22.55],[120.07,23.15],[120.16,23.71],[121.04,25.03],[121.59,25.28],[121.93,24.97],[121.82,24.82],[121.83,24.53],[121.4,23.17],[121.16,22.78],[121.01,22.62]],
+        /* 中国東部 n=14 */
+        [[117.5,39.5],[119.5,39.8],[121.3,39.0],[122.0,37.5],[121.2,36.2],[120.6,35.0],[121.0,33.2],[121.6,31.5],[121.8,30.3],[120.8,29.0],[119.2,28.5],[117.5,29.0],[117.5,39.5]]
+    ];
+    let typhoonSlidesActive = [];
+    const typhoonForced = !NO_TYPHOON && (query.get('typhoon') === '1' || DEMO_TYPHOON_ONLY);
+    if (!NO_TYPHOON && typhoonForced) {
+        typhoonSlidesActive = DEMO_TYPHOON_SLIDES_.slice();
+        typhoonMapModel_ = DEMO_TYPHOON_MAP_;
+        typhoonMapModels_ = [DEMO_TYPHOON_MAP_];
+    }
+    function tyPartName_(part) {
+        if (!part) return '';
+        if (typeof part === 'string') return part;
+        return part.jp || part.en || '';
+    }
+    function tyNumOrNull_(value) {
+        if (value == null || value === '' || value === '-') return null;
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+    }
+    function tyParseJst_(value) {
+        if (!value) return null;
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+    function tyFormatStamp_(date) {
+        if (!date || Number.isNaN(date.getTime())) return '';
+        const week = '日月火水木金土'[date.getDay()];
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mm = String(date.getMinutes()).padStart(2, '0');
+        return date.getDate() + '日(' + week + ') ' + hh + ':' + mm;
+    }
+    function typhoonNoLabel_(num) {
+        const raw = String(num || '');
+        if (/^\d{4}$/.test(raw)) return '台風第' + Number(raw.slice(2)) + '号';
+        if (/^\d+$/.test(raw)) return '台風第' + Number(raw) + '号';
+        return '';
+    }
+    function tyCategoryText_(meta, spec) {
+        const title = (spec || []).find(function (x) { return x && x.part === 'title'; }) || {};
+        const analysis = (spec || []).find(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('実況') >= 0 || (item.part && item.part.en === 'Analysis');
+        }) || {};
+        const bits = [];
+        function pushCat(c) {
+            if (!c) return;
+            if (typeof c === 'string') bits.push(c);
+            else {
+                if (c.en) bits.push(String(c.en));
+                if (c.jp) bits.push(String(c.jp));
+            }
+        }
+        pushCat(meta && meta.category);
+        pushCat(title.category);
+        pushCat(analysis.category);
+        return bits.join(' ');
+    }
+    function tyIsDissipated_(meta, spec) {
+        const t = tyCategoryText_(meta, spec);
+        const u = t.toUpperCase();
+        return u.indexOf('LOW') >= 0 || u.indexOf('EXTRATROPICAL') >= 0
+            || t.indexOf('温帯') >= 0 || t.indexOf('消滅') >= 0;
+    }
+    function tyNumberShort_(meta, spec) {
+        const title = (spec || []).find(function (x) { return x && x.part === 'title'; }) || {};
+        const raw = String((title.typhoonNumber || (meta && meta.typhoonNumber) || ''));
+        if (/^\d{4}$/.test(raw)) return String(Number(raw.slice(2)));
+        if (/^\d+$/.test(raw)) return String(Number(raw));
+        return '';
+    }
+    function tyDissipatedMarkSvg_(x, y, no) {
+        const s = 4.6;
+        let svg = '<g fill="none" stroke="#111111" stroke-width="1.9" stroke-linecap="round">'
+            + '<line x1="' + (x - s).toFixed(1) + '" y1="' + (y - s).toFixed(1) + '" x2="' + (x + s).toFixed(1) + '" y2="' + (y + s).toFixed(1) + '"/>'
+            + '<line x1="' + (x + s).toFixed(1) + '" y1="' + (y - s).toFixed(1) + '" x2="' + (x - s).toFixed(1) + '" y2="' + (y + s).toFixed(1) + '"/>'
+            + '</g>';
+        if (no) {
+            svg += '<text x="' + (x + 6.5).toFixed(1) + '" y="' + (y + 3.2).toFixed(1)
+                + '" fill="#00d4e4" font-size="9" font-weight="800" font-family="Noto Sans JP,sans-serif">'
+                + escapeS1Html(String(no)) + '</text>';
+        }
+        return svg;
+    }
+    function getTyphoonSiteLatLon_() {
+        const g = (siteCfg_() && siteCfg_().geo) || {};
+        const lat = Number(g.lat);
+        const lon = Number(g.lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat: lat, lon: lon };
+        return { lat: 34.605184, lon: 135.470949 };
+    }
+    function tyHaversineKm_(aLat, aLon, bLat, bLon) {
+        const toR = function (deg) { return (deg * Math.PI) / 180; };
+        const dLat = toR(bLat - aLat);
+        const dLon = toR(bLon - aLon);
+        const s = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+            + Math.cos(toR(aLat)) * Math.cos(toR(bLat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(s)));
+    }
+    function tyLatLonFromItem_(item) {
+        const deg = item && item.position && item.position.deg;
+        if (Array.isArray(deg) && deg.length >= 2) {
+            const lat = Number(deg[0]);
+            const lon = Number(deg[1]);
+            if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat: lat, lon: lon };
+        }
+        const c = item && item.center;
+        if (Array.isArray(c) && c.length >= 2) {
+            const lat = Number(c[0]);
+            const lon = Number(c[1]);
+            if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat: lat, lon: lon };
+        }
+        return null;
+    }
+    function tyMaxGaleRadiusKm_(item) {
+        let max = 0;
+        const gale = item && item.galeWarning;
+        if (Array.isArray(gale)) {
+            gale.forEach(function (g) {
+                const km = tyNumOrNull_(g && g.range && g.range.km);
+                if (km != null && km > max) max = km;
+            });
+        }
+        const storm = item && item.stormWarning;
+        if (Array.isArray(storm)) {
+            storm.forEach(function (g) {
+                const km = tyNumOrNull_(g && g.range && g.range.km);
+                if (km != null && km > max) max = km;
+            });
+        }
+        const circle = tyNumOrNull_(item && item.probabilityCircleRadius && item.probabilityCircleRadius.km);
+        if (circle != null && circle > max) max = circle;
+        return max;
+    }
+    function tySpecTrackItems_(spec) {
+        return (spec || []).filter(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('実況') >= 0
+                || name.indexOf('予報') >= 0
+                || (item.part && item.part.en === 'Analysis')
+                || String((item.part && item.part.en) || '').indexOf('Forecast') === 0;
+        });
+    }
+    /** 会場付近に接近・通過・暴風域が届きそうなら true */
+    function typhoonThreatensSite_(spec) {
+        const site = getTyphoonSiteLatLon_();
+        const items = tySpecTrackItems_(spec);
+        let bestKm = Infinity;
+        for (let i = 0; i < items.length; i++) {
+            const c = tyLatLonFromItem_(items[i]);
+            if (!c) continue;
+            const d = tyHaversineKm_(site.lat, site.lon, c.lat, c.lon);
+            if (d < bestKm) bestKm = d;
+            if (d <= TY_APPROACH_KM) {
+                return { ok: true, km: Math.round(d), reason: 'approach' };
+            }
+            const gale = tyMaxGaleRadiusKm_(items[i]);
+            const edge = d - gale;
+            if (gale > 0 && edge <= TY_GALE_EDGE_KM) {
+                return { ok: true, km: Math.round(d), reason: 'gale', galeKm: gale };
+            }
+        }
+        return {
+            ok: false,
+            km: Number.isFinite(bestKm) ? Math.round(bestKm) : null,
+            reason: 'far'
+        };
+    }
+    function tyPushFactSlides_(slides, step, whenLabel) {
+        const when = [tyFormatStamp_(step.at), whenLabel].filter(Boolean).join('　');
+        if (when || step.location) {
+            slides.push({ l1: when || '台風情報', l2: step.location || '' });
+        }
+        const p = step.pressure != null ? ('中心気圧 ' + step.pressure + 'hPa') : '';
+        const winds = [];
+        if (step.maxWindMs != null) winds.push('最大風速 ' + step.maxWindMs + 'm/s');
+        if (step.gustMs != null) winds.push('瞬間 ' + step.gustMs + 'm/s');
+        if (p || winds.length) slides.push({ l1: p || '風速情報', l2: winds.join('　') });
+        const course = step.course ? ('進行方向 ' + step.course) : '';
+        const speed = step.speedKmh != null ? ('移動速度 ' + step.speedKmh + 'km/h') : '';
+        if (course || speed) slides.push({ l1: course || '移動情報', l2: speed });
+    }
+    function buildTyphoonSlidesFromSpec_(meta, spec) {
+        const slides = [];
+        const title = (spec || []).find(function (item) { return item.part === 'title'; }) || {};
+        const analysis = (spec || []).find(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('実況') >= 0 || (item.part && item.part.en === 'Analysis');
+        }) || null;
+        const forecasts = (spec || []).filter(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('予報') >= 0 || String((item.part && item.part.en) || '').indexOf('Forecast') === 0;
+        }).slice(0, 2);
+        const noLabel = typhoonNoLabel_(title.typhoonNumber || meta.typhoonNumber);
+        const nameJp = (title.name && title.name.jp) || '';
+        const titleL2 = [noLabel || '台風', nameJp].filter(Boolean).join(' ');
+        slides.push({ l1: '防災情報　台風情報', l2: titleL2 });
+        if (analysis) {
+            tyPushFactSlides_(slides, {
+                at: tyParseJst_(analysis.validtime && analysis.validtime.JST),
+                location: analysis.location || '',
+                pressure: tyNumOrNull_(analysis.pressure),
+                maxWindMs: tyNumOrNull_(analysis.maximumWind && analysis.maximumWind.sustained && analysis.maximumWind.sustained['m/s']),
+                gustMs: tyNumOrNull_(analysis.maximumWind && analysis.maximumWind.gust && analysis.maximumWind.gust['m/s']),
+                course: analysis.course || '',
+                speedKmh: tyNumOrNull_(analysis.speed && analysis.speed['km/h'])
+            }, '実況');
+        }
+        forecasts.forEach(function (item) {
+            const hours = item.advancedHours;
+            const whenLabel = hours != null ? (hours + '時間後') : '予報';
+            tyPushFactSlides_(slides, {
+                at: tyParseJst_(item.validtime && item.validtime.JST),
+                location: item.location || '',
+                pressure: tyNumOrNull_(item.pressure),
+                maxWindMs: tyNumOrNull_(item.maximumWind && item.maximumWind.sustained && item.maximumWind.sustained['m/s']),
+                gustMs: tyNumOrNull_(item.maximumWind && item.maximumWind.gust && item.maximumWind.gust['m/s']),
+                course: item.course || '',
+                speedKmh: tyNumOrNull_(item.speed && item.speed['km/h'])
+            }, whenLabel);
+        });
+        return slides.filter(function (s) { return s.l1 || s.l2; });
+    }
+    function setTyphoonSlides_(slides) {
+        const next = Array.isArray(slides) ? slides.filter(function (s) { return s && (s.l1 || s.l2); }) : [];
+        const same = next.length === typhoonSlidesActive.length && next.every(function (s, i) {
+            return s.l1 === typhoonSlidesActive[i].l1 && s.l2 === typhoonSlidesActive[i].l2;
+        });
+        typhoonSlidesActive = next;
+        if (!same) queueDisplayRefresh_();
+    }
+
+    function tyListRadiusKm_(list) {
+        let max = 0;
+        if (Array.isArray(list)) {
+            list.forEach(function (g) {
+                const km = tyNumOrNull_(g && g.range && g.range.km);
+                if (km != null && km > max) max = km;
+            });
+        }
+        return max;
+    }
+    function tyStepFromItem_(item) {
+        const c = tyLatLonFromItem_(item);
+        const at = tyParseJst_(item && item.validtime && item.validtime.JST);
+        let circleKm = tyNumOrNull_(item && item.probabilityCircleRadius && item.probabilityCircleRadius.km) || 0;
+        if (!circleKm && item && item.probabilityCircle && Number(item.probabilityCircle.radius) > 0) {
+            circleKm = Number(item.probabilityCircle.radius) / 1000;
+        }
+        const day = at ? String(at.getDate()) : '';
+        const month = at ? String(at.getMonth() + 1) : '';
+        const hour = at ? String(at.getHours()).padStart(2, '0') : '';
+        const label = (day && hour) ? (day + '日 ' + hour + '時') : (day ? (day + '日') : '');
+        return {
+            at: at,
+            lat: c ? c.lat : null,
+            lon: c ? c.lon : null,
+            month: month,
+            day: day,
+            hour: hour,
+            label: label,
+            circleKm: circleKm,
+            hoursAhead: tyNumOrNull_(item && item.advancedHours),
+            galeKm: tyListRadiusKm_(item && item.galeWarning),
+            stormKm: tyListRadiusKm_(item && item.stormWarning)
+        };
+    }
+    function tyInJapanMapBounds_(lat, lon) {
+        return lat >= 22 && lat <= 46.5 && lon >= 118 && lon <= 148.5;
+    }
+    function tyMapPointFromStep_(step, now) {
+        return {
+            lat: step.lat,
+            lon: step.lon,
+            now: !!now,
+            month: step.month || '',
+            day: step.day || '',
+            hour: step.hour || '',
+            label: step.label || '',
+            circleKm: step.circleKm || 0,
+            hoursAhead: step.hoursAhead,
+            galeKm: step.galeKm || 0,
+            stormKm: step.stormKm || 0
+        };
+    }
+    function tyAreasFromForecast_(forecast) {
+        const items = Array.isArray(forecast) ? forecast : [];
+        let gale = null;
+        let storm = null;
+        let stormWarn = null;
+        let bestAdv = -1;
+        items.forEach(function (it) {
+            if (!it) return;
+            const name = tyPartName_(it.part);
+            const isNow = name.indexOf('実況') >= 0 || (it.part && it.part.en === 'Analysis');
+            const g = it.galeWarningArea;
+            if (isNow && g && Array.isArray(g.center) && g.center.length >= 2 && Number(g.radius) > 0) {
+                gale = { lat: Number(g.center[0]), lon: Number(g.center[1]), km: Number(g.radius) / 1000 };
+            }
+            const sw = it.stormWarningArea;
+            if (isNow && sw && Array.isArray(sw.arc) && sw.arc.length) {
+                const full = sw.arc.find(function (a) {
+                    return a && a[2] && Number(a[2][0]) === 0 && Number(a[2][1]) === 360;
+                }) || sw.arc[0];
+                if (full && full[0] && Number(full[1]) > 0) {
+                    storm = { lat: Number(full[0][0]), lon: Number(full[0][1]), km: Number(full[1]) / 1000 };
+                }
+            }
+            const adv = Number(it.advancedHours);
+            if (sw && Array.isArray(sw.arc) && sw.arc.length && Number.isFinite(adv) && adv >= bestAdv) {
+                bestAdv = adv;
+                stormWarn = sw;
+            }
+        });
+        const stormWarnSteps = [];
+        items.forEach(function (it) {
+            const sw = it && it.stormWarningArea;
+            const adv = Number(it && it.advancedHours);
+            if (!sw || !Array.isArray(sw.arc) || !sw.arc.length || !Number.isFinite(adv) || adv <= 0) return;
+            stormWarnSteps.push({ hours: adv, area: sw });
+        });
+        return { gale: gale, storm: storm, stormWarn: stormWarn, stormWarnSteps: stormWarnSteps };
+    }
+    function tyPastTrackFromForecast_(forecast) {
+        const analysis = (forecast || []).find(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('実況') >= 0 || (item.part && item.part.en === 'Analysis');
+        });
+        const tr = analysis && analysis.track;
+        if (!tr) return [];
+        const raw = [].concat(tr.preTyphoon || [], tr.typhoon || []);
+        const out = [];
+        raw.forEach(function (ll) {
+            if (!Array.isArray(ll) || ll.length < 2) return;
+            const lat = Number(ll[0]);
+            const lon = Number(ll[1]);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+            const prev = out[out.length - 1];
+            if (prev && Math.abs(prev.lat - lat) < 0.04 && Math.abs(prev.lon - lon) < 0.04) return;
+            out.push({ lat: lat, lon: lon });
+        });
+        return out;
+    }
+    function buildTyphoonMapModel_(meta, spec) {
+        const analysis = (spec || []).find(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('実況') >= 0 || (item.part && item.part.en === 'Analysis');
+        }) || null;
+        const forecasts = (spec || []).filter(function (item) {
+            const name = tyPartName_(item.part);
+            return name.indexOf('予報') >= 0 || String((item.part && item.part.en) || '').indexOf('Forecast') === 0;
+        });
+        const points = [];
+        const trail = tySpecTrackItems_(spec);
+        trail.forEach(function (item) {
+            if (analysis && item === analysis) return;
+            if (forecasts.indexOf(item) >= 0) return;
+            const step = tyStepFromItem_(item);
+            if (step.lat == null || !tyInJapanMapBounds_(step.lat, step.lon)) return;
+            points.push(tyMapPointFromStep_(step, false));
+        });
+        if (analysis) {
+            const step = tyStepFromItem_(analysis);
+            if (step.lat != null) points.push(tyMapPointFromStep_(step, true));
+        }
+        /* 気象庁は約3時間ごとに予報円を出すが、天気図は12時間に1個。
+           発表時刻の都合で11時間・23時間のように12で割り切れないので、12/24/48時間に一番近い1個だけ残す */
+        const candidates = [];
+        forecasts.forEach(function (item) {
+            const step = tyStepFromItem_(item);
+            if (step.lat == null || !Number.isFinite(step.lon)) return;
+            if (step.lat < 8 || step.lat > 58 || step.lon < 110 || step.lon > 175) return;
+            if (!(step.circleKm > 0)) return;
+            candidates.push(tyMapPointFromStep_(step, false));
+        });
+        const picked = [];
+        const used = {};
+        [12, 24, 48, 72, 96, 120].forEach(function (target) {
+            let best = -1;
+            let bestD = 7;
+            candidates.forEach(function (p, i) {
+                if (used[i] || p.hoursAhead == null) return;
+                const d = Math.abs(p.hoursAhead - target);
+                if (d < bestD) { bestD = d; best = i; }
+            });
+            if (best >= 0) { used[best] = true; picked.push(candidates[best]); }
+        });
+        if (!picked.length) {
+            candidates.forEach(function (p) {
+                const last = picked[picked.length - 1];
+                if (last) {
+                    if (p.hoursAhead != null && last.hoursAhead != null && p.hoursAhead - last.hoursAhead < 10) return;
+                    const need = ((last.circleKm || 40) + (p.circleKm || 40)) / 111 * 0.85;
+                    if (Math.hypot(p.lat - last.lat, p.lon - last.lon) < need) return;
+                }
+                picked.push(p);
+            });
+        }
+        picked.forEach(function (p) { points.push(p); });
+        return { points: points, site: getTyphoonSiteLatLon_() };
+    }
+    function tyNearestJapanKm_(lat, lon) {
+        const refs = [
+            [35.0, 135.5], [35.7, 139.7], [33.6, 130.4], [34.7, 135.5],
+            [38.3, 141.0], [43.1, 141.4], [26.2, 127.7], [31.9, 131.4]
+        ];
+        let min = 1e9;
+        for (let i = 0; i < refs.length; i++) {
+            const d = tyHaversineKm_(lat, lon, refs[i][0], refs[i][1]);
+            if (d < min) min = d;
+        }
+        return min;
+    }
+    function tyEnsureApproachSteps_(model) {
+        if (!model || model.approachReady) return model;
+        const pts = (model.points || []).slice();
+        const past = model.past || [];
+        const nowIdx = pts.findIndex(function (p) { return p && p.now; });
+        if (nowIdx < 0 || past.length < 2) return model;
+        model.approachReady = true;
+        const now = pts[nowIdx];
+        const samples = [];
+        past.forEach(function (p) {
+            if (!p || p.lat == null) return;
+            if (Math.hypot(p.lat - now.lat, p.lon - now.lon) < 0.45) return;
+            const prev = samples[samples.length - 1];
+            if (prev && Math.hypot(prev.lat - p.lat, prev.lon - p.lon) < 1.5) return;
+            samples.push({
+                lat: p.lat, lon: p.lon, now: false, day: '', hour: '', label: '',
+                circleKm: 0, galeKm: 0, stormKm: 0, approach: true
+            });
+        });
+        const keep = samples.slice(-5);
+        if (!keep.length) return model;
+        model.points = keep.concat(pts.slice(nowIdx));
+        return model;
+    }
+    function tyPastUntil_(past, focus) {
+        if (!past || past.length < 2 || !focus) return past || [];
+        let best = 0;
+        let bestD = 1e9;
+        past.forEach(function (p, i) {
+            const d = Math.hypot(p.lat - focus.lat, p.lon - focus.lon);
+            if (d < bestD) { bestD = d; best = i; }
+        });
+        return past.slice(0, Math.max(1, best) + 1);
+    }
+    function tyJapanViewPts_(lat, lon) {
+        const refs = [
+            [35.6, 139.7], [35.0, 135.5], [34.6, 135.5], [33.6, 130.4],
+            [38.3, 141.0], [43.1, 141.4], [26.2, 127.7], [31.6, 130.6],
+            [34.8, 139.1], [33.1, 139.8], [35.7, 140.9]
+        ];
+        let best = refs[0];
+        let bestD = 1e9;
+        refs.forEach(function (r) {
+            const d = tyHaversineKm_(lat, lon, r[0], r[1]);
+            if (d < bestD) { bestD = d; best = r; }
+        });
+        const inlandLat = best[0] + Math.max(-1.3, Math.min(1.3, (36.2 - best[0]) * 0.45));
+        const inlandLon = best[1] + Math.max(-1.6, Math.min(1.6, (137.8 - best[1]) * 0.45));
+        return [
+            { lat: best[0], lon: best[1], km: 90 },
+            { lat: inlandLat, lon: inlandLon, km: 40 }
+        ];
+    }
+    function tyMapFrame_(model, focusIdx) {
+        const ptsAll = ((model && model.points) || []).filter(function (p) { return p && p.lat != null && !p.approach; });
+        const now = ptsAll.find(function (p) { return p.now; }) || ptsAll[0] || { lat: 34.6, lon: 135.5 };
+        const stages = tyForecastStages_(ptsAll);
+        const stageN = focusIdx == null ? stages.length : Math.max(0, Math.min(stages.length, focusIdx));
+        let lat0 = now.lat, lat1 = now.lat, lon0 = now.lon, lon1 = now.lon;
+        function grow(lat, lon, km) {
+            if (lat == null || lon == null) return;
+            const d = Math.max(0, Number(km) || 0) / 111;
+            if (lat - d < lat0) lat0 = lat - d;
+            if (lat + d > lat1) lat1 = lat + d;
+            const dl = d / Math.max(0.25, Math.cos(lat * Math.PI / 180));
+            if (lon - dl < lon0) lon0 = lon - dl;
+            if (lon + dl > lon1) lon1 = lon + dl;
+        }
+        const storm = model && model.storm && model.storm.km > 0 ? model.storm : null;
+        if (storm) grow(storm.lat, storm.lon, storm.km);
+        else grow(now.lat, now.lon, now.stormKm || 160);
+        let subject = now;
+        if (stageN > 0) {
+            stages.slice(0, stageN).forEach(function (s) {
+                (s.points || []).forEach(function (p) {
+                    grow(p.lat, p.lon, Math.max(p.circleKm || 0, 40));
+                    subject = p;
+                });
+            });
+            let revealed = 0;
+            stages.slice(0, stageN).forEach(function (s) { if (s.hours > revealed) revealed = s.hours; });
+            const warn = tyWarnForHours_(model, revealed);
+            const lead = tyLeadingStormCircle_(warn, storm || now);
+            if (lead) {
+                grow(lead.lat, lead.lon, lead.km);
+                subject = lead;
+            }
+        }
+        tyJapanViewPts_(subject.lat, subject.lon).forEach(function (p) { grow(p.lat, p.lon, p.km); });
+        const nearKm = tyNearestJapanKm_(subject.lat, subject.lon);
+        const cLat = (lat0 + lat1) / 2;
+        const cLon = (lon0 + lon1) / 2;
+        const cos = Math.max(0.25, Math.cos(cLat * Math.PI / 180));
+        const pad = nearKm < 450 ? 0.35 : 0.55;
+        const contentHalfLat = (lat1 - lat0) / 2 + pad;
+        const contentHalfLon = (lon1 - lon0) / 2 + pad;
+        let halfLat = Math.max(contentHalfLat, contentHalfLon * cos);
+        if (nearKm < 450) halfLat = Math.max(halfLat, 2.5);
+        else if (nearKm > 700) halfLat = Math.max(halfLat, 4.2);
+        /* 円と線が128の端で切れないよう、内側約6pxに収める */
+        halfLat *= 128 / 116;
+        const halfLon = halfLat / cos;
+        return {
+            lat0: cLat - halfLat,
+            lat1: cLat + halfLat,
+            lon0: cLon - halfLon,
+            lon1: cLon + halfLon,
+            zoomT: nearKm < 700 ? 1 : 0
+        };
+    }
+    function tyProject_(lat, lon, b, w, h) {
+        return {
+            x: ((lon - b.lon0) / (b.lon1 - b.lon0)) * w,
+            y: ((b.lat1 - lat) / (b.lat1 - b.lat0)) * h
+        };
+    }
+    /* 気象庁の弧角度は北を0度、時計回り */
+    function tyArcPts_(lat, lon, km, a0, a1) {
+        let start = Number(a0);
+        let end = Number(a1);
+        if (![lat, lon, km, start, end].every(Number.isFinite) || km <= 0) return [];
+        if (end < start) end += 360;
+        const steps = Math.max(3, Math.round((end - start) / 14));
+        const s = Math.max(0.25, Math.cos(lat * Math.PI / 180));
+        const out = [];
+        for (let i = 0; i <= steps; i++) {
+            const deg = (start + (end - start) * (i / steps)) * Math.PI / 180;
+            out.push({
+                lat: lat + (km / 111) * Math.cos(deg),
+                lon: lon + (km / 111) * Math.sin(deg) / s
+            });
+        }
+        return out;
+    }
+    function tyCirclePx_(lat, circleKm, b, h) {
+        if (!circleKm || circleKm <= 0) return 0;
+        const deg = circleKm / 111;
+        return Math.max(2, (deg / (b.lat1 - b.lat0)) * h);
+    }
+    function tyPolyPath_(poly, b, w, h) {
+        return poly.map(function (ll, i) {
+            const p = tyProject_(ll[1], ll[0], b, w, h);
+            return (i ? 'L' : 'M') + p.x.toFixed(2) + ' ' + p.y.toFixed(2);
+        }).join('') + 'Z';
+    }
+    function tyLinePath_(line, b, w, h) {
+        return line.map(function (ll, i) {
+            const p = tyProject_(ll[1], ll[0], b, w, h);
+            return (i ? 'L' : 'M') + p.x.toFixed(2) + ' ' + p.y.toFixed(2);
+        }).join('');
+    }
+    function tyPointDateText_(p) {
+        if (!p) return '';
+        if (p.month && p.day) return p.month + '/' + p.day;
+        if (p.day) return p.day + '日';
+        return '';
+    }
+    function tyDateLabelBoxes_(items, W, H) {
+        const boxes = [];
+        const th = 10;
+        function tw(t) { return Math.max(18, String(t).length * 5.4 + 4); }
+        function overlap(a, b) {
+            return !(a.x + a.w + 1 < b.x || b.x + b.w + 1 < a.x || a.y + a.h + 1 < b.y || b.y + b.h + 1 < a.y);
+        }
+        const slots = [
+            function (x, y, r, w) { return { x: x - w / 2, y: y - r - th - 1 }; },
+            function (x, y, r, w) { return { x: x - w / 2, y: y + r + 1 }; },
+            function (x, y, r, w) { return { x: x + r + 2, y: y - th / 2 }; },
+            function (x, y, r, w) { return { x: x - r - w - 2, y: y - th / 2 }; },
+            function (x, y, r, w) { return { x: x + r + 1, y: y - r - th }; },
+            function (x, y, r, w) { return { x: x - r - w - 1, y: y - r - th }; },
+            function (x, y, r, w) { return { x: x + r + 1, y: y + r }; },
+            function (x, y, r, w) { return { x: x - r - w - 1, y: y + r }; }
+        ];
+        items.forEach(function (it) {
+            const w = tw(it.text);
+            const r = Math.max(3, Number(it.r) || 0);
+            let chosen = null;
+            for (let i = 0; i < slots.length; i++) {
+                const p = slots[i](it.x, it.y, r, w);
+                const box = {
+                    x: Math.max(1, Math.min(W - w - 1, p.x)),
+                    y: Math.max(1, Math.min(H - th - 1, p.y)),
+                    w: w,
+                    h: th,
+                    text: it.text
+                };
+                let ok = true;
+                for (let j = 0; j < boxes.length; j++) {
+                    if (overlap(box, boxes[j])) { ok = false; break; }
+                }
+                if (ok) { chosen = box; break; }
+            }
+            if (chosen) boxes.push(chosen);
+        });
+        return boxes;
+    }
+    function tyDateLabelSvg_(box) {
+        return '<text x="' + (box.x + box.w / 2).toFixed(1) + '" y="' + (box.y + 8).toFixed(1)
+            + '" fill="#ffffff" stroke="#16324a" stroke-width="2.4" paint-order="stroke" '
+            + 'font-size="8" font-weight="800" font-family="Noto Sans JP,sans-serif" text-anchor="middle">'
+            + escapeS1Html(box.text) + '</text>';
+    }
+    function tyLabelBadgeSvg_(x, y, text, fill, w) {
+        const t = String(text || '');
+        if (!t) return '';
+        const tw = Math.min(62, Math.max(28, t.length * 4.4 + 8));
+        const th = 11;
+        const lx = Math.max(1, Math.min(w - tw - 1, x - tw / 2));
+        const ly = Math.max(1, Math.min(128 - th - 1, y - 16));
+        return '<rect x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" width="' + tw.toFixed(1) +
+            '" height="' + th + '" rx="2" fill="' + fill + '"/>' +
+            '<text x="' + (lx + tw / 2).toFixed(1) + '" y="' + (ly + 8.2).toFixed(1) +
+            '" fill="#ffffff" font-size="7" font-weight="700" font-family="Noto Sans JP,sans-serif" text-anchor="middle">' +
+            escapeS1Html(t) + '</text>';
+    }
+    function tyForecastStages_(pts) {
+        const stages = [];
+        (pts || []).forEach(function (p) {
+            if (!p || p.now || !(p.circleKm > 0)) return;
+            const key = (p.hoursAhead != null) ? ('h' + p.hoursAhead) : (p.day || ('d' + stages.length));
+            const last = stages[stages.length - 1];
+            if (last && last.key === key) {
+                last.points.push(p);
+                if ((p.hoursAhead || 0) > last.hours) last.hours = p.hoursAhead || 0;
+            } else {
+                stages.push({ key: key, hours: p.hoursAhead || 0, points: [p] });
+            }
+        });
+        return stages;
+    }
+    function tyWarnForHours_(model, hours) {
+        const steps = (model && model.stormWarnSteps) || [];
+        let best = null;
+        steps.forEach(function (s) {
+            if (!s || !(s.hours > 0)) return;
+            if (s.hours <= hours + 0.1 && (!best || s.hours > best.hours)) best = s;
+        });
+        if (best) return best.area;
+        return (hours > 0 && model && model.stormWarn) ? model.stormWarn : null;
+    }
+    function tyLocalKm_(lat, lon, lat0, lon0) {
+        const s = Math.max(0.25, Math.cos(lat0 * Math.PI / 180));
+        return { x: (lon - lon0) * 111 * s, y: (lat - lat0) * 111 };
+    }
+    function tyFromLocalKm_(x, y, lat0, lon0) {
+        const s = Math.max(0.25, Math.cos(lat0 * Math.PI / 180));
+        return { lat: lat0 + y / 111, lon: lon0 + x / (111 * s) };
+    }
+    function tyMathToBearing_(rad) {
+        return ((90 - rad * 180 / Math.PI) % 360 + 360) % 360;
+    }
+    function tyLeadingStormCircle_(area, origin) {
+        if (!area || !Array.isArray(area.arc) || !origin) return null;
+        let best = null;
+        let bestKm = 80;
+        area.arc.forEach(function (a) {
+            if (!a || !a[0] || !(Number(a[1]) > 0)) return;
+            const lat = Number(a[0][0]);
+            const lon = Number(a[0][1]);
+            const km = Number(a[1]) / 1000;
+            if (![lat, lon, km].every(Number.isFinite)) return;
+            const loc = tyLocalKm_(lat, lon, origin.lat, origin.lon);
+            if (Math.hypot(loc.x, loc.y) > bestKm) {
+                bestKm = Math.hypot(loc.x, loc.y);
+                best = { lat: lat, lon: lon, km: km };
+            }
+        });
+        return best;
+    }
+    /* 暴風警戒域は、今の暴風円から先の暴風円へ外側の2本の赤線でつなぐ */
+    function tyStormCone_(storm, lead) {
+        if (!storm || !lead || !(storm.km > 0) || !(lead.km > 0)) return null;
+        const loc2 = tyLocalKm_(lead.lat, lead.lon, storm.lat, storm.lon);
+        const dist = Math.hypot(loc2.x, loc2.y);
+        const r1 = storm.km;
+        const r2 = lead.km;
+        if (!(dist > Math.abs(r1 - r2) + 8)) return null;
+        const alpha = Math.atan2(loc2.y, loc2.x);
+        const tilt = Math.acos(Math.max(-1, Math.min(1, (r1 - r2) / dist)));
+        const angs = [alpha + tilt, alpha - tilt];
+        const lines = angs.map(function (a) {
+            return [
+                tyFromLocalKm_(r1 * Math.cos(a), r1 * Math.sin(a), storm.lat, storm.lon),
+                tyFromLocalKm_(loc2.x + r2 * Math.cos(a), loc2.y + r2 * Math.sin(a), storm.lat, storm.lon)
+            ];
+        });
+        const b1 = tyMathToBearing_(angs[0]);
+        const b2 = tyMathToBearing_(angs[1]);
+        const forward = tyMathToBearing_(alpha);
+        function midBearing(from, to) {
+            let span = (to - from + 360) % 360;
+            if (span < 1) span = 360;
+            return { mid: (from + span / 2) % 360, span: span };
+        }
+        function bearingDelta(a, b) {
+            let d = Math.abs(a - b) % 360;
+            if (d > 180) d = 360 - d;
+            return d;
+        }
+        const m12 = midBearing(b1, b2);
+        const m21 = midBearing(b2, b1);
+        const use12 = bearingDelta(m12.mid, forward) <= bearingDelta(m21.mid, forward);
+        return {
+            lines: lines,
+            arc: { lat: lead.lat, lon: lead.lon, km: lead.km, a0: use12 ? b1 : b2, a1: use12 ? b2 : b1 }
+        };
+    }
+    function tyRedLineSvg_(pts, b, w, h) {
+        if (!pts || pts.length < 2) return '';
+        return '<polyline fill="none" stroke="#e01530" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="butt" points="' +
+            pts.map(function (p) {
+                const q = tyProject_(p.lat, p.lon, b, w, h);
+                return q.x.toFixed(1) + ',' + q.y.toFixed(1);
+            }).join(' ') + '"/>';
+    }
+    /* 暴風域の円と警戒域の赤線を、画面上の同じ円に接する1本の線にする */
+    function tyStormOutlineSvg_(c1, c2) {
+        if (!c1 || !c2 || !(c1.r > 1) || !(c2.r > 1)) return '';
+        const dx = c2.x - c1.x;
+        const dy = c2.y - c1.y;
+        const dist = Math.hypot(dx, dy);
+        if (!(dist > Math.abs(c1.r - c2.r) + 0.8)) return '';
+        const alpha = Math.atan2(dy, dx);
+        const tilt = Math.acos(Math.max(-1, Math.min(1, (c1.r - c2.r) / dist)));
+        const angA = alpha + tilt;
+        const angC = alpha - tilt;
+        function norm(t) {
+            t = t % (Math.PI * 2);
+            if (t < 0) t += Math.PI * 2;
+            return t;
+        }
+        const aN = norm(angA);
+        const cN = norm(angC);
+        const fwd = norm(alpha);
+        const spanCW = (aN - cN + Math.PI * 2) % (Math.PI * 2) || (Math.PI * 2);
+        const along = (fwd - cN + Math.PI * 2) % (Math.PI * 2);
+        const useCW = along <= spanCW + 0.02;
+        const span = useCW ? spanCW : ((cN - aN + Math.PI * 2) % (Math.PI * 2) || (Math.PI * 2));
+        const p1 = { x: c1.x + c1.r * Math.cos(angC), y: c1.y + c1.r * Math.sin(angC) };
+        const p2 = { x: c2.x + c2.r * Math.cos(angC), y: c2.y + c2.r * Math.sin(angC) };
+        const p3 = { x: c2.x + c2.r * Math.cos(angA), y: c2.y + c2.r * Math.sin(angA) };
+        const p4 = { x: c1.x + c1.r * Math.cos(angA), y: c1.y + c1.r * Math.sin(angA) };
+        const large = span > Math.PI ? 1 : 0;
+        const sweep = useCW ? 1 : 0;
+        return '<path fill="none" stroke="#e01530" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="butt" d="M' +
+            p1.x.toFixed(2) + ' ' + p1.y.toFixed(2) + ' L' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2) +
+            ' A' + c2.r.toFixed(2) + ' ' + c2.r.toFixed(2) + ' 0 ' + large + ' ' + sweep + ' ' +
+            p3.x.toFixed(2) + ' ' + p3.y.toFixed(2) + ' L' + p4.x.toFixed(2) + ' ' + p4.y.toFixed(2) + '"/>';
+    }
+    function paintTyphoonSvg_(svg, model, focusIdx) {
+        const W = 128, H = 128;
+        const pts = ((model && model.points) || []).filter(function (p) { return p && p.lat != null; });
+        if (!pts.length) {
+            svg.innerHTML = '<rect width="' + W + '" height="' + H + '" fill="' + TY_OCEAN_ + '"/>';
+            return;
+        }
+        const fi = Math.max(0, Math.min(pts.length - 1, focusIdx == null ? pts.length - 1 : focusIdx));
+        const b = tyMapFrame_(model, fi);
+        let land = '';
+        TY_LANDS_.forEach(function (poly, idx) {
+            const jp = idx < TY_JP_LAND_N_;
+            land += '<path d="' + tyPolyPath_(poly, b, W, H) + '" fill="' + (jp ? TY_LAND_FILL_ : TY_NEAR_FILL_) +
+                '" stroke="' + (jp ? TY_LAND_STROKE_ : TY_NEAR_STROKE_) + '" stroke-width="0.45" stroke-linejoin="round"/>';
+        });
+        const nowIdx = pts.findIndex(function (p) { return p && p.now; });
+        const nowPt = nowIdx >= 0 ? pts[nowIdx] : null;
+        const live = !!(model && model.live);
+        const pastPts = (model.past && model.past.length > 1) ? model.past : pts.filter(function (p) { return p && (p.now || !(p.circleKm > 0)); });
+        let line = '';
+        if (pastPts.length > 1) {
+            line = '<polyline fill="none" stroke="#1a5fbf" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' +
+                pastPts.map(function (p) {
+                    const q = tyProject_(p.lat, p.lon, b, W, H);
+                    return q.x.toFixed(2) + ',' + q.y.toFixed(2);
+                }).join(' ') + '"/>';
+        }
+        let gale = model && model.gale && model.gale.km > 0 ? model.gale : null;
+        if (!gale && live && nowPt && nowPt.galeKm > 0) gale = { lat: nowPt.lat, lon: nowPt.lon, km: nowPt.galeKm };
+        let storm = model && model.storm && model.storm.km > 0 ? model.storm : null;
+        if (!storm && live && nowPt && nowPt.stormKm > 0) storm = { lat: nowPt.lat, lon: nowPt.lon, km: nowPt.stormKm };
+        let zones = '';
+        if (gale) {
+            const q = tyProject_(gale.lat, gale.lon, b, W, H);
+            const r = tyCirclePx_(gale.lat, gale.km, b, H);
+            zones += '<circle cx="' + q.x.toFixed(1) + '" cy="' + q.y.toFixed(1) + '" r="' + r.toFixed(1) +
+                '" fill="rgba(255,196,40,0.12)" stroke="#f0c020" stroke-width="1.15"/>';
+        }
+        let stormPx = null;
+        if (storm) {
+            const q = tyProject_(storm.lat, storm.lon, b, W, H);
+            const r = tyCirclePx_(storm.lat, storm.km, b, H);
+            stormPx = { x: q.x, y: q.y, r: r };
+            zones += '<circle cx="' + q.x.toFixed(1) + '" cy="' + q.y.toFixed(1) + '" r="' + r.toFixed(1) +
+                '" fill="rgba(214,32,58,0.42)"/>';
+        }
+        const stages = tyForecastStages_(pts);
+        const stageN = focusIdx == null ? stages.length : Math.max(0, Math.min(stages.length, focusIdx));
+        const shownStages = stages.slice(0, stageN);
+        let revealedHours = 0;
+        shownStages.forEach(function (s) { if (s.hours > revealedHours) revealedHours = s.hours; });
+        const warn = revealedHours > 0 ? tyWarnForHours_(model, revealedHours) : null;
+        const lead = (storm && warn) ? tyLeadingStormCircle_(warn, storm) : null;
+        let redLines = '';
+        if (stormPx) {
+            redLines += '<circle cx="' + stormPx.x.toFixed(1) + '" cy="' + stormPx.y.toFixed(1) + '" r="' + stormPx.r.toFixed(1) +
+                '" fill="none" stroke="#e01530" stroke-width="1.7"/>';
+        }
+        let drewOutline = false;
+        if (stormPx && lead) {
+            const lq = tyProject_(lead.lat, lead.lon, b, W, H);
+            const lr = tyCirclePx_(lead.lat, lead.km, b, H);
+            const outline = tyStormOutlineSvg_(stormPx, { x: lq.x, y: lq.y, r: lr });
+            if (outline) {
+                redLines += outline;
+                drewOutline = true;
+            }
+        }
+        /* いま暴風域がない熱帯低気圧では、先の警戒域だけを島の上へ描かない */
+        if (!drewOutline && stormPx && warn && Array.isArray(warn.arc)) {
+            warn.arc.forEach(function (a) {
+                if (!a || !a[0] || !(Number(a[1]) > 0) || !a[2]) return;
+                redLines += tyRedLineSvg_(tyArcPts_(Number(a[0][0]), Number(a[0][1]), Number(a[1]) / 1000, a[2][0], a[2][1]), b, W, H);
+            });
+            if (Array.isArray(warn.line)) {
+                warn.line.forEach(function (ln) {
+                    if (!Array.isArray(ln) || ln.length < 2) return;
+                    redLines += tyRedLineSvg_(ln.map(function (ll) { return { lat: Number(ll[0]), lon: Number(ll[1]) }; }), b, W, H);
+                });
+            }
+        }
+        const circPts = [];
+        if (live) {
+            shownStages.forEach(function (s) {
+                s.points.forEach(function (p) { circPts.push(p); });
+            });
+        }
+        const trackPts = [];
+        if (nowPt) trackPts.push(nowPt);
+        circPts.forEach(function (p) { trackPts.push(p); });
+        let forecast = '';
+        circPts.forEach(function (p) {
+            const q = tyProject_(p.lat, p.lon, b, W, H);
+            const r = tyCirclePx_(p.lat, p.circleKm, b, H);
+            forecast += '<circle cx="' + q.x.toFixed(1) + '" cy="' + q.y.toFixed(1) + '" r="' + r.toFixed(1) +
+                '" fill="none" stroke="#ffffff" stroke-width="1.15" stroke-dasharray="2.2 1.5"/>';
+        });
+        if (trackPts.length > 1) {
+            forecast += '<polyline fill="none" stroke="#ffffff" stroke-width="1.05" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="1.7 1.5" points="' +
+                trackPts.map(function (p) {
+                    const q = tyProject_(p.lat, p.lon, b, W, H);
+                    return q.x.toFixed(2) + ',' + q.y.toFixed(2);
+                }).join(' ') + '"/>';
+        }
+        circPts.forEach(function (p) {
+            const q = tyProject_(p.lat, p.lon, b, W, H);
+            forecast += '<circle cx="' + q.x.toFixed(1) + '" cy="' + q.y.toFixed(1) + '" r="1.35" fill="#ffffff"/>';
+        });
+        const mark = nowPt || pts[fi];
+        if (mark) {
+            const q = tyProject_(mark.lat, mark.lon, b, W, H);
+            if (model && model.dissipated) {
+                forecast += tyDissipatedMarkSvg_(q.x, q.y, model.tyNo);
+            } else {
+                const dot = (model && model.slot % 2 === 1) ? '#ff8a1e' : '#e23b3b';
+                forecast += '<circle cx="' + q.x.toFixed(1) + '" cy="' + q.y.toFixed(1) + '" r="2.4" fill="' + dot + '"/>';
+            }
+        }
+        let marks = '';
+        const dateItems = [];
+        const seenDate = {};
+        const datePts = [];
+        if (nowPt && tyPointDateText_(nowPt)) datePts.push(nowPt);
+        circPts.forEach(function (p) { datePts.push(p); });
+        datePts.forEach(function (p) {
+            const text = tyPointDateText_(p);
+            if (!text || seenDate[text]) return;
+            seenDate[text] = true;
+            const q = tyProject_(p.lat, p.lon, b, W, H);
+            const r = p.now ? 5 : tyCirclePx_(p.lat, p.circleKm, b, H);
+            dateItems.push({ x: q.x, y: q.y, r: r, text: text });
+        });
+        tyDateLabelBoxes_(dateItems, W, H).forEach(function (box) {
+            marks += tyDateLabelSvg_(box);
+        });
+        svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+        svg.setAttribute('shape-rendering', 'geometricPrecision');
+        svg.innerHTML = '<rect width="' + W + '" height="' + H + '" fill="' + TY_OCEAN_ + '"/>' +
+            land + zones + line + redLines + forecast + marks;
+    }
+    function tyCurrentMap_() {
+        if (typhoonMapModel_ && (typhoonMapModel_.points || []).length) return typhoonMapModel_;
+        if (typhoonMapModels_.length && (typhoonMapModels_[0].points || []).length) return typhoonMapModels_[0];
+        if ((typhoonForced || DEMO_TYPHOON_ONLY) && !typhoonMapModels_.length) return DEMO_TYPHOON_MAP_;
+        return null;
+    }
+    function tySelectMap_(index) {
+        if (!typhoonMapModels_.length) return typhoonMapModel_;
+        const n = typhoonMapModels_.length;
+        typhoonMapIndex_ = ((index % n) + n) % n;
+        typhoonMapModel_ = typhoonMapModels_[typhoonMapIndex_];
+        return typhoonMapModel_;
+    }
+    function paintTyphoonFaces_(focusIdx) {
+        const model = tyCurrentMap_();
+        if (!model) return false;
+        const pts = model.points || [];
+        const fi = focusIdx == null ? Math.max(0, pts.length - 1) : focusIdx;
+        document.querySelectorAll('#sceneTyphoon .ty-svg').forEach(function (svg) {
+            paintTyphoonSvg_(svg, model, fi);
+        });
+        return true;
+    }
+    function stopTyphoonMapAnim_() {
+        if (tyHoldTimerId) { clearTimeout(tyHoldTimerId); tyHoldTimerId = null; }
+        if (tyAnimId) { cancelAnimationFrame(tyAnimId); tyAnimId = null; }
+    }
+    function playTyphoonMapAnim_() {
+        stopTyphoonMapAnim_();
+        if (!typhoonMapModels_.length) {
+            const one = tyCurrentMap_();
+            if (one) typhoonMapModels_ = [one];
+        }
+        if (!typhoonMapModels_.length) {
+            if (DEMO_TYPHOON_ONLY) return;
+            tyHoldTimerId = setTimeout(function () { runAfterSceneEndHold_(tyFinishToNext_); }, TY_MAP_HOLD_MS);
+            return;
+        }
+        let stormIdx = typhoonMapIndex_ || 0;
+        if (stormIdx >= typhoonMapModels_.length) stormIdx = 0;
+        let skips = 0;
+        function endAll_() {
+            if (DEMO_TYPHOON_ONLY) {
+                stormIdx = 0;
+                skips = 0;
+                playStorm_();
+                return;
+            }
+            tyFinishToNext_();
+        }
+        function playStorm_() {
+            if (!typhoonMapModels_.length || skips > typhoonMapModels_.length) {
+                endAll_();
+                return;
+            }
+            if (stormIdx >= typhoonMapModels_.length) {
+                endAll_();
+                return;
+            }
+            const model = tySelectMap_(stormIdx);
+            if (!model || !(model.points || []).length) {
+                skips += 1;
+                stormIdx += 1;
+                if (stormIdx >= typhoonMapModels_.length) endAll_();
+                else playStorm_();
+                return;
+            }
+            const stages = tyForecastStages_(model.points);
+            const n = stages.length + 1;
+            if (!n) {
+                skips += 1;
+                stormIdx += 1;
+                if (stormIdx >= typhoonMapModels_.length) endAll_();
+                else playStorm_();
+                return;
+            }
+            skips = 0;
+            tyMapStepIdx_ = 0;
+            function finishStorm_() {
+                stormIdx += 1;
+                tyHoldTimerId = setTimeout(function () {
+                    if (stormIdx >= typhoonMapModels_.length) endAll_();
+                    else playStorm_();
+                }, TY_EDGE_HOLD_MS);
+            }
+            function tick_() {
+                paintTyphoonFaces_(tyMapStepIdx_);
+                applySignageLogoPanel_();
+                if (tyMapStepIdx_ >= n - 1) {
+                    finishStorm_();
+                    return;
+                }
+                tyMapStepIdx_ += 1;
+                tyHoldTimerId = setTimeout(tick_, TY_MAP_STEP_MS);
+            }
+            paintTyphoonFaces_(0);
+            applySignageLogoPanel_();
+            tyHoldTimerId = setTimeout(function () {
+                if (n <= 1) {
+                    finishStorm_();
+                    return;
+                }
+                tyMapStepIdx_ = 1;
+                tick_();
+            }, TY_EDGE_HOLD_MS);
+        }
+        playStorm_();
+    }
+
+    async function updateTyphoonFromJma_() {
+        if (NO_TYPHOON || WBGT_ONLY) return;
+        /* デモ画面でも実況があれば地図に反映（取得失敗時のみサンプル） */
+        if (typhoonForced && !DEMO_TYPHOON_ONLY && DEMO_SIGNAGE) return;
+        try {
+            const listRes = await fetch(JMA_TYPHOON_LIST_URL, { cache: 'no-store', mode: 'cors' });
+            if (!listRes.ok) throw new Error('typhoon list HTTP ' + listRes.status);
+            const list = JSON.parse(await listRes.text());
+            const targets = Array.isArray(list) ? list : (list && list.tropicalCyclone ? [list] : []);
+            if (!targets.length) {
+                typhoonMapModels_ = [];
+                typhoonMapModel_ = null;
+                setTyphoonSlides_([]);
+                if (typhoonForced || DEMO_TYPHOON_ONLY) {
+                    typhoonMapModels_ = [DEMO_TYPHOON_MAP_];
+                    typhoonMapModel_ = DEMO_TYPHOON_MAP_;
+                    setTyphoonSlides_(DEMO_TYPHOON_SLIDES_);
+                }
+                console.log('[台風] 発表なし');
+                return;
+            }
+            const site = getTyphoonSiteLatLon_();
+            const packs = [];
+            for (let i = 0; i < targets.length; i++) {
+                const meta = targets[i];
+                const id = meta.tropicalCyclone;
+                if (!id) continue;
+                let spec = [];
+                try {
+                    const specRes = await fetch(JMA_TYPHOON_SPEC_URL(id), { cache: 'no-store', mode: 'cors' });
+                    if (specRes.ok) spec = JSON.parse(await specRes.text()) || [];
+                } catch (e) { spec = []; }
+                let fc = [];
+                try {
+                    const fcRes = await fetch(JMA_TYPHOON_FORECAST_URL(id), { cache: 'no-store', mode: 'cors' });
+                    if (fcRes.ok) fc = JSON.parse(await fcRes.text()) || [];
+                } catch (e) { fc = []; }
+                if (!Array.isArray(spec)) spec = [];
+                if (!Array.isArray(fc)) fc = [];
+                const rows = spec.length ? spec : fc;
+                if (!rows.length) continue;
+                const threat = typhoonThreatensSite_(rows);
+                const noLabel = typhoonNoLabel_((rows.find(function (x) { return x.part === 'title'; }) || {}).typhoonNumber || meta.typhoonNumber);
+                if (threat && !threat.ok) {
+                    console.log('[台風] 会場から遠いが地図に表示', noLabel || id,
+                        threat.km != null ? ('最短約' + threat.km + 'km') : '');
+                }
+                const model = buildTyphoonMapModel_(meta, rows);
+                if (!(model.points || []).length) {
+                    console.log('[台風] 位置がないため地図をスキップ', noLabel || id);
+                    continue;
+                }
+                model.id = id;
+                model.label = noLabel || id;
+                model.live = true;
+                model.dissipated = tyIsDissipated_(meta, rows);
+                model.tyNo = tyNumberShort_(meta, rows);
+                if (model.dissipated) {
+                    model.gale = null;
+                    model.storm = null;
+                    model.stormWarn = null;
+                    model.stormWarnSteps = [];
+                    (model.points || []).forEach(function (p) {
+                        if (!p) return;
+                        p.circleKm = 0;
+                        p.galeKm = 0;
+                        p.stormKm = 0;
+                    });
+                }
+                try {
+                    if (fc && fc.length) {
+                        const past = tyPastTrackFromForecast_(fc);
+                        if (past.length > 1) model.past = past;
+                        const areas = tyAreasFromForecast_(fc);
+                        if (!model.dissipated) {
+                            if (areas.gale) model.gale = areas.gale;
+                            if (areas.storm) model.storm = areas.storm;
+                            if (areas.stormWarn) model.stormWarn = areas.stormWarn;
+                            if (areas.stormWarnSteps) model.stormWarnSteps = areas.stormWarnSteps;
+                        }
+                        if (!model.gale) console.log('[台風] 強風域の座標がありません', noLabel || id);
+                        if (!model.storm) console.log('[台風] 暴風域の座標がありません', noLabel || id);
+                        if (!model.stormWarn) console.log('[台風] 暴風警戒域の座標がありません', noLabel || id);
+                    } else {
+                        console.log('[台風] forecast.json を取得できないため領域を描けません', noLabel || id);
+                    }
+                } catch (err) {
+                    console.log('[台風] 領域データの読込に失敗', noLabel || id, err && err.message ? err.message : err);
+                }
+                const nCirc = (model.points || []).filter(function (p) { return p && p.circleKm > 0 && !p.now; }).length;
+                if (!nCirc) console.log('[台風] 予報円の半径がありません', noLabel || id);
+                const now = model.points.find(function (p) { return p && p.now; }) || model.points[0];
+                model.distKm = tyHaversineKm_(site.lat, site.lon, now.lat, now.lon);
+                packs.push({ model: model, slides: buildTyphoonSlidesFromSpec_(meta, rows) });
+                console.log('[台風] 表示', noLabel || id, '約' + Math.round(model.distKm) + 'km', threat.reason);
+            }
+            packs.sort(function (a, b) { return a.model.distKm - b.model.distKm; });
+            const models = [];
+            const allSlides = [];
+            packs.forEach(function (pack, idx) {
+                pack.model.slot = idx;
+                models.push(pack.model);
+                pack.slides.forEach(function (s) {
+                    s.mapIndex = idx;
+                    allSlides.push(s);
+                });
+            });
+            if (!models.length && (typhoonForced || DEMO_TYPHOON_ONLY)) {
+                if (!(typhoonMapModels_.length && typhoonMapModels_[0] !== DEMO_TYPHOON_MAP_)) {
+                    typhoonMapModels_ = [DEMO_TYPHOON_MAP_];
+                    typhoonMapModel_ = DEMO_TYPHOON_MAP_;
+                    setTyphoonSlides_(DEMO_TYPHOON_SLIDES_);
+                }
+            } else if (!models.length) {
+                typhoonMapModels_ = [];
+                typhoonMapModel_ = null;
+                setTyphoonSlides_([]);
+            } else {
+                const prevId = typhoonMapModel_ && typhoonMapModel_.id;
+                typhoonMapModels_ = models;
+                const keep = prevId ? models.findIndex(function (m) { return m.id === prevId; }) : -1;
+                tySelectMap_(keep >= 0 ? keep : 0);
+                setTyphoonSlides_(allSlides);
+            }
+            console.log('[台風] 地図', typhoonMapModels_.length, '件 / スライド', typhoonSlidesActive.length, '件');
+        } catch (e) {
+            console.warn('[台風] 取得失敗:', e && e.message ? e.message : e);
+            typhoonMapModels_ = [];
+            typhoonMapModel_ = null;
+            setTyphoonSlides_([]);
+            if (typhoonForced || DEMO_TYPHOON_ONLY) {
+                typhoonMapModels_ = [DEMO_TYPHOON_MAP_];
+                typhoonMapModel_ = DEMO_TYPHOON_MAP_;
+                setTyphoonSlides_(DEMO_TYPHOON_SLIDES_);
+            }
+        }
+    }
 
     /** ロゴパネル: 現在の WBGT 段階色に同期 */
     function applySignageLogoPanel_() {
@@ -5362,14 +6642,14 @@
         var m = p.minute < 10 ? '0' + p.minute : String(p.minute);
         return h + ':' + m;
     }
-    function makeWhiteTopSeg_(issuedAt, isDemo, updatedAt) {
+    function makeWhiteTopSeg_(issuedAt, isDemo, updatedAt, areaLabel) {
         const seg = document.createElement('div');
         seg.className = 'white-top-seg';
         seg.style.cssText = 'display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;height:40px;padding:0 16px 0 8px;gap:8px;flex:0 0 auto;white-space:nowrap;box-sizing:border-box';
         const area = document.createElement('span');
         area.className = 'white-area';
         area.style.cssText = 'flex:0 0 auto;font-size:15px;font-weight:900;color:#0854a8;letter-spacing:0.3px;white-space:nowrap';
-        area.textContent = getJmaWarnPlaceLabel_();
+        area.textContent = areaLabel || getJmaWarnPlaceLabel_();
         const clock = whiteFormatIssuedClock_(issuedAt);
         const updatedClock = whiteFormatIssuedClock_(updatedAt || issuedAt);
         const issued = document.createElement('span');
@@ -5432,9 +6712,10 @@
     }
     function makeWhiteMidChip_(scene) {
         const hasLevel = !!(scene && scene.hasLevel);
-        const unitW = hasLevel ? 256 : 128;
+        let unitW = hasLevel ? 256 : 128;
+        if (scene && (scene.unitW === 256 || scene.unitW === 128)) unitW = scene.unitW;
         const unit = document.createElement('div');
-        unit.className = hasLevel ? 'mid-unit is-wide' : 'mid-unit';
+        unit.className = unitW >= 256 ? 'mid-unit is-wide' : 'mid-unit';
         unit.style.cssText = 'display:flex;align-items:center;justify-content:center;width:' + unitW + 'px;min-width:' + unitW + 'px;max-width:' + unitW + 'px;flex:0 0 ' + unitW + 'px;height:48px;box-sizing:border-box;padding:2px 8px';
         const chip = document.createElement('span');
         const cls = (scene && scene.cls) || 'advisory';
@@ -5528,7 +6809,8 @@
         items.forEach(function (it) {
             if (it && it.issuedAt && it.issuedAt > issuedAt) issuedAt = it.issuedAt;
         });
-        const updatedAt = rainWarnMeta.updatedAt || issuedFallback;
+        const typhoonOnly = items.every(function (x) { return x && x.kind === 'typhoon'; });
+        const updatedAt = typhoonOnly ? issuedAt : (rainWarnMeta.updatedAt || issuedFallback);
         const gen = ++whitePlayGen_;
         if (whiteRafId_) { cancelAnimationFrame(whiteRafId_); whiteRafId_ = 0; }
         liveWhitePlay_ = true;
@@ -5536,7 +6818,7 @@
         const isDemo = items.some(function (x) { return x.demo; });
         whiteClearTrack_(whiteTopTrack);
         whiteClearTrack_(whiteBotTrack);
-        whiteTopTrack.appendChild(makeWhiteTopSeg_(issuedAt, isDemo, updatedAt));
+        whiteTopTrack.appendChild(makeWhiteTopSeg_(issuedAt, isDemo, updatedAt, typhoonOnly ? '台風情報' : ''));
         whiteBotTrack.appendChild(makeWhiteBotSeg_());
         fillWhiteMidChips_(whiteMidTrack, items);
         requestAnimationFrame(function () {
@@ -6083,7 +7365,7 @@
     }
     function startWarnHeroOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero, sceneTyphoon].forEach(hideSceneEl);
         const items = getWarnHeroDemoItems_();
         if (!items.length || !sceneWarnHero) return;
         sceneWarnHero.style.display = 'block';
@@ -6099,7 +7381,7 @@
     }
     async function startWhiteWarnPreview_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero, sceneTyphoon].forEach(hideSceneEl);
         if (!sceneWarn || !heroWhite) return;
         sceneWarn.style.display = sceneDisplayMode(sceneWarn);
         sceneWarn.classList.add('active');
@@ -6118,7 +7400,7 @@
     }
     async function startColorWarnPreview_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero, sceneTyphoon].forEach(hideSceneEl);
         try { await updateRainWarnFromJmaDirect_(); } catch (e) {}
         startLiveWarnPoll_();
         if (!sceneWarnHero) return;
@@ -6230,13 +7512,12 @@
             warnPhase_ = 4;
         }
         if (warnPhase_ === 4) {
-            const tyItems = typhoonWhiteEntries_();
-            if (tyItems.length && sceneWarn) {
-                transitionToScene(sceneWarn, function () {
-                    playWhite(function () {
+            if (hasTyphoonToPlay_() && sceneTyphoon) {
+                transitionToScene(sceneTyphoon, function () {
+                    playSceneTyphoon(0, function () {
                         if (warnPhase_ !== 4) return;
                         goToClock_();
-                    }, tyItems);
+                    });
                 });
                 return;
             }
@@ -6247,12 +7528,11 @@
     }
     function typhoonWhiteEntries_() {
         const last = window.AlertCubeTyphoon && window.AlertCubeTyphoon.last && window.AlertCubeTyphoon.last();
-        if (!last || last.fetchOk === false || !last.items || !last.items.length) return [];
+        if (!last || !last.items || !last.items.length) return [];
         return last.items.map(function (it) {
             const name = (it && (it.label || it.name))
-                || (it && it.number ? ('台風第' + it.number + '号') : '台風情報');
+                || (it && it.number ? ('台風' + it.number + '号') : '台風情報');
             const severe = !!(it && it.severe);
-            const wide = String(name).length > 5;
             return {
                 level: severe ? 'warning' : 'advisory',
                 kind: 'typhoon',
@@ -6261,7 +7541,7 @@
                 hasLevel: false,
                 lv: 0,
                 hazard: '',
-                unitW: wide ? 256 : 128,
+                unitW: 256,
                 levelLabel: severe ? '警報' : '注意報',
                 mid: name,
                 text: (it && it.text) || '',
@@ -6270,7 +7550,9 @@
         });
     }
     function hasTyphoonToPlay_() {
-        return typhoonWhiteEntries_().length > 0;
+        if (NO_TYPHOON) return false;
+        if (typhoonMapModels_ && typhoonMapModels_.length) return true;
+        return !!(typhoonMapModel_ && typhoonMapModel_.points && typhoonMapModel_.points.length);
     }
     function playTyphoonThenClock_() {
         if (!hasTyphoonToPlay_()) {
@@ -6377,10 +7659,6 @@
     function startMainLoopHead_() {
         if (hasLiveJmaWarn_()) {
             playLiveThenClock_();
-            return;
-        }
-        if (hasTyphoonToPlay_()) {
-            playTyphoonThenClock_();
             return;
         }
         playHeatThenClock_();
@@ -7494,7 +8772,7 @@
         setS1FootBarVisible_(hasS1WbgtFootMessage_());
         /* 真っ青の空きキャンバスを出さず、時計シーンを即表示 */
         if (s1) {
-            [s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(function (el) {
+            [s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero, sceneTyphoon].forEach(function (el) {
                 if (el) hideSceneEl(el);
             });
             s1.style.display = sceneDisplayMode(s1);
@@ -7623,9 +8901,14 @@
                     timings['大雨警報'] = Math.round(performance.now() - sWarn);
                     try {
                         const sTy = performance.now();
-                        if (window.AlertCubeTyphoon) await window.AlertCubeTyphoon.load(SITE_CFG);
+                        const tyBefore = hasTyphoonToPlay_() ? (typhoonMapModels_ || []).map(function (m) { return m.id || m.label; }).join('|') : '';
+                        await updateTyphoonFromJma_();
                         timings['台風'] = Math.round(performance.now() - sTy);
-                        if (mainLoopStarted_ && s1 && s1.classList.contains('active') && !scene1AnimId && !scene1SafetyTimerId && !scene1HoldTimerId) {
+                        const tyNow = hasTyphoonToPlay_() ? (typhoonMapModels_ || []).map(function (m) { return m.id || m.label; }).join('|') : '';
+                        console.log('[台風]', tyNow || '発表なし');
+                        if (tyNow && tyNow !== tyBefore && mainLoopStarted_ && warnPhase_ <= 0) {
+                            playTyphoonThenWeather_();
+                        } else if (mainLoopStarted_ && s1 && s1.classList.contains('active') && !scene1AnimId && !scene1SafetyTimerId && !scene1HoldTimerId) {
                             playScene1();
                         }
                     } catch (tyErr) {
@@ -9053,7 +10336,7 @@
     }
     function sceneDisplayMode(el) {
         if (!el) return 'block';
-        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneSchedule' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarn' || el.id === 'sceneWarnHero') return 'block';
+        if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneSchedule' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn' || el.id === 'sceneWarn' || el.id === 'sceneWarnHero' || el.id === 'sceneTyphoon') return 'block';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         return 'flex';
     }
@@ -9062,6 +10345,7 @@
         if (!el) return;
         if (el === sceneWarnHero) stopWarnHero_();
         if (el === sceneWarn) stopWhiteHero_();
+        if (el === sceneTyphoon && typeof stopTyphoonMapAnim_ === 'function') stopTyphoonMapAnim_();
         el.classList.remove('active');
         el.style.display = 'none';
         el.style.transform = '';
@@ -9141,11 +10425,35 @@
         setTimeout(function () { replayFn(); }, SCENE1_WBGT_HOLD_MS);
         return true;
     }
+    function playSceneTyphoon(startIdx, onDone) {
+        typhoonOnDone_ = onDone || null;
+        stopTyphoonMapAnim_();
+        if (!hasTyphoonToPlay_() || !sceneTyphoon) {
+            tyFinishToNext_();
+            return;
+        }
+        playTyphoonMapAnim_();
+    }
+    function playTyphoonThenWeather_() {
+        if (!hasTyphoonToPlay_() || !sceneTyphoon) {
+            if (s2) transitionToScene(s2, playScene2);
+            return;
+        }
+        transitionToScene(sceneTyphoon, function () {
+            playSceneTyphoon(0, function () {
+                if (s2) transitionToScene(s2, playScene2);
+            });
+        });
+    }
     function finishScene1() {
         scene1AdvanceToken += 1;
         s1Flow_ = null;
         clearScene1WbgtTimers();
         if (demoOnlyLoop_('s1', playScene1)) return;
+        if (hasTyphoonToPlay_()) {
+            playTyphoonThenWeather_();
+            return;
+        }
         if (!s2) return;
         transitionToScene(s2, playScene2);
     }
@@ -10578,7 +11886,7 @@
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero, sceneTyphoon].forEach(hideSceneEl);
         if (!el) return;
         playingSceneEl_ = el;
         el.style.display = sceneDisplayMode(el);
@@ -10614,7 +11922,7 @@
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero, sceneTyphoon].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -10666,6 +11974,22 @@
         }
         if (window.AlertCubeRuntime) window.AlertCubeRuntime.applyFixedShell();
         if (Number.isFinite(PREVIEW_WBGT)) currentWbgtLevel = wbgtLevel(PREVIEW_WBGT);
+        if (DEMO_TYPHOON_ONLY && !NO_TYPHOON) {
+            bootDisplayHold_ = false;
+            updateTyphoonFromJma_().finally(function () {
+                [s1, s2, s3, s4, s5, sceneSchedule, sceneAlert, sceneRainWarn, sceneWarn, sceneWarnHero].forEach(hideSceneEl);
+                if (sceneTyphoon) {
+                    sceneTyphoon.style.display = 'block';
+                    sceneTyphoon.classList.add('active');
+                    sceneTyphoon.style.transform = 'translateX(0px)';
+                    playingSceneEl_ = sceneTyphoon;
+                }
+                const badge = document.getElementById('demo-badge');
+                if (badge && shouldShowDemoBadge_()) { badge.hidden = false; badge.textContent = '確認 · 防災情報・台風'; }
+                playSceneTyphoon(0, function () { playSceneTyphoon(0); });
+            });
+            return;
+        }
         paintBootSplash_();
         bootMark_('shellReady');
         applySyncedUtcMs(Date.now(), 'boot-local');
