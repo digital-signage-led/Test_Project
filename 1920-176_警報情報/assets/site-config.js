@@ -1,42 +1,38 @@
-/**
- * 現場設定（名古屋市）
- * 他会場へ展開するときは site-config.template.js をコピーして書き換える。
+﻿/**
+ * 現場設定（大阪府大阪市淀川区西中島3丁目9-15 / 大鉄工業）
+ * 気象観測＋警報。横スクロール末尾にロゴ1面。
  */
 (function (global) {
   'use strict';
 
   var cfg = {
     site: {
-      customer: '株式会社エステック',
+      customer: '大鉄工業株式会社',
       rental: '',
-      label: '名古屋市',
-      address: '愛知県名古屋市',
-      /* 画面表示名 */
-      locationLabel: '名古屋市'
+      label: '淀川区',
+      address: '大阪府大阪市淀川区西中島3丁目9-15',
+      locationLabel: '淀川区'
     },
     moe: {
-      /* 環境省 WBGT（名古屋 51106）※WBGTシーン非表示でも地点は合わせておく */
       gasUrl:
         'https://script.google.com/macros/s/AKfycbzSTsappgfJTaJruOBJsbnCXSTPkeTBp39CXpvoSZsPQ0mWGs4KjSonC8_eZ2b1EeUXTQ/exec',
-      point: '51106',
+      point: '62078',
       fallbackPoint: '',
-      pointName: '名古屋',
-      alertArea: '愛知県',
-      region: '05',
-      prefecture: '51'
+      pointName: '大阪',
+      alertArea: '大阪府',
+      region: '06',
+      prefecture: '62'
     },
     jma: {
-      /* 気象庁 AMeDAS 51106（名古屋地方気象台） */
-      amedasPoint: '51106',
+      amedasPoint: '62078',
       amedasSupplementPoint: '',
-      forecastArea: '230000',
-      forecastLabel: '名古屋市',
-      warnArea: '230000',
-      warnCity: '2310000',
-      /* 気象庁コード 2310000＝名古屋市 */
-      warnCityLabel: '名古屋市'
+      forecastArea: '270000',
+      forecastLabel: '淀川区',
+      warnArea: '270000',
+      warnCity: '2710000',
+      warnCityLabel: '淀川区'
     },
-    geo: { lat: 35.16667, lon: 136.96500 },
+    geo: { lat: 34.7275, lon: 135.4995 },
     timeZone: 'Asia/Tokyo',
     refreshMs: 60000,
     footSource: '出典：気象庁・環境省データ'
@@ -45,11 +41,11 @@
   global.SignageConfig = cfg;
 
   global.SIGNAGE_CONFIG = {
-    logoSrc: '',
-    logoAlt: '',
+    logoSrc: './assets/daitetsu_logo.png?v=20261001',
+    logoAlt: '大鉄工業株式会社',
     logoPanelBg: '#ffffff',
     logoCorpSrc: '',
-    footLogoSrc: '',
+    footLogoSrc: './assets/daitetsu_logo.png?v=20261001',
     footBannerSrc: ''
   };
 })(typeof window !== 'undefined' ? window : global);
