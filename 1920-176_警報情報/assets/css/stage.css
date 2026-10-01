@@ -1,0 +1,18 @@
+/* 1920×176 サイネージ共通（余白・スクロール禁止） */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 1920px;
+  height: 176px;
+  overflow: hidden;
+  background: #000;
+}
+.stage-1920x176 {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 176px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
